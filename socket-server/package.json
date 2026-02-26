@@ -1,0 +1,20 @@
+{
+  "name": "royal-cabana-socket-server",
+  "version": "1.0.0",
+  "description": "Socket.io server for Royal Cabana real-time notifications",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "ts-node index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  }
+}

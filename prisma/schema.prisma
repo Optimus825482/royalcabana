@@ -1,0 +1,367 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ===== ENUMS =====
+
+enum Role {
+  SYSTEM_ADMIN
+  ADMIN
+  CASINO_USER
+  FNB_USER
+}
+
+enum CabanaStatus {
+  AVAILABLE
+  RESERVED
+  CLOSED
+}
+
+enum ReservationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  MODIFICATION_PENDING
+  EXTRA_PENDING
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  NEW_REQUEST
+  APPROVED
+  REJECTED
+  MODIFICATION_REQUEST
+  CANCELLATION_REQUEST
+  EXTRA_CONCEPT_REQUEST
+  EXTRA_ADDED
+  STATUS_CHANGED
+}
+
+// ===== KULLANICI VE YETKİLENDİRME =====
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+
+  reservations  Reservation[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+// ===== KABANA VE SINIFLANDIRMA =====
+
+model CabanaClass {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  defaults    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cabanas    Cabana[]
+  concepts   Concept[]
+  attributes ClassAttribute[]
+
+  @@map("cabana_classes")
+}
+
+model ClassAttribute {
+  id        String   @id @default(cuid())
+  classId   String
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+
+  cabanaClass CabanaClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, key])
+  @@map("class_attributes")
+}
+
+model Cabana {
+  id                   String       @id @default(cuid())
+  name                 String       @unique
+  classId              String
+  conceptId            String?
+  coordX               Float
+  coordY               Float
+  status               CabanaStatus @default(AVAILABLE)
+  isOpenForReservation Boolean      @default(true)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  cabanaClass  CabanaClass   @relation(fields: [classId], references: [id])
+  concept      Concept?      @relation(fields: [conceptId], references: [id])
+  reservations Reservation[]
+  prices       CabanaPrice[]
+
+  @@index([classId])
+  @@index([status])
+  @@map("cabanas")
+}
+
+// ===== KONSEPT VE ÜRÜN =====
+
+model ProductGroup {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@map("product_groups")
+}
+
+model Concept {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  classId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cabanaClass   CabanaClass?   @relation(fields: [classId], references: [id])
+  cabanas       Cabana[]
+  products      ConceptProduct[]
+  conceptPrices ConceptPrice[]
+
+  @@map("concepts")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  groupId       String?
+  purchasePrice Float
+  salePrice     Float
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  group           ProductGroup?    @relation(fields: [groupId], references: [id])
+  conceptProducts ConceptProduct[]
+  conceptPrices   ConceptPrice[]
+  extraItems      ExtraItem[]
+
+  @@index([groupId])
+  @@map("products")
+}
+
+model ConceptProduct {
+  id        String @id @default(cuid())
+  conceptId String
+  productId String
+  quantity  Int    @default(1)
+
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([conceptId, productId])
+  @@map("concept_products")
+}
+
+// ===== DİNAMİK FİYATLANDIRMA =====
+
+model CabanaPrice {
+  id         String   @id @default(cuid())
+  cabanaId   String
+  date       DateTime @db.Date
+  dailyPrice Float
+  createdAt  DateTime @default(now())
+
+  cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
+
+  @@unique([cabanaId, date])
+  @@map("cabana_prices")
+}
+
+model ConceptPrice {
+  id        String   @id @default(cuid())
+  conceptId String
+  productId String?
+  price     Float
+  createdAt DateTime @default(now())
+
+  concept Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@unique([conceptId, productId])
+  @@map("concept_prices")
+}
+
+// ===== REZERVASYON VE TALEPLER =====
+
+model Reservation {
+  id              String            @id @default(cuid())
+  cabanaId        String
+  userId          String
+  guestName       String
+  startDate       DateTime          @db.Date
+  endDate         DateTime          @db.Date
+  notes           String?
+  status          ReservationStatus @default(PENDING)
+  totalPrice      Float?
+  rejectionReason String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  cabana        Cabana                     @relation(fields: [cabanaId], references: [id])
+  user          User                       @relation(fields: [userId], references: [id])
+  statusHistory ReservationStatusHistory[]
+  modifications ModificationRequest[]
+  cancellations CancellationRequest[]
+  extraConcepts ExtraConceptRequest[]
+  extraItems    ExtraItem[]
+
+  @@index([cabanaId])
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("reservations")
+}
+
+model ReservationStatusHistory {
+  id            String             @id @default(cuid())
+  reservationId String
+  fromStatus    ReservationStatus?
+  toStatus      ReservationStatus
+  changedBy     String
+  reason        String?
+  createdAt     DateTime           @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_status_history")
+}
+
+model ModificationRequest {
+  id              String        @id @default(cuid())
+  reservationId   String
+  requestedBy     String
+  newCabanaId     String?
+  newStartDate    DateTime?     @db.Date
+  newEndDate      DateTime?     @db.Date
+  newGuestName    String?
+  status          RequestStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("modification_requests")
+}
+
+model CancellationRequest {
+  id            String        @id @default(cuid())
+  reservationId String
+  requestedBy   String
+  reason        String
+  status        RequestStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("cancellation_requests")
+}
+
+model ExtraConceptRequest {
+  id              String        @id @default(cuid())
+  reservationId   String
+  requestedBy     String
+  items           Json
+  status          RequestStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("extra_concept_requests")
+}
+
+// ===== KONSEPT DIŞI EKSTRALAR (F&B) =====
+
+model ExtraItem {
+  id            String   @id @default(cuid())
+  reservationId String
+  productId     String
+  quantity      Int      @default(1)
+  unitPrice     Float
+  addedBy       String
+  createdAt     DateTime @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
+
+  @@map("extra_items")
+}
+
+// ===== BİLDİRİM =====
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  metadata  Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ===== DENETİM KAYDI =====
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  entity    String
+  entityId  String
+  oldValue  Json?
+  newValue  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+// ===== SİSTEM KONFİGÜRASYON =====
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_configs")
+}

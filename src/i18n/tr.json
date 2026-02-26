@@ -1,0 +1,99 @@
+{
+  "nav": {
+    "systemAdmin": "Sistem Yöneticisi",
+    "admin": "Yönetici",
+    "casino": "Casino",
+    "fnb": "F&B",
+    "reports": "Raporlar",
+    "logout": "Çıkış Yap",
+    "notifications": "Bildirimler"
+  },
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "create": "Oluştur",
+    "confirm": "Onayla",
+    "yes": "Evet",
+    "no": "Hayır",
+    "search": "Ara",
+    "filter": "Filtrele",
+    "all": "Tümü",
+    "actions": "İşlemler"
+  },
+  "auth": {
+    "login": "Giriş Yap",
+    "username": "Kullanıcı Adı",
+    "password": "Şifre",
+    "loginError": "Kullanıcı adı veya şifre hatalı",
+    "logoutSuccess": "Başarıyla çıkış yapıldı"
+  },
+  "cabana": {
+    "cabana": "Kabana",
+    "cabanas": "Kabanalar",
+    "status": "Durum",
+    "available": "Müsait",
+    "reserved": "Rezerve",
+    "closed": "Kapalı",
+    "class": "Sınıf",
+    "concept": "Konsept"
+  },
+  "reservation": {
+    "reservation": "Rezervasyon",
+    "reservations": "Rezervasyonlar",
+    "pending": "Bekliyor",
+    "approved": "Onaylandı",
+    "rejected": "Reddedildi",
+    "cancelled": "İptal Edildi",
+    "guestName": "Misafir Adı",
+    "startDate": "Başlangıç Tarihi",
+    "endDate": "Bitiş Tarihi",
+    "notes": "Notlar",
+    "createRequest": "Talep Oluştur",
+    "modifyRequest": "Değişiklik Talebi",
+    "cancelRequest": "İptal Talebi",
+    "extraConcept": "Ek Konsept Talebi"
+  },
+  "notification": {
+    "notifications": "Bildirimler",
+    "markAllRead": "Tümünü Okundu İşaretle",
+    "noNotifications": "Bildirim yok",
+    "newRequest": "Yeni Talep",
+    "approved": "Onaylandı",
+    "rejected": "Reddedildi",
+    "modificationRequest": "Değişiklik Talebi",
+    "cancellationRequest": "İptal Talebi",
+    "extraConceptRequest": "Ek Konsept Talebi",
+    "extraAdded": "Ekstra Eklendi",
+    "statusChanged": "Durum Değişti"
+  },
+  "report": {
+    "reports": "Raporlar",
+    "reportType": "Rapor Tipi",
+    "occupancy": "Doluluk",
+    "revenue": "Gelir",
+    "costAnalysis": "Maliyet Analizi",
+    "requestStats": "Talep İstatistikleri",
+    "startDate": "Başlangıç Tarihi",
+    "endDate": "Bitiş Tarihi",
+    "class": "Sınıf",
+    "concept": "Konsept",
+    "exportPdf": "PDF İndir",
+    "exportExcel": "Excel İndir",
+    "createPresentation": "Sunum Oluştur",
+    "preview": "Önizleme",
+    "filters": "Filtreler",
+    "clearFilters": "Filtreleri Temizle"
+  },
+  "errors": {
+    "unauthorized": "Bu işlem için yetkiniz yok",
+    "forbidden": "Erişim yasak",
+    "notFound": "Sayfa bulunamadı",
+    "serverError": "Sunucu hatası oluştu",
+    "validationError": "Geçersiz veri",
+    "networkError": "Ağ bağlantısı hatası"
+  }
+}

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env.local
+.env*.local
+node_modules
+.next
+npm-debug.log*
+README.md
+all-icons
+all-icons.zip
+gorsel
+.kiro
+.vscode
+docker-compose.yml
+Dockerfile

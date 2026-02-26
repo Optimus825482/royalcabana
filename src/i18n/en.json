@@ -1,0 +1,99 @@
+{
+  "nav": {
+    "systemAdmin": "System Admin",
+    "admin": "Admin",
+    "casino": "Casino",
+    "fnb": "F&B",
+    "reports": "Reports",
+    "logout": "Logout",
+    "notifications": "Notifications"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "actions": "Actions"
+  },
+  "auth": {
+    "login": "Login",
+    "username": "Username",
+    "password": "Password",
+    "loginError": "Invalid username or password",
+    "logoutSuccess": "Successfully logged out"
+  },
+  "cabana": {
+    "cabana": "Cabana",
+    "cabanas": "Cabanas",
+    "status": "Status",
+    "available": "Available",
+    "reserved": "Reserved",
+    "closed": "Closed",
+    "class": "Class",
+    "concept": "Concept"
+  },
+  "reservation": {
+    "reservation": "Reservation",
+    "reservations": "Reservations",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled",
+    "guestName": "Guest Name",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "notes": "Notes",
+    "createRequest": "Create Request",
+    "modifyRequest": "Modification Request",
+    "cancelRequest": "Cancellation Request",
+    "extraConcept": "Extra Concept Request"
+  },
+  "notification": {
+    "notifications": "Notifications",
+    "markAllRead": "Mark All as Read",
+    "noNotifications": "No notifications",
+    "newRequest": "New Request",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "modificationRequest": "Modification Request",
+    "cancellationRequest": "Cancellation Request",
+    "extraConceptRequest": "Extra Concept Request",
+    "extraAdded": "Extra Added",
+    "statusChanged": "Status Changed"
+  },
+  "report": {
+    "reports": "Reports",
+    "reportType": "Report Type",
+    "occupancy": "Occupancy",
+    "revenue": "Revenue",
+    "costAnalysis": "Cost Analysis",
+    "requestStats": "Request Statistics",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "class": "Class",
+    "concept": "Concept",
+    "exportPdf": "Export PDF",
+    "exportExcel": "Export Excel",
+    "createPresentation": "Create Presentation",
+    "preview": "Preview",
+    "filters": "Filters",
+    "clearFilters": "Clear Filters"
+  },
+  "errors": {
+    "unauthorized": "You are not authorized to perform this action",
+    "forbidden": "Access forbidden",
+    "notFound": "Page not found",
+    "serverError": "A server error occurred",
+    "validationError": "Invalid data",
+    "networkError": "Network connection error"
+  }
+}
