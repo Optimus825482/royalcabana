@@ -119,7 +119,7 @@ export default function FnBPage() {
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading && (

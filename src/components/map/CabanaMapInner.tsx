@@ -253,10 +253,7 @@ export default function CabanaMapInner({
       )}
 
       {/* Harita */}
-      <div
-        className="flex-1 rounded-lg overflow-hidden border border-gray-200"
-        style={{ minHeight: 400 }}
-      >
+      <div className="flex-1 rounded-lg overflow-hidden border border-gray-200 min-h-[280px] md:min-h-[400px]">
         <MapContainer
           crs={L.CRS.Simple}
           bounds={MAP_BOUNDS}

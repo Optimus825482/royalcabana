@@ -148,15 +148,15 @@ export default function CasinoMapPage() {
       )}
 
       {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* Map area */}
-        <div className="flex-1 p-4 min-h-0">
+        <div className="flex-1 p-4 min-h-0 min-h-[300px] md:min-h-0">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full min-h-[300px]">
               <LoadingSpinner message="Kabanalar yükleniyor..." />
             </div>
           ) : (
-            <div className="h-full min-h-[500px]">
+            <div className="h-full min-h-[300px] md:min-h-[500px]">
               <CabanaMap
                 cabanas={cabanas}
                 editable={false}
@@ -167,8 +167,8 @@ export default function CasinoMapPage() {
           )}
         </div>
 
-        {/* Right detail panel */}
-        <div className="w-80 shrink-0 border-l border-neutral-800 bg-neutral-900 flex flex-col overflow-y-auto">
+        {/* Detail panel */}
+        <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-neutral-800 bg-neutral-900 flex flex-col overflow-y-auto max-h-[50vh] md:max-h-none">
           {!selectedCabana ? (
             <div className="flex flex-col items-center justify-center flex-1 text-neutral-500 text-sm px-6 text-center gap-2">
               <svg
