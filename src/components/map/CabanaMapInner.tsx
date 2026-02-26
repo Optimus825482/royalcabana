@@ -15,20 +15,22 @@ import { CabanaWithStatus, CabanaStatus } from "@/types";
 
 // ─── Tesis merkez koordinatı (değiştirilebilir) ─────────────────────────────
 const DEFAULT_CENTER: L.LatLngExpression = [35.355698, 33.210415]; // Merit Royal, Alsancak, Kıbrıs
-const DEFAULT_ZOOM = 18;
+const DEFAULT_ZOOM = 19;
 
 // ─── Tile Layer kaynakları ───────────────────────────────────────────────────
 const TILE_LAYERS = {
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution: "Tiles &copy; Esri",
+    maxNativeZoom: 19,
     maxZoom: 22,
   },
   street: {
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-    maxZoom: 20,
+    maxNativeZoom: 19,
+    maxZoom: 22,
   },
 } as const;
 
@@ -332,6 +334,7 @@ export default function CabanaMapInner({
             url={tile.url}
             attribution={tile.attribution}
             maxZoom={tile.maxZoom}
+            maxNativeZoom={tile.maxNativeZoom}
           />
 
           {editable && onMapClick && (
