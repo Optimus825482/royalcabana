@@ -1,7 +1,7 @@
 import { config } from "dotenv";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
-// Next.js .env.local dosyasını yükle
+// Next.js .env.local dosyasını yükle (yoksa process.env'den okur)
 config({ path: ".env.local" });
 
 export default defineConfig({
@@ -11,6 +11,6 @@ export default defineConfig({
     seed: 'ts-node --compiler-options {"module":"CommonJS"} prisma/seed.ts',
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: process.env.DATABASE_URL!,
   },
 });
