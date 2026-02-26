@@ -22,7 +22,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Royal Cabana",
+  title: {
+    default: "Royal Cabana",
+    template: "%s | Royal Cabana",
+  },
   description: "Royal Cabana Yönetim Sistemi",
   manifest: "/manifest.json",
   appleWebApp: {
@@ -32,15 +35,24 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/Icon-32.png", sizes: "32x32" },
-      { url: "/icons/Icon-96.png", sizes: "96x96" },
-      { url: "/icons/Icon-192.png", sizes: "192x192" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/Icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/Icon-96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icons/Icon-192.png", sizes: "192x192", type: "image/png" },
     ],
     apple: [
-      { url: "/icons/Icon-180.png", sizes: "180x180" },
-      { url: "/icons/Icon-152.png", sizes: "152x152" },
-      { url: "/icons/Icon-120.png", sizes: "120x120" },
+      { url: "/icons/Icon-180.png", sizes: "180x180", type: "image/png" },
+      { url: "/icons/Icon-152.png", sizes: "152x152", type: "image/png" },
+      { url: "/icons/Icon-120.png", sizes: "120x120", type: "image/png" },
     ],
+    shortcut: "/icons/Icon-96.png",
+  },
+  openGraph: {
+    title: "Royal Cabana",
+    description: "Royal Cabana Yönetim Sistemi",
+    siteName: "Royal Cabana",
+    locale: "tr_TR",
+    type: "website",
   },
 };
 
@@ -51,29 +63,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr">
-      <head>
-        <link
-          rel="apple-touch-icon"
-          sizes="180x180"
-          href="/icons/Icon-180.png"
-        />
-        <link
-          rel="apple-touch-icon"
-          sizes="152x152"
-          href="/icons/Icon-152.png"
-        />
-        <link
-          rel="apple-touch-icon"
-          sizes="120x120"
-          href="/icons/Icon-120.png"
-        />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="black-translucent"
-        />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
