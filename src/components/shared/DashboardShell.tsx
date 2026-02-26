@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import IntroLoader from "./IntroLoader";
 
+// Module-level flag: SPA navigasyonunda tekrar gösterme,
+// ama hard refresh / ilk yüklemede her zaman göster
+let introShownInSession = false;
+
 export default function DashboardShell({
   children,
 }: {
@@ -12,22 +16,20 @@ export default function DashboardShell({
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const shown = sessionStorage.getItem("intro_shown");
-    if (!shown) {
+    if (!introShownInSession) {
       setShowIntro(true);
     }
     setReady(true);
   }, []);
 
   function handleDone() {
-    sessionStorage.setItem("intro_shown", "1");
+    introShownInSession = true;
     setShowIntro(false);
   }
 
   return (
     <>
       {showIntro && <IntroLoader onDone={handleDone} />}
-      {/* İçerik her zaman render edilir, intro üstünde overlay olarak durur */}
       <div className={ready ? undefined : "invisible"}>{children}</div>
     </>
   );
