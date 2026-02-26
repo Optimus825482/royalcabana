@@ -330,9 +330,9 @@ export default function ProductsPage() {
   const ungrouped = products.filter((p) => p.groupId === null);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
             Ürün Yönetimi
@@ -348,7 +348,7 @@ export default function ProductsPage() {
               setGroupForm(defaultGroupForm);
               setGroupError("");
             }}
-            className="border border-yellow-600/50 hover:border-yellow-500 text-yellow-500 hover:text-yellow-400 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            className="min-h-[44px] border border-yellow-600/50 hover:border-yellow-500 text-yellow-500 hover:text-yellow-400 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
           >
             + Yeni Grup
           </button>
@@ -360,7 +360,7 @@ export default function ProductsPage() {
               setCreatePriceWarn(false);
               setCreatePriceOk(false);
             }}
-            className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
           >
             + Yeni Ürün
           </button>
@@ -390,10 +390,10 @@ export default function ProductsPage() {
               className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden"
             >
               {/* Group header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800">
+              <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-neutral-800">
                 <button
                   onClick={() => toggleCollapse(group.id)}
-                  className="flex items-center gap-2 text-left flex-1"
+                  className="min-h-[44px] flex items-center gap-2 text-left flex-1"
                 >
                   <ChevronIcon collapsed={!!collapsed[group.id]} />
                   <span className="text-sm font-semibold text-yellow-400">
@@ -406,7 +406,7 @@ export default function ProductsPage() {
                 <div className="flex gap-2 ml-4">
                   <button
                     onClick={() => openEditGroup(group)}
-                    className="text-xs px-2.5 py-1 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                   >
                     Düzenle
                   </button>
@@ -415,7 +415,7 @@ export default function ProductsPage() {
                       setDeleteGroup(group);
                       setDeleteGroupError("");
                     }}
-                    className="text-xs px-2.5 py-1 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
                   >
                     Sil
                   </button>
@@ -443,10 +443,10 @@ export default function ProductsPage() {
           {/* Ungrouped */}
           {ungrouped.length > 0 && (
             <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3 border-b border-neutral-800">
+              <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-neutral-800">
                 <button
                   onClick={() => toggleCollapse("__ungrouped")}
-                  className="flex items-center gap-2 flex-1 text-left"
+                  className="min-h-[44px] flex items-center gap-2 flex-1 text-left"
                 >
                   <ChevronIcon collapsed={!!collapsed["__ungrouped"]} />
                   <span className="text-sm font-semibold text-neutral-400">
@@ -690,7 +690,7 @@ export default function ProductsPage() {
                 <button
                   onClick={handleDelete}
                   disabled={deleteLoading}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+                  className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
                 >
                   {deleteLoading ? "Siliniyor..." : "Sil"}
                 </button>
@@ -834,7 +834,7 @@ export default function ProductsPage() {
                 <button
                   onClick={handleDeleteGroup}
                   disabled={deleteGroupLoading}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+                  className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
                 >
                   {deleteGroupLoading ? "Siliniyor..." : "Sil"}
                 </button>
@@ -877,64 +877,119 @@ function ProductTable({
   onDelete: (p: Product) => void;
 }) {
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-neutral-800 text-neutral-500 text-xs uppercase tracking-wide">
-          <th className="text-left px-5 py-3 font-medium">Ürün Adı</th>
-          <th className="text-right px-5 py-3 font-medium">Alış Fiyatı</th>
-          <th className="text-right px-5 py-3 font-medium">Satış Fiyatı</th>
-          <th className="text-center px-5 py-3 font-medium">Durum</th>
-          <th className="text-right px-5 py-3 font-medium">İşlemler</th>
-        </tr>
-      </thead>
-      <tbody>
-        {products.map((p, i) => (
-          <tr
-            key={p.id}
-            className={
-              i !== products.length - 1 ? "border-b border-neutral-800/60" : ""
-            }
-          >
-            <td className="px-5 py-3.5 font-medium text-neutral-100">
-              {p.name}
-            </td>
-            <td className="px-5 py-3.5 text-right text-neutral-300">
-              {formatTRY(p.purchasePrice)}
-            </td>
-            <td className="px-5 py-3.5 text-right text-yellow-400 font-medium">
-              {formatTRY(p.salePrice)}
-            </td>
-            <td className="px-5 py-3.5 text-center">
+    <>
+      {/* Desktop table */}
+      <table className="w-full text-sm hidden md:table">
+        <thead>
+          <tr className="border-b border-neutral-800 text-neutral-500 text-xs uppercase tracking-wide">
+            <th className="text-left px-5 py-3 font-medium">Ürün Adı</th>
+            <th className="text-right px-5 py-3 font-medium">Alış Fiyatı</th>
+            <th className="text-right px-5 py-3 font-medium">Satış Fiyatı</th>
+            <th className="text-center px-5 py-3 font-medium">Durum</th>
+            <th className="text-right px-5 py-3 font-medium">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((p, i) => (
+            <tr
+              key={p.id}
+              className={
+                i !== products.length - 1
+                  ? "border-b border-neutral-800/60"
+                  : ""
+              }
+            >
+              <td className="px-5 py-3.5 font-medium text-neutral-100">
+                {p.name}
+              </td>
+              <td className="px-5 py-3.5 text-right text-neutral-300">
+                {formatTRY(p.purchasePrice)}
+              </td>
+              <td className="px-5 py-3.5 text-right text-yellow-400 font-medium">
+                {formatTRY(p.salePrice)}
+              </td>
+              <td className="px-5 py-3.5 text-center">
+                <span
+                  className={
+                    p.isActive
+                      ? "text-xs px-2.5 py-1 rounded-full bg-green-950/40 text-green-400 border border-green-800/30"
+                      : "text-xs px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-500 border border-neutral-700"
+                  }
+                >
+                  {p.isActive ? "Aktif" : "Pasif"}
+                </span>
+              </td>
+              <td className="px-5 py-3.5 text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => onEdit(p)}
+                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                  >
+                    Düzenle
+                  </button>
+                  <button
+                    onClick={() => onDelete(p)}
+                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                  >
+                    Sil
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Mobile cards */}
+      <div className="md:hidden divide-y divide-neutral-800">
+        {products.map((p) => (
+          <div key={p.id} className="px-4 py-3 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-medium text-neutral-100 text-sm">
+                {p.name}
+              </span>
               <span
                 className={
                   p.isActive
-                    ? "text-xs px-2.5 py-1 rounded-full bg-green-950/40 text-green-400 border border-green-800/30"
-                    : "text-xs px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-500 border border-neutral-700"
+                    ? "text-xs px-2.5 py-1 rounded-full bg-green-950/40 text-green-400 border border-green-800/30 shrink-0"
+                    : "text-xs px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-500 border border-neutral-700 shrink-0"
                 }
               >
                 {p.isActive ? "Aktif" : "Pasif"}
               </span>
-            </td>
-            <td className="px-5 py-3.5 text-right">
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  onClick={() => onEdit(p)}
-                  className="text-xs px-3 py-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                >
-                  Düzenle
-                </button>
-                <button
-                  onClick={() => onDelete(p)}
-                  className="text-xs px-3 py-1.5 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-                >
-                  Sil
-                </button>
-              </div>
-            </td>
-          </tr>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <span className="text-neutral-500">
+                Alış:{" "}
+                <span className="text-neutral-300">
+                  {formatTRY(p.purchasePrice)}
+                </span>
+              </span>
+              <span className="text-neutral-500">
+                Satış:{" "}
+                <span className="text-yellow-400 font-medium">
+                  {formatTRY(p.salePrice)}
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={() => onEdit(p)}
+                className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+              >
+                Düzenle
+              </button>
+              <button
+                onClick={() => onDelete(p)}
+                className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+              >
+                Sil
+              </button>
+            </div>
+          </div>
         ))}
-      </tbody>
-    </table>
+      </div>
+    </>
   );
 }
 
@@ -948,13 +1003,13 @@ function Modal({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-md sm:mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 sticky top-0 bg-neutral-900 z-10">
           <h2 className="text-sm font-semibold text-yellow-400">{title}</h2>
           <button
             onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
           >
             ×
           </button>
@@ -1016,10 +1071,10 @@ function ErrorMsg({ msg }: { msg: string }) {
 }
 
 const inputCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-3 py-2 text-sm outline-none transition-colors placeholder:text-neutral-600";
+  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg min-h-[44px] px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600";
 const selectCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-3 py-2 text-sm outline-none transition-colors";
+  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg min-h-[44px] px-4 py-3 text-base sm:text-sm outline-none transition-colors";
 const cancelBtnCls =
-  "px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
+  "min-h-[44px] px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
 const submitBtnCls =
-  "px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";
+  "min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";

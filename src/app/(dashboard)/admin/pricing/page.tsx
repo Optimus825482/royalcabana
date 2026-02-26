@@ -56,7 +56,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-5 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
+      className={`px-5 py-2.5 min-h-[44px] text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${
         active
           ? "bg-neutral-800 text-amber-400 border-b-2 border-amber-400"
           : "text-neutral-400 hover:text-neutral-200"
@@ -145,7 +145,7 @@ function CabanaPricesTab({ cabanas }: { cabanas: Cabana[] }) {
           <select
             value={selectedCabana}
             onChange={(e) => setSelectedCabana(e.target.value)}
-            className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-neutral-100 min-w-[180px]"
+            className="bg-neutral-800 border border-neutral-700 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 min-w-[180px] min-h-[44px]"
           >
             <option value="">Kabana seçin</option>
             {cabanas.map((c) => (
@@ -161,14 +161,14 @@ function CabanaPricesTab({ cabanas }: { cabanas: Cabana[] }) {
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-neutral-100"
+            className="bg-neutral-800 border border-neutral-700 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 min-h-[44px]"
           />
         </div>
       </div>
 
       {selectedCabana && month && daysInMonth > 0 && (
         <>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
             {Array.from({ length: daysInMonth }, (_, i) => {
               const day = i + 1;
               const key = formatDate(year, mon, day);
@@ -196,7 +196,7 @@ function CabanaPricesTab({ cabanas }: { cabanas: Cabana[] }) {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-950 font-semibold px-5 py-2 rounded text-sm transition-colors"
+              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-950 font-semibold px-5 py-2 min-h-[44px] rounded text-sm transition-colors"
             >
               {saving ? "Kaydediliyor..." : "Kaydet"}
             </button>
@@ -280,7 +280,7 @@ function ConceptPricesTab({ concepts }: { concepts: Concept[] }) {
             setSelectedConcept(e.target.value);
             setConceptPrices({});
           }}
-          className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-neutral-100"
+          className="bg-neutral-800 border border-neutral-700 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 min-h-[44px]"
         >
           <option value="">Konsept seçin</option>
           {concepts.map((c) => (
@@ -317,7 +317,7 @@ function ConceptPricesTab({ concepts }: { concepts: Concept[] }) {
                       [product.id]: e.target.value,
                     }))
                   }
-                  className="bg-neutral-700 border border-neutral-600 rounded px-3 py-1.5 text-sm text-neutral-100 w-32 text-right"
+                  className="bg-neutral-700 border border-neutral-600 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 w-32 text-right min-h-[44px]"
                 />
                 <span className="text-xs text-neutral-500">₺</span>
               </div>
@@ -410,7 +410,7 @@ function PricePreviewTab({
             onChange={(e) =>
               setForm((p) => ({ ...p, cabanaId: e.target.value }))
             }
-            className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-neutral-100 min-w-[160px]"
+            className="bg-neutral-800 border border-neutral-700 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 min-w-[160px] min-h-[44px]"
           >
             <option value="">Seçin</option>
             {cabanas.map((c) => (
@@ -429,7 +429,7 @@ function PricePreviewTab({
             onChange={(e) =>
               setForm((p) => ({ ...p, conceptId: e.target.value }))
             }
-            className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-neutral-100 min-w-[160px]"
+            className="bg-neutral-800 border border-neutral-700 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 min-w-[160px] min-h-[44px]"
           >
             <option value="">Yok</option>
             {concepts.map((c) => (
@@ -447,7 +447,7 @@ function PricePreviewTab({
             onChange={(e) =>
               setForm((p) => ({ ...p, startDate: e.target.value }))
             }
-            className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-neutral-100"
+            className="bg-neutral-800 border border-neutral-700 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 min-h-[44px]"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -458,14 +458,14 @@ function PricePreviewTab({
             onChange={(e) =>
               setForm((p) => ({ ...p, endDate: e.target.value }))
             }
-            className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-neutral-100"
+            className="bg-neutral-800 border border-neutral-700 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 min-h-[44px]"
           />
         </div>
         <div className="flex items-end">
           <button
             onClick={handleCalculate}
             disabled={loading}
-            className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-950 font-semibold px-5 py-2 rounded text-sm transition-colors"
+            className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-950 font-semibold px-5 py-2 min-h-[44px] rounded text-sm transition-colors"
           >
             {loading ? "Hesaplanıyor..." : "Hesapla"}
           </button>
@@ -557,12 +557,12 @@ export default function PricingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
       <h1 className="text-2xl font-bold text-amber-400 mb-6">
         Fiyatlandırma Yönetimi
       </h1>
 
-      <div className="border-b border-neutral-800 mb-6 flex gap-1">
+      <div className="border-b border-neutral-800 mb-6 flex gap-1 overflow-x-auto">
         <TabButton active={tab === "cabana"} onClick={() => setTab("cabana")}>
           Kabana Fiyatları
         </TabButton>
@@ -574,7 +574,7 @@ export default function PricingPage() {
         </TabButton>
       </div>
 
-      <div className="bg-neutral-900 rounded-lg p-6">
+      <div className="bg-neutral-900 rounded-lg p-4 sm:p-6">
         {tab === "cabana" && <CabanaPricesTab cabanas={cabanas} />}
         {tab === "concept" && <ConceptPricesTab concepts={concepts} />}
         {tab === "preview" && (

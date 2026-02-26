@@ -33,6 +33,7 @@ interface EditForm {
   email: string;
   role: Role.CASINO_USER | Role.FNB_USER;
   isActive: boolean;
+  newPassword: string;
 }
 
 const defaultCreateForm: CreateForm = {
@@ -66,10 +67,13 @@ async function updateUser(
   id: string,
   data: Partial<EditForm>,
 ): Promise<UserRow> {
+  const { newPassword, ...rest } = data as EditForm;
+  const body: Record<string, unknown> = { ...rest };
+  if (newPassword) body.password = newPassword;
   const res = await fetch(`/api/users/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json();
@@ -155,13 +159,14 @@ export default function AdminUsersPage() {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      newPassword: "",
     });
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
             Kullanıcı Yönetimi
@@ -174,7 +179,7 @@ export default function AdminUsersPage() {
           onClick={() => {
             setShowCreate(true);
           }}
-          className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+          className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
         >
           + Yeni Kullanıcı
         </button>
@@ -194,7 +199,7 @@ export default function AdminUsersPage() {
       )}
 
       {/* Role filter tabs */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 overflow-x-auto">
         {[
           { value: "ALL", label: "Tümü" },
           { value: Role.CASINO_USER, label: "Casino Kullanıcıları" },
@@ -203,7 +208,7 @@ export default function AdminUsersPage() {
           <button
             key={tab.value}
             onClick={() => setRoleFilter(tab.value)}
-            className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${
+            className={`text-sm px-4 py-1.5 min-h-[44px] rounded-lg transition-colors whitespace-nowrap ${
               roleFilter === tab.value
                 ? "bg-yellow-600 text-neutral-950 font-semibold"
                 : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"
@@ -214,8 +219,8 @@ export default function AdminUsersPage() {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+      {/* Table — Desktop */}
+      <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
             Yükleniyor...
@@ -273,14 +278,14 @@ export default function AdminUsersPage() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => openEdit(user)}
-                        className="text-xs px-3 py-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                        className="text-xs px-3 py-1.5 min-h-[44px] rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                       >
                         Düzenle
                       </button>
                       {user.isActive && (
                         <button
                           onClick={() => setDeactivateTarget(user)}
-                          className="text-xs px-3 py-1.5 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                          className="text-xs px-3 py-1.5 min-h-[44px] rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
                         >
                           Devre Dışı
                         </button>
@@ -291,6 +296,75 @@ export default function AdminUsersPage() {
               ))}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {/* Mobile Card Layout */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
+            Yükleniyor...
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
+            Kullanıcı bulunamadı.
+          </div>
+        ) : (
+          users.map((user) => (
+            <div
+              key={user.id}
+              className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-neutral-100">
+                    {user.username}
+                  </p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {user.email}
+                  </p>
+                </div>
+                {user.isActive ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-950/60 text-green-400 border border-green-800/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    Aktif
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-500 border border-neutral-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+                    Pasif
+                  </span>
+                )}
+              </div>
+              <div>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                    user.role === Role.CASINO_USER
+                      ? "bg-blue-950/50 text-blue-400 border-blue-800/40"
+                      : "bg-purple-950/50 text-purple-400 border-purple-800/40"
+                  }`}
+                >
+                  {ROLE_LABELS[user.role]}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openEdit(user)}
+                  className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                >
+                  Düzenle
+                </button>
+                {user.isActive && (
+                  <button
+                    onClick={() => setDeactivateTarget(user)}
+                    className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                  >
+                    Devre Dışı
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
         )}
       </div>
 
@@ -463,6 +537,20 @@ export default function AdminUsersPage() {
                 <option value="false">Pasif</option>
               </select>
             </Field>
+            <Field label="Yeni Şifre">
+              <input
+                type="password"
+                minLength={6}
+                value={editForm.newPassword}
+                onChange={(e) =>
+                  setEditForm((f) =>
+                    f ? { ...f, newPassword: e.target.value } : f,
+                  )
+                }
+                className={inputCls}
+                placeholder="Boş bırakılırsa değişmez"
+              />
+            </Field>
             {updateMutation.isError && (
               <ErrorMsg msg={(updateMutation.error as Error).message} />
             )}
@@ -534,13 +622,13 @@ function Modal({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-md sm:mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 sticky top-0 bg-neutral-900 z-10">
           <h2 className="text-sm font-semibold text-yellow-400">{title}</h2>
           <button
             onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
           >
             ×
           </button>
@@ -575,10 +663,10 @@ function ErrorMsg({ msg }: { msg: string }) {
 }
 
 const inputCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-3 py-2 text-sm outline-none transition-colors placeholder:text-neutral-600";
+  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600";
 
 const cancelBtnCls =
-  "px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
+  "px-4 py-2 min-h-[44px] text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
 
 const submitBtnCls =
-  "px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";
+  "px-4 py-2 min-h-[44px] text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";

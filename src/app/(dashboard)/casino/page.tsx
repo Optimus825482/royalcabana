@@ -25,7 +25,7 @@ const MENU_ITEMS = [
 
 export default function CasinoDashboard() {
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-yellow-400">
@@ -41,7 +41,7 @@ export default function CasinoDashboard() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col gap-2 p-5 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-yellow-700/50 hover:bg-neutral-800/60 transition-all group"
+              className="flex flex-col gap-2 p-5 min-h-[44px] bg-neutral-900 border border-neutral-800 rounded-xl hover:border-yellow-700/50 hover:bg-neutral-800/60 transition-all active:scale-[0.98] group"
             >
               <span className="text-2xl">{item.icon}</span>
               <span className="font-medium text-neutral-100 group-hover:text-yellow-400 transition-colors">

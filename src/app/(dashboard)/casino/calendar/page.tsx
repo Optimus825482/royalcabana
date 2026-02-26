@@ -221,7 +221,7 @@ export default function CasinoCalendarPage() {
         <select
           value={classFilter}
           onChange={(e) => setClassFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-300 focus:outline-none focus:border-yellow-500"
+          className="px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-300 focus:outline-none focus:border-yellow-500 min-h-[44px]"
         >
           <option value="">Tüm Sınıflar</option>
           {classes.map(([id, name]) => (
@@ -257,7 +257,7 @@ export default function CasinoCalendarPage() {
 
         {/* Detail panel */}
         {selectedReservation && (
-          <div className="w-72 shrink-0 border-l border-neutral-800 bg-neutral-900 overflow-y-auto">
+          <div className="fixed inset-0 z-40 bg-neutral-900 md:static md:inset-auto md:z-auto md:w-72 shrink-0 md:border-l border-neutral-800 md:bg-neutral-900 overflow-y-auto">
             <div className="p-4 space-y-4">
               <div className="flex items-start justify-between gap-2">
                 <h2 className="text-sm font-semibold text-yellow-400">
@@ -265,7 +265,7 @@ export default function CasinoCalendarPage() {
                 </h2>
                 <button
                   onClick={() => setSelectedReservation(null)}
-                  className="text-neutral-600 hover:text-neutral-400 text-lg leading-none"
+                  className="w-11 h-11 flex items-center justify-center text-neutral-600 hover:text-neutral-400 text-lg leading-none"
                 >
                   ×
                 </button>

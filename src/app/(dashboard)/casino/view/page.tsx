@@ -204,7 +204,9 @@ export default function CasinoViewPage() {
         </div>
 
         {/* Right detail panel */}
-        <div className="w-80 shrink-0 border-l border-neutral-800 bg-neutral-900 flex flex-col overflow-y-auto">
+        <div
+          className={`fixed inset-0 z-40 bg-neutral-900 md:static md:inset-auto md:z-auto md:w-80 shrink-0 md:border-l border-neutral-800 md:bg-neutral-900 flex flex-col overflow-y-auto ${!selectedCabana ? "hidden md:flex" : ""}`}
+        >
           {!selectedCabana ? (
             <div className="flex flex-col items-center justify-center flex-1 text-neutral-500 text-sm px-6 text-center gap-2">
               <svg

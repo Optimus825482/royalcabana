@@ -93,7 +93,7 @@ export default function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
-              className="w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-neutral-600 disabled:opacity-50"
+              className="w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600 disabled:opacity-50"
               placeholder="Kullanıcı adınızı girin"
             />
           </div>
@@ -112,7 +112,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              className="w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-neutral-600 disabled:opacity-50"
+              className="w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600 disabled:opacity-50"
               placeholder="Şifrenizi girin"
             />
           </div>
@@ -126,7 +126,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:bg-yellow-800 disabled:cursor-not-allowed text-neutral-950 font-semibold rounded-lg py-2.5 text-sm transition-colors"
+            className="w-full min-h-[44px] bg-yellow-600 hover:bg-yellow-500 disabled:bg-yellow-800 disabled:cursor-not-allowed text-neutral-950 font-semibold rounded-lg py-2.5 text-sm transition-colors"
           >
             {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>

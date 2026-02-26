@@ -56,7 +56,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
       <h1 className="text-2xl font-bold text-amber-400 mb-8">
         Admin Dashboard
       </h1>

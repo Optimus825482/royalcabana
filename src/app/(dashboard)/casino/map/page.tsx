@@ -106,7 +106,7 @@ export default function CasinoMapPage() {
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
       {/* System closed banner */}
       {!configLoading && !systemOpen && (
-        <div className="px-6 py-3 bg-amber-950/60 border-b border-amber-700/40 flex items-center gap-2 shrink-0">
+        <div className="px-4 sm:px-6 py-3 bg-amber-950/60 border-b border-amber-700/40 flex items-center gap-2 shrink-0">
           <svg
             className="w-4 h-4 text-amber-400 shrink-0"
             fill="none"
@@ -127,7 +127,7 @@ export default function CasinoMapPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center px-6 py-4 border-b border-neutral-800 shrink-0">
+      <div className="flex items-center px-4 sm:px-6 py-4 border-b border-neutral-800 shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
             Kabana Haritası
@@ -140,7 +140,7 @@ export default function CasinoMapPage() {
 
       {/* Error */}
       {fetchError && (
-        <div className="px-6 pt-3 shrink-0">
+        <div className="px-4 sm:px-6 pt-3 shrink-0">
           <div className="px-4 py-2.5 bg-red-950/40 border border-red-800/40 text-red-400 text-sm rounded-lg">
             {fetchError}
           </div>
@@ -262,7 +262,7 @@ export default function CasinoMapPage() {
                           ? "Bu kabana rezervasyona kapalı"
                           : undefined
                   }
-                  className="w-full py-2.5 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 transition-colors"
+                  className="w-full min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 transition-colors"
                 >
                   Rezervasyon Talebi Oluştur
                 </button>

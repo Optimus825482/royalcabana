@@ -94,7 +94,7 @@ export default function FnBPage() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-neutral-800 shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
             F&B Rezervasyon Takibi
@@ -107,7 +107,7 @@ export default function FnBPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-300 focus:outline-none focus:border-yellow-500"
+          className="min-h-[44px] px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-300 focus:outline-none focus:border-yellow-500"
         >
           <option value="">Tüm Durumlar</option>
           {Object.entries(STATUS_LABEL).map(([val, label]) => (
@@ -120,8 +120,10 @@ export default function FnBPage() {
 
       {/* Content */}
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-        {/* List */}
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* List — hide on mobile when detail selected */}
+        <div
+          className={`flex-1 overflow-y-auto p-4 ${selected ? "hidden md:block" : ""}`}
+        >
           {isLoading && (
             <div className="flex items-center justify-center h-48 text-neutral-500 text-sm">
               <div className="flex flex-col items-center gap-2">
@@ -148,7 +150,7 @@ export default function FnBPage() {
               <button
                 key={r.id}
                 onClick={() => setSelected(r)}
-                className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                className={`w-full text-left px-4 py-3 min-h-[44px] rounded-xl border transition-colors ${
                   selected?.id === r.id
                     ? "bg-neutral-800 border-yellow-700/40"
                     : "bg-neutral-900 border-neutral-800 hover:border-neutral-700"
@@ -196,17 +198,25 @@ export default function FnBPage() {
           </div>
         </div>
 
-        {/* Detail panel */}
+        {/* Detail panel — fullscreen on mobile, side panel on desktop */}
         {selected && (
-          <div className="w-80 shrink-0 border-l border-neutral-800 bg-neutral-900 overflow-y-auto">
+          <div className="fixed inset-0 z-40 bg-neutral-900 overflow-y-auto md:static md:z-auto md:w-80 md:shrink-0 md:border-l md:border-neutral-800">
             <div className="p-5 space-y-5">
               <div className="flex items-start justify-between gap-2">
-                <h2 className="text-sm font-semibold text-yellow-400">
-                  {selected.guestName}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSelected(null)}
+                    className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+                  >
+                    ←
+                  </button>
+                  <h2 className="text-sm font-semibold text-yellow-400">
+                    {selected.guestName}
+                  </h2>
+                </div>
                 <button
                   onClick={() => setSelected(null)}
-                  className="text-neutral-600 hover:text-neutral-400 text-lg leading-none"
+                  className="hidden md:flex w-11 h-11 items-center justify-center text-neutral-600 hover:text-neutral-400 text-lg leading-none"
                 >
                   ×
                 </button>

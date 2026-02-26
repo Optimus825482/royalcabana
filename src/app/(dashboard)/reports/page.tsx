@@ -236,7 +236,7 @@ export default function ReportsPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-amber-400">
@@ -272,7 +272,7 @@ export default function ReportsPage() {
                 <button
                   key={type}
                   onClick={() => setReportType(type)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  className={`w-full text-left px-4 py-3 min-h-[44px] rounded-lg text-sm transition-colors ${
                     reportType === type
                       ? "bg-amber-500/15 border border-amber-500/40 text-amber-300"
                       : "bg-neutral-800/50 border border-neutral-700/50 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
@@ -469,7 +469,7 @@ function ActionButton({
   className?: string;
 }) {
   const base =
-    "flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+    "flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
   const styles =
     variant === "primary"
       ? "bg-amber-600 hover:bg-amber-500 text-neutral-950"
@@ -488,4 +488,4 @@ function ActionButton({
 }
 
 const inputCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-amber-500 text-neutral-100 rounded-lg px-3 py-2 text-sm outline-none transition-colors placeholder:text-neutral-600";
+  "w-full min-h-[44px] bg-neutral-800 border border-neutral-700 focus:border-amber-500 text-neutral-100 rounded-lg px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600";

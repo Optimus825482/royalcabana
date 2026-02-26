@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
@@ -11,6 +12,7 @@ const ADMIN_ALLOWED_ROLES = [Role.CASINO_USER, Role.FNB_USER];
 const updateUserSchema = z.object({
   username: z.string().min(3).optional(),
   email: z.string().email().optional(),
+  password: z.string().min(6).optional(),
   role: z.nativeEnum(Role).optional(),
   isActive: z.boolean().optional(),
 });
@@ -79,9 +81,16 @@ export async function PATCH(
     );
   }
 
+  // Build update data, hash password if provided
+  const { password, ...restData } = parsed.data;
+  const updateData: Record<string, unknown> = { ...restData };
+  if (password) {
+    updateData.passwordHash = await bcrypt.hash(password, 10);
+  }
+
   const updated = await prisma.user.update({
     where: { id },
-    data: parsed.data,
+    data: updateData,
     select: {
       id: true,
       username: true,
@@ -94,6 +103,8 @@ export async function PATCH(
     },
   });
 
+  // Exclude password from audit log
+  const { password: _pw, ...auditNewValue } = parsed.data;
   await prisma.auditLog.create({
     data: {
       userId: session.user.id,
@@ -106,7 +117,10 @@ export async function PATCH(
         role: user.role,
         isActive: user.isActive,
       } as Prisma.InputJsonValue,
-      newValue: parsed.data as Prisma.InputJsonValue,
+      newValue: {
+        ...auditNewValue,
+        ...(password ? { passwordChanged: true } : {}),
+      } as Prisma.InputJsonValue,
     },
   });
 

@@ -130,7 +130,7 @@ export default function SystemControlPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-yellow-400">
           Sistem Kontrolü
@@ -177,14 +177,14 @@ export default function SystemControlPage() {
               <button
                 onClick={handleSystemToggle}
                 disabled={systemToggling}
-                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
                   systemOpen ? "bg-green-600" : "bg-neutral-700"
                 }`}
                 aria-label="Sistem rezervasyon toggle"
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                    systemOpen ? "translate-x-6" : "translate-x-1"
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${
+                    systemOpen ? "translate-x-7" : "translate-x-1"
                   }`}
                 />
               </button>
@@ -209,7 +209,7 @@ export default function SystemControlPage() {
             Henüz kabana yok.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm hidden md:table">
             <thead>
               <tr className="border-b border-neutral-800 text-neutral-400 text-left">
                 <th className="px-4 py-3 font-medium">Kabana Adı</th>
@@ -247,7 +247,7 @@ export default function SystemControlPage() {
                       <button
                         onClick={() => handleCabanaToggle(cabana)}
                         disabled={togglingId === cabana.id}
-                        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
                           cabana.isOpenForReservation
                             ? "bg-green-600"
                             : "bg-neutral-700"
@@ -255,9 +255,9 @@ export default function SystemControlPage() {
                         aria-label={`${cabana.name} rezervasyon toggle`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
                             cabana.isOpenForReservation
-                              ? "translate-x-5"
+                              ? "translate-x-6"
                               : "translate-x-1"
                           }`}
                         />
@@ -268,6 +268,35 @@ export default function SystemControlPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile card layout */}
+          <div className="md:hidden divide-y divide-neutral-800">
+            {cabanas.map((cabana) => (
+              <div key={cabana.id} className="px-4 py-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-neutral-100 truncate">{cabana.name}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">{cabana.cabanaClass.name} · {STATUS_LABELS[cabana.status]}</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className={`text-xs font-medium ${cabana.isOpenForReservation ? "text-green-400" : "text-red-400"}`}>
+                    {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
+                  </span>
+                  <button
+                    onClick={() => handleCabanaToggle(cabana)}
+                    disabled={togglingId === cabana.id}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                      cabana.isOpenForReservation ? "bg-green-600" : "bg-neutral-700"
+                    }`}
+                    aria-label={`${cabana.name} rezervasyon toggle`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                      cabana.isOpenForReservation ? "translate-x-6" : "translate-x-1"
+                    }`} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

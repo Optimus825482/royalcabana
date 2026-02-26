@@ -201,9 +201,9 @@ export default function ClassesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
             Kabana Sınıfları
@@ -218,7 +218,7 @@ export default function ClassesPage() {
             setCreateError("");
             setCreateForm(defaultCreateForm);
           }}
-          className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+          className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
         >
           + Yeni Sınıf
         </button>
@@ -253,8 +253,8 @@ export default function ClassesPage() {
               className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden"
             >
               {/* Class row */}
-              <div className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-4 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
                   <div className="min-w-0">
                     <p className="font-medium text-neutral-100 truncate">
                       {cls.name}
@@ -272,18 +272,18 @@ export default function ClassesPage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 ml-4">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() =>
                       setExpandedId(expandedId === cls.id ? null : cls.id)
                     }
-                    className="text-xs px-3 py-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-400 transition-colors"
+                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-400 transition-colors"
                   >
                     {expandedId === cls.id ? "Kapat" : "Özellikler"}
                   </button>
                   <button
                     onClick={() => openEdit(cls)}
-                    className="text-xs px-3 py-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                   >
                     Düzenle
                   </button>
@@ -292,7 +292,7 @@ export default function ClassesPage() {
                       setDeleteClass(cls);
                       setDeleteError("");
                     }}
-                    className="text-xs px-3 py-1.5 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
                   >
                     Sil
                   </button>
@@ -338,7 +338,7 @@ export default function ClassesPage() {
                   )}
 
                   {/* Add attribute form */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <input
                       type="text"
                       placeholder="Anahtar"
@@ -372,7 +372,7 @@ export default function ClassesPage() {
                     <button
                       onClick={() => handleAddAttr(cls.id)}
                       disabled={attrLoading[cls.id]}
-                      className="text-xs px-3 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-neutral-950 font-semibold transition-colors shrink-0"
+                      className="min-h-[44px] text-xs px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-neutral-950 font-semibold transition-colors shrink-0"
                     >
                       {attrLoading[cls.id] ? "..." : "Ekle"}
                     </button>
@@ -549,13 +549,13 @@ function Modal({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-md sm:mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-neutral-900 flex items-center justify-between px-5 py-4 border-b border-neutral-800">
           <h2 className="text-sm font-semibold text-yellow-400">{title}</h2>
           <button
             onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
           >
             ×
           </button>
@@ -590,10 +590,10 @@ function ErrorMsg({ msg }: { msg: string }) {
 }
 
 const inputCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-3 py-2 text-sm outline-none transition-colors placeholder:text-neutral-600";
+  "w-full min-h-[44px] bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600";
 
 const cancelBtnCls =
-  "px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
+  "min-h-[44px] px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
 
 const submitBtnCls =
-  "px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";
+  "min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";

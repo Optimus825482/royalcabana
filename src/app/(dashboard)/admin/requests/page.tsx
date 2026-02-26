@@ -103,8 +103,8 @@ function RejectModal({
   const [reason, setReason] = useState("");
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-neutral-900 border border-neutral-700 rounded-t-xl sm:rounded-xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold text-neutral-100 mb-4">
           Red Nedeni
         </h3>
@@ -113,19 +113,19 @@ function RejectModal({
           onChange={(e) => setReason(e.target.value)}
           placeholder="Red nedenini yazın..."
           rows={4}
-          className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 resize-none focus:outline-none focus:border-amber-500"
+          className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-base sm:text-sm text-neutral-100 placeholder-neutral-500 resize-none focus:outline-none focus:border-amber-500"
         />
         <div className="flex gap-3 mt-4 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-neutral-400 hover:text-neutral-200 transition-colors"
+            className="px-4 py-2 min-h-[44px] text-sm text-neutral-400 hover:text-neutral-200 transition-colors"
           >
             İptal
           </button>
           <button
             onClick={() => reason.trim() && onConfirm(reason.trim())}
             disabled={!reason.trim() || loading}
-            className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+            className="px-4 py-2 min-h-[44px] text-sm bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
           >
             {loading ? "Reddediliyor..." : "Reddet"}
           </button>
@@ -239,7 +239,7 @@ function DetailPanel({
                 value={totalPrice}
                 onChange={(e) => setTotalPrice(e.target.value)}
                 placeholder="0.00"
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:border-amber-500"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-base sm:text-sm text-neutral-100 focus:outline-none focus:border-amber-500 min-h-[44px]"
               />
             </div>
             <button
@@ -252,14 +252,14 @@ function DetailPanel({
               disabled={
                 !totalPrice || isNaN(parseFloat(totalPrice)) || actionLoading
               }
-              className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 min-h-[44px] bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
             >
               {actionLoading ? "..." : "Onayla"}
             </button>
             <button
               onClick={() => onReject(reservation.id)}
               disabled={actionLoading}
-              className="px-4 py-2 bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 min-h-[44px] bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
             >
               Reddet
             </button>
@@ -409,7 +409,7 @@ export default function RequestsPage() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
       {/* Header */}
-      <div className="px-6 py-5 border-b border-neutral-800 flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-5 border-b border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-amber-400">Talep Yönetimi</h1>
           <p className="text-sm text-neutral-500 mt-0.5">
@@ -429,9 +429,11 @@ export default function RequestsPage() {
         )}
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Sol Panel — Liste */}
-        <div className="w-96 border-r border-neutral-800 flex flex-col">
+        <div
+          className={`w-full md:w-96 border-r border-neutral-800 flex flex-col ${selected ? "hidden md:flex" : "flex"}`}
+        >
           {/* Filtreler */}
           <div className="px-4 py-3 border-b border-neutral-800 flex gap-1 flex-wrap">
             {FILTER_OPTIONS.map((opt) => (
@@ -441,7 +443,7 @@ export default function RequestsPage() {
                   setFilter(opt.value);
                   setSelected(null);
                 }}
-                className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                className={`px-3 py-1 min-h-[44px] text-xs rounded-full font-medium transition-colors ${
                   filter === opt.value
                     ? "bg-amber-500 text-neutral-950"
                     : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"
@@ -493,14 +495,27 @@ export default function RequestsPage() {
         </div>
 
         {/* Sağ Panel — Detay */}
-        <div className="flex-1 overflow-hidden">
+        <div
+          className={`absolute inset-0 md:relative md:inset-auto flex-1 overflow-hidden bg-neutral-950 md:bg-transparent ${selected ? "flex flex-col" : "hidden md:flex md:flex-col"}`}
+        >
           {selected ? (
-            <DetailPanel
-              reservation={selected}
-              onApprove={handleApprove}
-              onReject={(id) => setRejectTarget(id)}
-              actionLoading={actionLoading}
-            />
+            <>
+              {/* Mobile back button */}
+              <div className="md:hidden px-4 py-3 border-b border-neutral-800 flex items-center gap-2">
+                <button
+                  onClick={() => setSelected(null)}
+                  className="min-h-[44px] px-3 py-2 text-sm text-neutral-400 hover:text-neutral-200 transition-colors"
+                >
+                  ← Listeye Dön
+                </button>
+              </div>
+              <DetailPanel
+                reservation={selected}
+                onApprove={handleApprove}
+                onReject={(id) => setRejectTarget(id)}
+                actionLoading={actionLoading}
+              />
+            </>
           ) : (
             <div className="flex items-center justify-center h-full text-neutral-600 text-sm">
               Detay görmek için bir talep seçin.

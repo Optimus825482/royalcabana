@@ -98,7 +98,7 @@ export default function FnBExtrasPage({
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => router.back()}
-            className="text-neutral-500 hover:text-neutral-300 transition-colors"
+            className="min-h-[44px] px-3 text-neutral-500 hover:text-neutral-300 transition-colors"
           >
             ← Geri
           </button>
@@ -145,16 +145,16 @@ export default function FnBExtrasPage({
                     <button
                       onClick={() => setQuantity(product.id, qty - 1)}
                       disabled={qty === 0}
-                      className="w-7 h-7 rounded-lg bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 disabled:cursor-not-allowed text-neutral-200 text-sm font-bold transition-colors"
+                      className="w-11 h-11 rounded-lg bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 disabled:cursor-not-allowed text-neutral-200 text-sm font-bold transition-colors"
                     >
                       −
                     </button>
-                    <span className="w-6 text-center text-sm font-semibold text-neutral-100">
+                    <span className="w-8 text-center text-sm font-semibold text-neutral-100">
                       {qty}
                     </span>
                     <button
                       onClick={() => setQuantity(product.id, qty + 1)}
-                      className="w-7 h-7 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-neutral-200 text-sm font-bold transition-colors"
+                      className="w-11 h-11 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-neutral-200 text-sm font-bold transition-colors"
                     >
                       +
                     </button>
@@ -194,14 +194,14 @@ export default function FnBExtrasPage({
         <div className="mt-6 flex gap-3">
           <button
             onClick={() => router.back()}
-            className="flex-1 py-2.5 text-sm font-medium rounded-lg border border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:border-neutral-600 transition-colors"
+            className="flex-1 min-h-[44px] py-2.5 text-sm font-medium rounded-lg border border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:border-neutral-600 transition-colors"
           >
             İptal
           </button>
           <button
             onClick={handleSubmit}
             disabled={submitting || items.length === 0 || success}
-            className="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 transition-colors"
+            className="flex-1 min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 transition-colors"
           >
             {submitting ? "Ekleniyor..." : "Ekstraları Kaydet"}
           </button>
