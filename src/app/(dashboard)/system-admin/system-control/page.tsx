@@ -209,94 +209,111 @@ export default function SystemControlPage() {
             Henüz kabana yok.
           </div>
         ) : (
-          <table className="w-full text-sm hidden md:table">
-            <thead>
-              <tr className="border-b border-neutral-800 text-neutral-400 text-left">
-                <th className="px-4 py-3 font-medium">Kabana Adı</th>
-                <th className="px-4 py-3 font-medium">Sınıf</th>
-                <th className="px-4 py-3 font-medium">Durum</th>
-                <th className="px-4 py-3 font-medium text-right">
-                  Rezervasyon
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {cabanas.map((cabana) => (
-                <tr
-                  key={cabana.id}
-                  className="border-b border-neutral-800/60 hover:bg-neutral-800/30 transition-colors"
-                >
-                  <td className="px-4 py-3 text-neutral-100 font-medium">
-                    {cabana.name}
-                  </td>
-                  <td className="px-4 py-3 text-neutral-400">
-                    {cabana.cabanaClass.name}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-neutral-400 text-xs">
-                      {STATUS_LABELS[cabana.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-3">
-                      <span
-                        className={`text-xs font-medium ${cabana.isOpenForReservation ? "text-green-400" : "text-red-400"}`}
-                      >
-                        {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
-                      </span>
-                      <button
-                        onClick={() => handleCabanaToggle(cabana)}
-                        disabled={togglingId === cabana.id}
-                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                          cabana.isOpenForReservation
-                            ? "bg-green-600"
-                            : "bg-neutral-700"
-                        }`}
-                        aria-label={`${cabana.name} rezervasyon toggle`}
-                      >
-                        <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                            cabana.isOpenForReservation
-                              ? "translate-x-6"
-                              : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </td>
+          <>
+            <table className="w-full text-sm hidden md:table">
+              <thead>
+                <tr className="border-b border-neutral-800 text-neutral-400 text-left">
+                  <th className="px-4 py-3 font-medium">Kabana Adı</th>
+                  <th className="px-4 py-3 font-medium">Sınıf</th>
+                  <th className="px-4 py-3 font-medium">Durum</th>
+                  <th className="px-4 py-3 font-medium text-right">
+                    Rezervasyon
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Mobile card layout */}
-          <div className="md:hidden divide-y divide-neutral-800">
-            {cabanas.map((cabana) => (
-              <div key={cabana.id} className="px-4 py-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-neutral-100 truncate">{cabana.name}</p>
-                  <p className="text-xs text-neutral-500 mt-0.5">{cabana.cabanaClass.name} · {STATUS_LABELS[cabana.status]}</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className={`text-xs font-medium ${cabana.isOpenForReservation ? "text-green-400" : "text-red-400"}`}>
-                    {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
-                  </span>
-                  <button
-                    onClick={() => handleCabanaToggle(cabana)}
-                    disabled={togglingId === cabana.id}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                      cabana.isOpenForReservation ? "bg-green-600" : "bg-neutral-700"
-                    }`}
-                    aria-label={`${cabana.name} rezervasyon toggle`}
+              </thead>
+              <tbody>
+                {cabanas.map((cabana) => (
+                  <tr
+                    key={cabana.id}
+                    className="border-b border-neutral-800/60 hover:bg-neutral-800/30 transition-colors"
                   >
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                      cabana.isOpenForReservation ? "translate-x-6" : "translate-x-1"
-                    }`} />
-                  </button>
+                    <td className="px-4 py-3 text-neutral-100 font-medium">
+                      {cabana.name}
+                    </td>
+                    <td className="px-4 py-3 text-neutral-400">
+                      {cabana.cabanaClass.name}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-neutral-400 text-xs">
+                        {STATUS_LABELS[cabana.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-3">
+                        <span
+                          className={`text-xs font-medium ${cabana.isOpenForReservation ? "text-green-400" : "text-red-400"}`}
+                        >
+                          {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
+                        </span>
+                        <button
+                          onClick={() => handleCabanaToggle(cabana)}
+                          disabled={togglingId === cabana.id}
+                          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                            cabana.isOpenForReservation
+                              ? "bg-green-600"
+                              : "bg-neutral-700"
+                          }`}
+                          aria-label={`${cabana.name} rezervasyon toggle`}
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                              cabana.isOpenForReservation
+                                ? "translate-x-6"
+                                : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile card layout */}
+            <div className="md:hidden divide-y divide-neutral-800">
+              {cabanas.map((cabana) => (
+                <div
+                  key={cabana.id}
+                  className="px-4 py-4 flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-neutral-100 truncate">
+                      {cabana.name}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      {cabana.cabanaClass.name} · {STATUS_LABELS[cabana.status]}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span
+                      className={`text-xs font-medium ${cabana.isOpenForReservation ? "text-green-400" : "text-red-400"}`}
+                    >
+                      {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
+                    </span>
+                    <button
+                      onClick={() => handleCabanaToggle(cabana)}
+                      disabled={togglingId === cabana.id}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                        cabana.isOpenForReservation
+                          ? "bg-green-600"
+                          : "bg-neutral-700"
+                      }`}
+                      aria-label={`${cabana.name} rezervasyon toggle`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                          cabana.isOpenForReservation
+                            ? "translate-x-6"
+                            : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

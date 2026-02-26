@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { notificationService } from "@/services/notification.service";
+import { Role } from "@/types";
 
-export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const allRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_USER,
+];
 
-  const { searchParams } = new URL(request.url);
+export const GET = withAuth(allRoles, async (req, { session }) => {
+  const { searchParams } = new URL(req.url);
   const unreadOnly = searchParams.get("unread") === "true";
   const page = parseInt(searchParams.get("page") ?? "1", 10);
 
@@ -19,14 +22,9 @@ export async function GET(request: NextRequest) {
 
   const result = await notificationService.getAll(session.user.id, page);
   return NextResponse.json(result);
-}
+});
 
-export async function PATCH(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  // Mark all as read
+export const PATCH = withAuth(allRoles, async (_req, { session }) => {
   await notificationService.markAllAsRead(session.user.id);
   return NextResponse.json({ success: true });
-}
+});

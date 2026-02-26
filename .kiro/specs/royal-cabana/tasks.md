@@ -15,7 +15,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
   - `src/types/index.ts` dosyasında tüm TypeScript tiplerini ve enum'ları tanımla (`Role`, `CabanaStatus`, `ReservationStatus`, `RequestStatus`, `NotificationType`, `PriceBreakdown`, `ApiError` vb.)
   - _Gereksinimler: 18.1, 18.5_
 
-- [~] 2. Veritabanı ve Prisma Şeması
+- [ ] 2. Veritabanı ve Prisma Şeması
   - [x] 2.1 Prisma şemasını oluştur
     - `prisma/schema.prisma` dosyasına tasarım dokümanındaki tam şemayı yaz: `User`, `CabanaClass`, `ClassAttribute`, `Cabana`, `Concept`, `Product`, `ConceptProduct`, `CabanaPrice`, `ConceptPrice`, `Reservation`, `ReservationStatusHistory`, `ModificationRequest`, `CancellationRequest`, `ExtraConceptRequest`, `ExtraItem`, `Notification`, `AuditLog`, `SystemConfig` modelleri
     - Tüm enum'ları tanımla: `Role`, `CabanaStatus`, `ReservationStatus`, `RequestStatus`, `NotificationType`
@@ -27,7 +27,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - `prisma/seed.ts` dosyasında başlangıç verilerini oluştur: SystemAdmin kullanıcısı, örnek kabana sınıfları, `SystemConfig` kaydı (`system_open_for_reservation: true`)
     - _Gereksinimler: 1.1, 7.1_
 
-- [~] 3. Auth Sistemi (NextAuth.js + RBAC)
+- [ ] 3. Auth Sistemi (NextAuth.js + RBAC)
   - [x] 3.1 NextAuth.js yapılandırması
     - `src/lib/auth.ts` dosyasında NextAuth config oluştur: Credentials provider, JWT strategy, session callback'te `role` alanını ekle
     - `src/app/api/auth/[...nextauth]/route.ts` handler'ı oluştur
@@ -51,7 +51,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
 - [x] 4. Checkpoint — Temel altyapı testi
   - Tüm testlerin geçtiğini doğrula, sorular varsa kullanıcıya sor.
 
-- [~] 5. Sistem Yöneticisi Modülü — Kullanıcı Yönetimi
+- [ ] 5. Sistem Yöneticisi Modülü — Kullanıcı Yönetimi
   - [x] 5.1 Users API
     - `src/app/api/users/route.ts` ve `src/app/api/users/[id]/route.ts` endpoint'lerini oluştur: GET (liste), POST (oluştur), PATCH (güncelle), DELETE (devre dışı bırak)
     - Zod şemasıyla input validasyonu ekle
@@ -66,7 +66,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - **Property 6: Her CREATE/UPDATE/DELETE işlemi audit log kaydı oluşturur**
     - **Validates: Gereksinim 18.2**
 
-- [~] 6. Sistem Yöneticisi Modülü — Master Data Yönetimi
+- [ ] 6. Sistem Yöneticisi Modülü — Master Data Yönetimi
   - [x] 6.1 Kabana Sınıfları API ve UI
     - `src/app/api/classes/` altında CRUD endpoint'leri oluştur (GET, POST, PATCH, DELETE, attribute ekle/sil)
     - `src/app/(dashboard)/system-admin/classes/page.tsx` sayfasını oluştur: sınıf listesi, oluşturma/düzenleme formu, dinamik özellik yönetimi
@@ -90,7 +90,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - `src/app/(dashboard)/system-admin/system-control/page.tsx` sayfasını oluştur: sistem geneli rezervasyon açma/kapama toggle'ı, kabana bazında açma/kapama
     - _Gereksinimler: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-- [~] 7. Kabana Harita Yönetimi (2D — Leaflet)
+- [ ] 7. Kabana Harita Yönetimi (2D — Leaflet)
   - [x] 7.1 Cabanas API
     - `src/app/api/cabanas/` altında CRUD endpoint'leri oluştur (konum güncelleme ve durum endpoint'leri dahil)
     - _Gereksinimler: 2.2, 2.3, 7.3_
@@ -105,7 +105,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - `src/app/(dashboard)/system-admin/map/page.tsx` sayfasını oluştur: düzenlenebilir harita, kabana ekleme/silme, sınıf atama
     - _Gereksinimler: 2.1, 2.2, 3.4_
 
-- [~] 8. Dinamik Fiyatlandırma Motoru
+- [ ] 8. Dinamik Fiyatlandırma Motoru
   - [x] 8.1 Fiyatlandırma servisi
     - `src/lib/pricing.ts` dosyasında `PricingEngine` sınıfını oluştur: `calculatePrice()` metodu, fiyat öncelik sırası (kabana özel > konsept özel > genel ürün fiyatı), `PriceBreakdown` döndür
     - _Gereksinimler: 6.4, 6.5, 6.6, 6.7_
@@ -119,7 +119,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - `src/app/(dashboard)/admin/pricing/page.tsx` sayfasını oluştur: kabana bazında günlük fiyat girişi, konsept bazında paket/kalem fiyatı, fiyat önizleme
     - _Gereksinimler: 6.1, 6.2, 6.3, 6.8_
 
-- [~] 9. Admin Modülü
+- [ ] 9. Admin Modülü
   - [x] 9.1 Admin Dashboard
     - `src/app/(dashboard)/admin/page.tsx` dashboard sayfasını oluştur: kabana doluluk oranları, bekleyen talep sayısı, gelir özeti widget'ları
     - TanStack Query ile veri çekme ve cache yönetimi
@@ -142,7 +142,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
 - [x] 10. Checkpoint — Admin ve fiyatlandırma testi
   - Tüm testlerin geçtiğini doğrula, sorular varsa kullanıcıya sor.
 
-- [~] 11. Casino Rezervasyon Modülü — Harita ve 3D Görünüm
+- [ ] 11. Casino Rezervasyon Modülü — Harita ve 3D Görünüm
   - [x] 11.1 Casino 2D Harita Sayfası
     - `src/app/(dashboard)/casino/map/page.tsx` sayfasını oluştur: salt okunur harita (`editable: false`), müsaitlik renk kodlaması, kabana tıklama ile sınıf/konsept/fiyat detay paneli
     - Sistem rezervasyona kapalıyken yeni talep butonunu devre dışı bırak
@@ -158,7 +158,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - `src/app/(dashboard)/casino/view/page.tsx` sayfasını oluştur: 2D/3D toggle butonu, yükleniyor göstergesi
     - _Gereksinimler: 8.7, 8.8_
 
-- [~] 12. Casino Rezervasyon Modülü — Takvim ve Talep Yönetimi
+- [ ] 12. Casino Rezervasyon Modülü — Takvim ve Talep Yönetimi
   - [x] 12.1 FullCalendar Resource Timeline Bileşeni
     - `src/components/calendar/ReservationCalendar.tsx` bileşenini oluştur: `@fullcalendar/resource-timeline` plugin, kabanalar kaynak (satır), tarihler sütun, durum bazlı renk kodlaması (bekliyor=sarı, onaylı=yeşil, red=kırmızı, iptal=gri)
     - `CalendarComponentProps` arayüzünü uygula: tarih tıklama ile yeni talep formu, etkinlik tıklama ile detay, sağ tık context menu (Değişiklik, İptal, Ek Konsept)
@@ -184,7 +184,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - `src/app/(dashboard)/casino/calendar/page.tsx` sayfasını oluştur: `ReservationCalendar` bileşenini entegre et, TanStack Query ile rezervasyon verisi çek
     - _Gereksinimler: 9.1, 9.8, 9.9_
 
-- [~] 13. F&B Rezervasyon Modülü
+- [ ] 13. F&B Rezervasyon Modülü
   - [x] 13.1 F&B Rezervasyon Listesi
     - `src/app/(dashboard)/fnb/page.tsx` sayfasını oluştur: tüm rezervasyonları listele (tarih/kabana/durum filtresi), her rezervasyonun güncel durumunu göster, onaylanan rezervasyonların konsept detaylarını ve ürün listelerini göster
     - Talep oluşturma/onaylama/reddetme butonlarını devre dışı bırak (salt görüntüleme)
@@ -196,7 +196,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - `src/app/(dashboard)/fnb/[id]/extras/page.tsx` sayfasını oluştur: kayıtlı ürünler listesinden seçim, miktar girişi, fiyat bilgisi gösterimi
     - _Gereksinimler: 14.4, 14.5_
 
-- [~] 14. Bildirim Sistemi (Socket.io)
+- [ ] 14. Bildirim Sistemi (Socket.io)
   - [x] 14.1 Socket.io Sunucusu
     - `socket-server/index.ts` dosyasında Socket.io sunucusunu oluştur: JWT doğrulama, kullanıcı bazında oda yönetimi (`userId` odası), bildirim emit fonksiyonları
     - `src/lib/socket.ts` client-side Socket.io bağlantısını oluştur: otomatik reconnect, polling fallback
@@ -218,10 +218,10 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - F&B modülünde rezervasyon durumu değişikliklerini gerçek zamanlı yansıt
     - _Gereksinimler: 14.9, 17.5_
 
-- [~] 15. Checkpoint — Bildirim ve rezervasyon akışı testi
+- [ ] 15. Checkpoint — Bildirim ve rezervasyon akışı testi
   - Tüm testlerin geçtiğini doğrula, sorular varsa kullanıcıya sor.
 
-- [~] 16. Raporlama ve Sunum Modülü
+- [ ] 16. Raporlama ve Sunum Modülü
   - [x] 16.1 Rapor Motoru
     - `src/services/report.service.ts` dosyasında `ReportEngine` sınıfını oluştur: `OCCUPANCY`, `REVENUE`, `COST_ANALYSIS`, `REQUEST_STATS` rapor tipleri, jsPDF ile PDF export, xlsx ile Excel export
     - Eksik veri durumunda "Eksik veri alanları: [alan listesi]" uyarısı döndür
@@ -239,7 +239,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - `src/app/(dashboard)/reports/page.tsx` sayfasını oluştur: rapor tipi seçimi, tarih aralığı/kabana sınıfı/konsept filtreleri, PDF/Excel export butonları, sunum oluşturma butonu
     - _Gereksinimler: 15.1, 15.2, 15.5, 15.6_
 
-- [~] 17. i18n ve Tema
+- [ ] 17. i18n ve Tema
   - [x] 17.1 next-intl yapılandırması
     - `src/i18n/` altında Türkçe (`tr.json`) ve İngilizce (`en.json`) çeviri dosyalarını oluştur: tüm UI metinleri, hata mesajları, bildirim metinleri
     - `next-intl` middleware ve provider yapılandırmasını ekle
@@ -251,7 +251,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - Premium lüks tatil köyü estetiğine uygun global CSS değişkenlerini tanımla
     - _Gereksinimler: 16.1, 16.2, 16.3, 16.4, 16.5_
 
-- [~] 18. Entegrasyon ve Bağlantı
+- [ ] 18. Entegrasyon ve Bağlantı
   - [x] 18.1 Dashboard Layout ve Navigasyon
     - `src/app/(dashboard)/layout.tsx` dashboard layout'unu oluştur: rol bazlı navigasyon menüsü, `NotificationPanel`, kullanıcı bilgisi, oturum kapatma
     - Her rolün yalnızca kendi modülünü görmesini sağla
@@ -267,7 +267,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - Toast bildirimleri için global provider ekle
     - _Gereksinimler: 18.3_
 
-- [~] 19. Final Checkpoint — Tüm testler ve entegrasyon
+- [ ] 19. Final Checkpoint — Tüm testler ve entegrasyon
   - Tüm testlerin geçtiğini doğrula, sorular varsa kullanıcıya sor.
 
 ## Notlar

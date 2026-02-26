@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
 import { Prisma } from "@prisma/client";
 
@@ -17,173 +16,148 @@ const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
+export const PATCH = withAuth(
+  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  async (req, { session, params }) => {
+    const id = params!.id;
 
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
+    });
 
-  const isSystemAdmin = session.user.role === Role.SYSTEM_ADMIN;
-  const isAdmin = session.user.role === Role.ADMIN;
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
 
-  if (!isSystemAdmin && !isAdmin) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
+    const isAdmin = session.user.role === Role.ADMIN;
 
-  const { id } = await params;
+    // ADMIN can only edit CASINO_USER and FNB_USER
+    if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
+      return NextResponse.json(
+        { message: "Bu kullanıcıyı düzenleme yetkiniz yok." },
+        { status: 403 },
+      );
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      username: true,
-      email: true,
-      role: true,
-      isActive: true,
-    },
-  });
+    const body = await req.json();
+    const parsed = updateUserSchema.safeParse(body);
 
-  if (!user) {
-    return NextResponse.json({ message: "User not found" }, { status: 404 });
-  }
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-  // ADMIN can only edit CASINO_USER and FNB_USER
-  if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
-    return NextResponse.json(
-      { message: "Bu kullanıcıyı düzenleme yetkiniz yok." },
-      { status: 403 },
-    );
-  }
+    // ADMIN cannot change role to SYSTEM_ADMIN or ADMIN
+    if (
+      isAdmin &&
+      parsed.data.role &&
+      !ADMIN_ALLOWED_ROLES.includes(parsed.data.role)
+    ) {
+      return NextResponse.json(
+        { message: "Admin yalnızca Casino ve F&B rolü atayabilir." },
+        { status: 403 },
+      );
+    }
 
-  const body = await request.json();
-  const parsed = updateUserSchema.safeParse(body);
+    const { password, ...restData } = parsed.data;
+    const updateData: Record<string, unknown> = { ...restData };
+    if (password) {
+      updateData.passwordHash = await bcrypt.hash(password, 10);
+    }
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      { message: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+    const updated = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: true,
+      },
+    });
 
-  // ADMIN cannot change role to SYSTEM_ADMIN or ADMIN
-  if (
-    isAdmin &&
-    parsed.data.role &&
-    !ADMIN_ALLOWED_ROLES.includes(parsed.data.role)
-  ) {
-    return NextResponse.json(
-      { message: "Admin yalnızca Casino ve F&B rolü atayabilir." },
-      { status: 403 },
-    );
-  }
+    const { password: _pw, ...auditNewValue } = parsed.data;
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: "UPDATE",
+        entity: "User",
+        entityId: user.id,
+        oldValue: {
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isActive: user.isActive,
+        } as Prisma.InputJsonValue,
+        newValue: {
+          ...auditNewValue,
+          ...(password ? { passwordChanged: true } : {}),
+        } as Prisma.InputJsonValue,
+      },
+    });
 
-  // Build update data, hash password if provided
-  const { password, ...restData } = parsed.data;
-  const updateData: Record<string, unknown> = { ...restData };
-  if (password) {
-    updateData.passwordHash = await bcrypt.hash(password, 10);
-  }
+    return NextResponse.json(updated);
+  },
+);
 
-  const updated = await prisma.user.update({
-    where: { id },
-    data: updateData,
-    select: {
-      id: true,
-      username: true,
-      email: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-      createdBy: true,
-    },
-  });
+export const DELETE = withAuth(
+  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  async (_req, { session, params }) => {
+    const id = params!.id;
 
-  // Exclude password from audit log
-  const { password: _pw, ...auditNewValue } = parsed.data;
-  await prisma.auditLog.create({
-    data: {
-      userId: session.user.id,
-      action: "UPDATE",
-      entity: "User",
-      entityId: user.id,
-      oldValue: {
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-      } as Prisma.InputJsonValue,
-      newValue: {
-        ...auditNewValue,
-        ...(password ? { passwordChanged: true } : {}),
-      } as Prisma.InputJsonValue,
-    },
-  });
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
+    });
 
-  return NextResponse.json(updated);
-}
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
+    const isAdmin = session.user.role === Role.ADMIN;
 
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
+    if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
+      return NextResponse.json(
+        { message: "Bu kullanıcıyı devre dışı bırakma yetkiniz yok." },
+        { status: 403 },
+      );
+    }
 
-  const isSystemAdmin = session.user.role === Role.SYSTEM_ADMIN;
-  const isAdmin = session.user.role === Role.ADMIN;
+    await prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+    });
 
-  if (!isSystemAdmin && !isAdmin) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: "DELETE",
+        entity: "User",
+        entityId: user.id,
+        oldValue: { isActive: user.isActive } as Prisma.InputJsonValue,
+        newValue: { isActive: false } as Prisma.InputJsonValue,
+      },
+    });
 
-  const { id } = await params;
-
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      username: true,
-      email: true,
-      role: true,
-      isActive: true,
-    },
-  });
-
-  if (!user) {
-    return NextResponse.json({ message: "User not found" }, { status: 404 });
-  }
-
-  // ADMIN can only deactivate CASINO_USER and FNB_USER
-  if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
-    return NextResponse.json(
-      { message: "Bu kullanıcıyı devre dışı bırakma yetkiniz yok." },
-      { status: 403 },
-    );
-  }
-
-  await prisma.user.update({
-    where: { id },
-    data: { isActive: false },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: session.user.id,
-      action: "DELETE",
-      entity: "User",
-      entityId: user.id,
-      oldValue: { isActive: user.isActive } as Prisma.InputJsonValue,
-      newValue: { isActive: false } as Prisma.InputJsonValue,
-    },
-  });
-
-  return NextResponse.json({ message: "User deactivated" });
-}
+    return NextResponse.json({ message: "User deactivated" });
+  },
+);

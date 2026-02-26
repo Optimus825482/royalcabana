@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import { z } from "zod";
+import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 import { Role, ReservationStatus } from "@/types";
 
 const updateCabanaSchema = z.object({
@@ -13,17 +12,15 @@ const updateCabanaSchema = z.object({
   coordY: z.number().optional(),
 });
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
+const allRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_USER,
+];
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params;
+export const GET = withAuth(allRoles, async (_req, { params }) => {
+  const id = params!.id;
 
   const cabana = await prisma.cabana.findUnique({
     where: { id },
@@ -39,30 +36,17 @@ export async function GET(
   }
 
   return NextResponse.json(cabana);
-}
+});
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
+  const id = params!.id;
 
   const cabana = await prisma.cabana.findUnique({ where: { id } });
   if (!cabana) {
     return NextResponse.json({ error: "Kabana bulunamadı." }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await req.json();
   const parsed = updateCabanaSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -82,46 +66,39 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
+export const DELETE = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (_req, { params }) => {
+    const id = params!.id;
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
-  const cabana = await prisma.cabana.findUnique({
-    where: { id },
-    include: {
-      reservations: {
-        where: { status: ReservationStatus.APPROVED },
-        select: { id: true },
+    const cabana = await prisma.cabana.findUnique({
+      where: { id },
+      include: {
+        reservations: {
+          where: { status: ReservationStatus.APPROVED },
+          select: { id: true },
+        },
       },
-    },
-  });
+    });
 
-  if (!cabana) {
-    return NextResponse.json({ error: "Kabana bulunamadı." }, { status: 404 });
-  }
+    if (!cabana) {
+      return NextResponse.json(
+        { error: "Kabana bulunamadı." },
+        { status: 404 },
+      );
+    }
 
-  if (cabana.reservations.length > 0) {
-    return NextResponse.json(
-      { error: "Bu kabanada aktif rezervasyon mevcut, silinemez." },
-      { status: 400 },
-    );
-  }
+    if (cabana.reservations.length > 0) {
+      return NextResponse.json(
+        { error: "Bu kabanada aktif rezervasyon mevcut, silinemez." },
+        { status: 400 },
+      );
+    }
 
-  await prisma.cabana.delete({ where: { id } });
+    await prisma.cabana.delete({ where: { id } });
 
-  return NextResponse.json({ success: true });
-}
+    return NextResponse.json({ success: true });
+  },
+);

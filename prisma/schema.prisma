@@ -50,20 +50,22 @@ enum NotificationType {
 // ===== KULLANICI VE YETKİLENDİRME =====
 
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  email        String   @unique
+  id           String    @id @default(cuid())
+  username     String    @unique
+  email        String    @unique
   passwordHash String
   role         Role
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   createdBy    String?
 
   reservations  Reservation[]
   notifications Notification[]
   auditLogs     AuditLog[]
 
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -106,6 +108,7 @@ model Cabana {
   coordY               Float
   status               CabanaStatus @default(AVAILABLE)
   isOpenForReservation Boolean      @default(true)
+  deletedAt            DateTime?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
@@ -116,6 +119,7 @@ model Cabana {
 
   @@index([classId])
   @@index([status])
+  @@index([deletedAt])
   @@map("cabanas")
 }
 
@@ -150,14 +154,15 @@ model Concept {
 }
 
 model Product {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String
   groupId       String?
   purchasePrice Float
   salePrice     Float
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  isActive      Boolean   @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   group           ProductGroup?    @relation(fields: [groupId], references: [id])
   conceptProducts ConceptProduct[]
@@ -165,6 +170,7 @@ model Product {
   extraItems      ExtraItem[]
 
   @@index([groupId])
+  @@index([deletedAt])
   @@map("products")
 }
 
@@ -223,6 +229,7 @@ model Reservation {
   status          ReservationStatus @default(PENDING)
   totalPrice      Float?
   rejectionReason String?
+  deletedAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -238,6 +245,7 @@ model Reservation {
   @@index([userId])
   @@index([status])
   @@index([startDate, endDate])
+  @@index([deletedAt])
   @@map("reservations")
 }
 

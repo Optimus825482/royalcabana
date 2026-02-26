@@ -7,6 +7,7 @@ import { Role } from "@/types";
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
+    maxAge: 15 * 60, // 15 dakika — kısa TTL ile rol değişiklikleri hızlı yansır
   },
   pages: {
     signIn: "/login",
@@ -55,9 +56,30 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as { id: string; role: Role }).role;
       }
+
+      // Her token yenilemede DB'den güncel rol ve aktiflik kontrolü
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, isActive: true },
+        });
+
+        if (!dbUser || !dbUser.isActive) {
+          // Kullanıcı deaktif edilmişse token'ı geçersiz kıl
+          return { ...token, expired: true };
+        }
+
+        token.role = dbUser.role as Role;
+      }
+
       return token;
     },
     async session({ session, token }) {
+      if (token.expired) {
+        // Token geçersiz — session'ı boşalt
+        return { ...session, user: undefined } as typeof session;
+      }
+
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;

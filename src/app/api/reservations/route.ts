@@ -1,97 +1,78 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { createReservationSchema, parseBody } from "@/lib/validators";
 import { Role } from "@/types";
 
-export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+export const GET = withAuth(
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  async (req, { session }) => {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+    const cabanaId = searchParams.get("cabanaId");
+    const page = parseInt(searchParams.get("page") ?? "1", 10);
+    const limit = parseInt(searchParams.get("limit") ?? "20", 10);
+    const skip = (page - 1) * limit;
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    if (cabanaId) where.cabanaId = cabanaId;
 
-  const allowedRoles = [
-    Role.ADMIN,
-    Role.SYSTEM_ADMIN,
-    Role.CASINO_USER,
-    Role.FNB_USER,
-  ];
-  if (!allowedRoles.includes(session.user.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    // CASINO_USER sadece kendi rezervasyonlarını görebilir
+    if (session.user.role === Role.CASINO_USER) {
+      where.userId = session.user.id;
+    }
 
-  const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status");
-  const cabanaId = searchParams.get("cabanaId");
-  const page = parseInt(searchParams.get("page") ?? "1", 10);
-  const limit = parseInt(searchParams.get("limit") ?? "20", 10);
-  const skip = (page - 1) * limit;
+    const isFnB = session.user.role === Role.FNB_USER;
 
-  const where: Record<string, unknown> = {};
-  if (status) where.status = status;
-  if (cabanaId) where.cabanaId = cabanaId;
-
-  // CASINO_USER sadece kendi rezervasyonlarını görebilir
-  if (session.user.role === Role.CASINO_USER) {
-    where.userId = session.user.id;
-  }
-
-  const isFnB = session.user.role === Role.FNB_USER;
-
-  const [reservations, total] = await Promise.all([
-    prisma.reservation.findMany({
-      where,
-      include: {
-        cabana: { select: { id: true, name: true } },
-        user: { select: { id: true, username: true, email: true } },
-        statusHistory: { orderBy: { createdAt: "asc" } },
-        ...(isFnB && {
-          modifications: {
-            select: {
-              id: true,
-              status: true,
-              newStartDate: true,
-              newEndDate: true,
-              newGuestName: true,
+    const [reservations, total] = await Promise.all([
+      prisma.reservation.findMany({
+        where,
+        include: {
+          cabana: { select: { id: true, name: true } },
+          user: { select: { id: true, username: true, email: true } },
+          statusHistory: { orderBy: { createdAt: "asc" } },
+          ...(isFnB && {
+            modifications: {
+              select: {
+                id: true,
+                status: true,
+                newStartDate: true,
+                newEndDate: true,
+                newGuestName: true,
+              },
             },
-          },
-          cancellations: { select: { id: true, status: true, reason: true } },
-          extraConcepts: { select: { id: true, status: true, items: true } },
-          extraItems: { include: { product: { select: { name: true } } } },
-        }),
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.reservation.count({ where }),
-  ]);
+            cancellations: {
+              select: { id: true, status: true, reason: true },
+            },
+            extraConcepts: {
+              select: { id: true, status: true, items: true },
+            },
+            extraItems: {
+              include: { product: { select: { name: true } } },
+            },
+          }),
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.reservation.count({ where }),
+    ]);
 
-  return NextResponse.json({ reservations, total });
-}
+    return NextResponse.json({ reservations, total });
+  },
+);
 
-export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
+  const body = await req.json();
+  const parsed = parseBody(createReservationSchema, body);
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  if (session.user.role !== Role.CASINO_USER) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const body = await request.json();
-  const { cabanaId, guestName, startDate, endDate, notes } = body;
-
-  if (!cabanaId || !guestName || !startDate || !endDate) {
-    return NextResponse.json(
-      { error: "Zorunlu alanlar eksik." },
-      { status: 400 },
-    );
-  }
-
+  const { cabanaId, guestName, startDate, endDate, notes } = parsed.data;
   const start = new Date(startDate);
   const end = new Date(endDate);
 
@@ -109,38 +90,50 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Çakışma kontrolü
-  const conflict = await prisma.reservation.findFirst({
-    where: {
-      cabanaId,
-      status: "APPROVED",
-      startDate: { lt: end },
-      endDate: { gt: start },
-    },
-  });
+  // Atomik çakışma kontrolü + kayıt oluşturma (race condition önleme)
+  try {
+    const reservation = await prisma.$transaction(
+      async (tx) => {
+        const conflicts = await tx.$queryRaw<{ id: string }[]>`
+            SELECT id FROM reservations
+            WHERE "cabanaId" = ${cabanaId}
+              AND status = 'APPROVED'
+              AND "startDate" < ${end}
+              AND "endDate" > ${start}
+            FOR UPDATE
+          `;
 
-  if (conflict) {
-    return NextResponse.json(
-      { error: "Seçilen tarih aralığında bu kabana müsait değildir." },
-      { status: 409 },
+        if (conflicts.length > 0) {
+          throw new Error("CONFLICT");
+        }
+
+        return tx.reservation.create({
+          data: {
+            cabanaId,
+            userId: session.user.id,
+            guestName,
+            startDate: start,
+            endDate: end,
+            notes: notes ?? null,
+            status: "PENDING",
+          },
+          include: {
+            cabana: { select: { id: true, name: true } },
+            user: { select: { id: true, username: true } },
+          },
+        });
+      },
+      { isolationLevel: "Serializable", timeout: 10000 },
     );
+
+    return NextResponse.json(reservation, { status: 201 });
+  } catch (err) {
+    if (err instanceof Error && err.message === "CONFLICT") {
+      return NextResponse.json(
+        { error: "Seçilen tarih aralığında bu kabana müsait değildir." },
+        { status: 409 },
+      );
+    }
+    throw err;
   }
-
-  const reservation = await prisma.reservation.create({
-    data: {
-      cabanaId,
-      userId: session.user.id,
-      guestName,
-      startDate: start,
-      endDate: end,
-      notes: notes ?? null,
-      status: "PENDING",
-    },
-    include: {
-      cabana: { select: { id: true, name: true } },
-      user: { select: { id: true, username: true } },
-    },
-  });
-
-  return NextResponse.json(reservation, { status: 201 });
-}
+});

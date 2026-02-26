@@ -1,34 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { rejectReservationSchema, parseBody } from "@/lib/validators";
 import { Role } from "@/types";
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
+export const POST = withAuth([Role.ADMIN], async (req, { session, params }) => {
+  const id = params!.id;
+  const body = await req.json();
+  const parsed = parseBody(rejectReservationSchema, body);
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  if (session.user.role !== Role.ADMIN) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
-  const body = await request.json();
-  const { reason } = body;
-
-  if (!reason || String(reason).trim() === "") {
-    return NextResponse.json(
-      { error: "Red nedeni zorunludur." },
-      { status: 400 },
-    );
-  }
+  const { reason } = parsed.data;
 
   const reservation = await prisma.reservation.findUnique({ where: { id } });
 
@@ -51,7 +36,7 @@ export async function POST(
       where: { id },
       data: {
         status: "REJECTED",
-        rejectionReason: String(reason).trim(),
+        rejectionReason: reason.trim(),
       },
       include: {
         cabana: { select: { id: true, name: true } },
@@ -65,10 +50,10 @@ export async function POST(
         fromStatus: "PENDING",
         toStatus: "REJECTED",
         changedBy: session.user.id,
-        reason: String(reason).trim(),
+        reason: reason.trim(),
       },
     }),
   ]);
 
   return NextResponse.json(updated);
-}
+});
