@@ -13,8 +13,8 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Prisma client generate
-RUN npx prisma generate
+# Prisma client generate (dummy DATABASE_URL sadece generate için gerekli)
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 RUN npm run build
 
