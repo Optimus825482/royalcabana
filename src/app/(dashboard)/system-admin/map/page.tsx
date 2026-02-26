@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import CabanaMap from "@/components/map/CabanaMap";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
@@ -112,9 +112,7 @@ export default function SystemAdminMapPage() {
         body: JSON.stringify({ coordX, coordY }),
       });
       if (!res.ok) throw new Error("Konum güncellenemedi.");
-      setCabanas((prev) =>
-        prev.map((c) => (c.id === cabanaId ? { ...c, coordX, coordY } : c)),
-      );
+      queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
       if (selectedCabana?.id === cabanaId) {
         setSelectedCabana((prev) =>
           prev ? { ...prev, coordX, coordY } : prev,
