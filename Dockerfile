@@ -42,6 +42,9 @@ COPY --from=builder /app/node_modules ./node_modules
 
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
+# Next.js image cache dizini — nextjs user yazabilsin
+RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next/cache
+
 # Entrypoint script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh

@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { Role, ReportType } from "@/types";
+
+const PresentationCanvas = lazy(
+  () => import("@/components/reports/PresentationCanvas"),
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,6 +90,7 @@ export default function ReportsPage() {
   >(null);
   const [exportError, setExportError] = useState("");
   const [exportSuccess, setExportSuccess] = useState("");
+  const [showCanvas, setShowCanvas] = useState(false);
 
   // ── Fetch meta ──────────────────────────────────────────────────────────────
 
@@ -237,6 +242,18 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+      {/* Presentation Canvas (fullscreen modal) */}
+      {showCanvas && (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-50 bg-neutral-950/95 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          }
+        >
+          <PresentationCanvas onClose={() => setShowCanvas(false)} />
+        </Suspense>
+      )}
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-amber-400">
@@ -391,6 +408,15 @@ export default function ReportsPage() {
                 onClick={handleHtmlPresentation}
                 disabled={exportLoading !== null}
                 variant="secondary"
+              />
+              <ActionButton
+                label="Sunum Düzenle"
+                icon="🎨"
+                loading={false}
+                onClick={() => setShowCanvas(true)}
+                disabled={exportLoading !== null}
+                variant="secondary"
+                className="sm:col-span-2"
               />
             </div>
           </div>
