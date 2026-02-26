@@ -30,9 +30,9 @@ services:
       NEXTAUTH_URL: https://royalcabana.erkanerdem.net
       NEXT_PUBLIC_APP_URL: https://royalcabana.erkanerdem.net
       NODE_ENV: production
-      PORT: 3000
+      PORT: 3006
     ports:
-      - "3000:3000"
+      - "3006:3006"
 
 volumes:
   postgres_data:
