@@ -12,10 +12,10 @@ done
 echo "✅ PostgreSQL ready"
 
 echo "🔄 Running migrations..."
-node_modules/prisma/build/index.js migrate deploy
+node_modules/.bin/prisma migrate deploy
 
 echo "🌱 Running seed..."
-node_modules/ts-node/dist/bin.js --compiler-options '{"module":"CommonJS"}' prisma/seed.ts || echo "⚠️  Seed skipped (already seeded)"
+node_modules/.bin/ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts || echo "⚠️  Seed skipped (already seeded)"
 
 echo "🚀 Starting Next.js..."
 exec node server.js

@@ -35,17 +35,10 @@ COPY --from=builder /app/public ./public
 
 # Prisma için schema ve migrations
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma/adapter-pg ./node_modules/@prisma/adapter-pg
-COPY --from=builder /app/node_modules/pg ./node_modules/pg
 
-# Seed için ts-node ve bcryptjs
-COPY --from=builder /app/node_modules/ts-node ./node_modules/ts-node
-COPY --from=builder /app/node_modules/typescript ./node_modules/typescript
-COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
-COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
+# Migration + seed için gerekli tüm node_modules
+COPY --from=builder /app/node_modules ./node_modules
+
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # Entrypoint script
