@@ -1,44 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ cabanaId: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (![Role.ADMIN, Role.SYSTEM_ADMIN].includes(session.user.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+const adminRoles = [Role.ADMIN, Role.SYSTEM_ADMIN];
 
-  const { cabanaId } = await params;
-
+export const GET = withAuth(adminRoles, async (_req, { params }) => {
+  const cabanaId = params!.cabanaId;
   const prices = await prisma.cabanaPrice.findMany({
     where: { cabanaId },
     orderBy: { date: "asc" },
     select: { id: true, date: true, dailyPrice: true },
   });
-
   return NextResponse.json({ prices });
-}
+});
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ cabanaId: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (![Role.ADMIN, Role.SYSTEM_ADMIN].includes(session.user.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { cabanaId } = await params;
-  const { searchParams } = new URL(request.url);
+export const DELETE = withAuth(adminRoles, async (req, { params }) => {
+  const cabanaId = params!.cabanaId;
+  const { searchParams } = new URL(req.url);
   const dateStr = searchParams.get("date");
 
   if (!dateStr) {
@@ -49,11 +28,9 @@ export async function DELETE(
   }
 
   const dateObj = new Date(dateStr + "T00:00:00.000Z");
-
   const existing = await prisma.cabanaPrice.findUnique({
     where: { cabanaId_date: { cabanaId, date: dateObj } },
   });
-
   if (!existing) {
     return NextResponse.json({ error: "Fiyat bulunamadı." }, { status: 404 });
   }
@@ -61,6 +38,5 @@ export async function DELETE(
   await prisma.cabanaPrice.delete({
     where: { cabanaId_date: { cabanaId, date: dateObj } },
   });
-
   return NextResponse.json({ success: true });
-}
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, Suspense } from "react";
+import { useRef, useState, useCallback, useEffect, Suspense } from "react";
 import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -77,10 +77,26 @@ function CabanaMesh({
   onClick,
 }: CabanaMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const roofRef = useRef<THREE.Mesh>(null);
+  const outlineRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
   const color = getStatusColor(cabana);
   const [w, h, d] = getClassDimensions(cabana.cabanaClass?.name);
+
+  // Cleanup geometries and materials on unmount
+  useEffect(() => {
+    return () => {
+      [meshRef, roofRef, outlineRef].forEach((ref) => {
+        if (ref.current) {
+          ref.current.geometry?.dispose();
+          const mat = ref.current.material;
+          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+          else if (mat) mat.dispose();
+        }
+      });
+    };
+  }, []);
 
   // Hover: lift up slightly; selected: brighter emissive
   useFrame((_, delta) => {
@@ -98,7 +114,8 @@ function CabanaMesh({
       e.stopPropagation();
       setHovered(true);
       onHover(cabana);
-      document.body.style.cursor = "pointer";
+      if (typeof document !== "undefined")
+        document.body.style.cursor = "pointer";
     },
     [cabana, onHover],
   );
@@ -108,7 +125,7 @@ function CabanaMesh({
       e.stopPropagation();
       setHovered(false);
       onHover(null);
-      document.body.style.cursor = "auto";
+      if (typeof document !== "undefined") document.body.style.cursor = "auto";
     },
     [onHover],
   );
@@ -144,14 +161,14 @@ function CabanaMesh({
       </mesh>
 
       {/* Roof (slightly darker, pyramid-like via scaled box) */}
-      <mesh position={[0, h + 0.18, 0]} castShadow>
+      <mesh ref={roofRef} position={[0, h + 0.18, 0]} castShadow>
         <boxGeometry args={[w + 0.1, 0.18, d + 0.1]} />
         <meshStandardMaterial color="#1c1917" roughness={0.8} />
       </mesh>
 
       {/* Selected outline ring */}
       {isSelected && (
-        <mesh position={[0, h / 2, 0]}>
+        <mesh ref={outlineRef} position={[0, h / 2, 0]}>
           <boxGeometry args={[w + 0.12, h + 0.12, d + 0.12]} />
           <meshStandardMaterial
             color="#fbbf24"

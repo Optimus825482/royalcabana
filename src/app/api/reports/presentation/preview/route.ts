@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withAuth([Role.SYSTEM_ADMIN], async () => {
   const [cabanas, classes, concepts] = await Promise.all([
     prisma.cabana.findMany({
       include: {
@@ -54,7 +48,7 @@ export async function GET() {
       description: con.description,
       products: con.products.map((cp) => ({
         name: cp.product.name,
-        salePrice: cp.product.salePrice,
+        salePrice: Number(cp.product.salePrice),
         group: "Genel",
       })),
     })),
@@ -63,7 +57,7 @@ export async function GET() {
         cabanaName: c.name,
         className: c.cabanaClass.name,
         date: new Date(p.date).toLocaleDateString("tr-TR"),
-        dailyPrice: p.dailyPrice,
+        dailyPrice: Number(p.dailyPrice),
       })),
     ),
     stats: {
@@ -75,4 +69,4 @@ export async function GET() {
       closed: cabanas.filter((c) => c.status === "CLOSED").length,
     },
   });
-}
+});

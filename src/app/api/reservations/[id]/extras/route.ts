@@ -90,7 +90,7 @@ export const POST = withAuth(
         where: { reservationId: id },
       });
       const extrasTotal = allExtras.reduce(
-        (sum, e) => sum + e.unitPrice * e.quantity,
+        (sum, e) => sum + Number(e.unitPrice) * e.quantity,
         0,
       );
 
@@ -99,10 +99,10 @@ export const POST = withAuth(
         select: { totalPrice: true },
       });
 
-      const basePrice = currentReservation?.totalPrice ?? 0;
+      const basePrice = Number(currentReservation?.totalPrice ?? 0);
       const oldExtrasTotal = allExtras
         .filter((e) => !extras.some((ne) => ne.id === e.id))
-        .reduce((sum, e) => sum + e.unitPrice * e.quantity, 0);
+        .reduce((sum, e) => sum + Number(e.unitPrice) * e.quantity, 0);
 
       await tx.reservation.update({
         where: { id },

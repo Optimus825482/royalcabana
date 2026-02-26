@@ -83,7 +83,7 @@ async function fetchData(): Promise<SlideData> {
     description: con.description,
     products: con.products.map((cp) => ({
       name: cp.product.name,
-      salePrice: cp.product.salePrice,
+      salePrice: Number(cp.product.salePrice),
       group: "Genel",
     })),
   }));
@@ -93,7 +93,7 @@ async function fetchData(): Promise<SlideData> {
       cabanaName: c.name,
       className: c.cabanaClass.name,
       date: new Date(p.date).toLocaleDateString("tr-TR"),
-      dailyPrice: p.dailyPrice,
+      dailyPrice: Number(p.dailyPrice),
     })),
   );
 

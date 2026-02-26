@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { reportEngine } from "@/services/report.service";
 import { Role, ReportType, ReservationStatus } from "@/types";
 
@@ -19,24 +18,8 @@ const generateSchema = z.object({
     .optional(),
 });
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ message: "Invalid JSON" }, { status: 400 });
-  }
-
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
+  const body = await req.json();
   const parsed = generateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -46,39 +29,30 @@ export async function POST(req: NextRequest) {
   }
 
   const { type, format, filters } = parsed.data;
+  const result = await reportEngine.generate(type, filters ?? {});
 
-  try {
-    const result = await reportEngine.generate(type, filters ?? {});
-
-    if (format === "pdf") {
-      const buffer = await reportEngine.exportPDF(result);
-      return new NextResponse(new Uint8Array(buffer), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="report-${type.toLowerCase()}.pdf"`,
-        },
-      });
-    }
-
-    if (format === "excel") {
-      const buffer = await reportEngine.exportExcel(result);
-      return new NextResponse(new Uint8Array(buffer), {
-        status: 200,
-        headers: {
-          "Content-Type":
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="report-${type.toLowerCase()}.xlsx"`,
-        },
-      });
-    }
-
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("Report generation error:", error);
-    return NextResponse.json(
-      { message: "Report generation failed" },
-      { status: 500 },
-    );
+  if (format === "pdf") {
+    const buffer = await reportEngine.exportPDF(result);
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="report-${type.toLowerCase()}.pdf"`,
+      },
+    });
   }
-}
+
+  if (format === "excel") {
+    const buffer = await reportEngine.exportExcel(result);
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="report-${type.toLowerCase()}.xlsx"`,
+      },
+    });
+  }
+
+  return NextResponse.json(result);
+});

@@ -1,9 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
+
+const allRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_USER,
+];
 
 const updateConceptSchema = z.object({
   name: z.string().min(2).optional(),
@@ -11,18 +17,8 @@ const updateConceptSchema = z.object({
   classId: z.string().nullable().optional(),
 });
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params;
-
+export const GET = withAuth(allRoles, async (_req, { params }) => {
+  const id = params!.id;
   const concept = await prisma.concept.findUnique({
     where: { id },
     include: {
@@ -31,35 +27,18 @@ export async function GET(
       _count: { select: { cabanas: true } },
     },
   });
-
   if (!concept) {
     return NextResponse.json(
       { message: "Konsept bulunamadı." },
       { status: 404 },
     );
   }
-
   return NextResponse.json(concept);
-}
+});
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
+export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
+  const id = params!.id;
   const concept = await prisma.concept.findUnique({ where: { id } });
-
   if (!concept) {
     return NextResponse.json(
       { message: "Konsept bulunamadı." },
@@ -67,9 +46,8 @@ export async function PATCH(
     );
   }
 
-  const body = await request.json();
+  const body = await req.json();
   const parsed = updateConceptSchema.safeParse(body);
-
   if (!parsed.success) {
     return NextResponse.json(
       { message: "Validation error", errors: parsed.error.flatten() },
@@ -86,46 +64,30 @@ export async function PATCH(
       _count: { select: { cabanas: true } },
     },
   });
-
   return NextResponse.json(updated);
-}
+});
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
-  const concept = await prisma.concept.findUnique({
-    where: { id },
-    include: { _count: { select: { cabanas: true } } },
-  });
-
-  if (!concept) {
-    return NextResponse.json(
-      { message: "Konsept bulunamadı." },
-      { status: 404 },
-    );
-  }
-
-  if (concept._count.cabanas > 0) {
-    return NextResponse.json(
-      { message: "Bu konsept aktif kabanaya atanmış, silinemez." },
-      { status: 409 },
-    );
-  }
-
-  await prisma.concept.delete({ where: { id } });
-
-  return NextResponse.json({ message: "Konsept silindi." });
-}
+export const DELETE = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (_req, { params }) => {
+    const id = params!.id;
+    const concept = await prisma.concept.findUnique({
+      where: { id },
+      include: { _count: { select: { cabanas: true } } },
+    });
+    if (!concept) {
+      return NextResponse.json(
+        { message: "Konsept bulunamadı." },
+        { status: 404 },
+      );
+    }
+    if (concept._count.cabanas > 0) {
+      return NextResponse.json(
+        { message: "Bu konsept aktif kabanaya atanmış, silinemez." },
+        { status: 409 },
+      );
+    }
+    await prisma.concept.delete({ where: { id } });
+    return NextResponse.json({ message: "Konsept silindi." });
+  },
+);

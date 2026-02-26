@@ -1,48 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withAuth([Role.SYSTEM_ADMIN], async () => {
   const cabanas = await prisma.cabana.findMany({
     select: {
       id: true,
       name: true,
       isOpenForReservation: true,
       status: true,
-      cabanaClass: {
-        select: { name: true },
-      },
+      cabanaClass: { select: { name: true } },
     },
     orderBy: { name: "asc" },
   });
-
   return NextResponse.json({ cabanas });
-}
+});
 
-export async function PATCH(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const body = await request.json();
+export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req) => {
+  const body = await req.json();
   const { cabanaId, isOpen } = body;
 
   if (!cabanaId || typeof isOpen !== "boolean") {
@@ -55,12 +31,7 @@ export async function PATCH(request: NextRequest) {
   const cabana = await prisma.cabana.update({
     where: { id: cabanaId },
     data: { isOpenForReservation: isOpen },
-    select: {
-      id: true,
-      name: true,
-      isOpenForReservation: true,
-    },
+    select: { id: true, name: true, isOpenForReservation: true },
   });
-
   return NextResponse.json(cabana);
-}
+});

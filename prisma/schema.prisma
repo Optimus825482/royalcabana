@@ -159,8 +159,8 @@ model Product {
   id            String    @id @default(cuid())
   name          String
   groupId       String?
-  purchasePrice Float
-  salePrice     Float
+  purchasePrice Decimal   @db.Decimal(10, 2)
+  salePrice     Decimal   @db.Decimal(10, 2)
   isActive      Boolean   @default(true)
   deletedAt     DateTime?
   createdAt     DateTime  @default(now())
@@ -195,7 +195,7 @@ model CabanaPrice {
   id         String   @id @default(cuid())
   cabanaId   String
   date       DateTime @db.Date
-  dailyPrice Float
+  dailyPrice Decimal  @db.Decimal(10, 2)
   createdAt  DateTime @default(now())
 
   cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
@@ -210,7 +210,7 @@ model CabanaPriceRange {
   cabanaId   String
   startDate  DateTime @db.Date
   endDate    DateTime @db.Date
-  dailyPrice Float
+  dailyPrice Decimal  @db.Decimal(10, 2)
   label      String?  // "Yaz Sezonu", "Bayram" vb.
   priority   Int      @default(0) // Çakışan aralıklarda yüksek öncelik kazanır
   createdAt  DateTime @default(now())
@@ -225,7 +225,7 @@ model ConceptPrice {
   id        String   @id @default(cuid())
   conceptId String
   productId String?
-  price     Float
+  price     Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())
 
   concept Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
@@ -246,7 +246,7 @@ model Reservation {
   endDate         DateTime          @db.Date
   notes           String?
   status          ReservationStatus @default(PENDING)
-  totalPrice      Float?
+  totalPrice      Decimal?  @db.Decimal(10, 2)
   rejectionReason String?
   deletedAt       DateTime?
   createdAt       DateTime          @default(now())
@@ -336,7 +336,7 @@ model ExtraItem {
   reservationId String
   productId     String
   quantity      Int      @default(1)
-  unitPrice     Float
+  unitPrice     Decimal  @db.Decimal(10, 2)
   addedBy       String
   createdAt     DateTime @default(now())
 

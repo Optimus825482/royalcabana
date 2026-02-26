@@ -1,39 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 
+const allRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_USER,
+];
 const CONFIG_KEY = "system_open_for_reservation";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withAuth(allRoles, async () => {
   const config = await prisma.systemConfig.findUnique({
     where: { key: CONFIG_KEY },
   });
-
   const isOpen = config ? config.value === "true" : true;
-
   return NextResponse.json({ isOpen });
-}
+});
 
-export async function PATCH(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const body = await request.json();
+export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req) => {
+  const body = await req.json();
   const { isOpen } = body;
 
   if (typeof isOpen !== "boolean") {
@@ -48,6 +35,5 @@ export async function PATCH(request: NextRequest) {
     update: { value: String(isOpen) },
     create: { key: CONFIG_KEY, value: String(isOpen) },
   });
-
   return NextResponse.json({ isOpen: config.value === "true" });
-}
+});

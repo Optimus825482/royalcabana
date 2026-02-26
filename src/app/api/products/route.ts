@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import { z } from "zod";
+import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
+
+const allRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_USER,
+];
 
 const createProductSchema = z.object({
   name: z.string().min(2),
@@ -12,12 +18,8 @@ const createProductSchema = z.object({
   groupId: z.string().optional().nullable(),
 });
 
-export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-  const { searchParams } = new URL(request.url);
+export const GET = withAuth(allRoles, async (req) => {
+  const { searchParams } = new URL(req.url);
   const activeOnly = searchParams.get("active") === "true";
 
   const products = await prisma.product.findMany({
@@ -27,16 +29,10 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json(products);
-}
+});
 
-export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== Role.SYSTEM_ADMIN)
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-
-  const body = await request.json();
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
+  const body = await req.json();
   const parsed = createProductSchema.safeParse(body);
   if (!parsed.success)
     return NextResponse.json(
@@ -50,4 +46,4 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json(product, { status: 201 });
-}
+});

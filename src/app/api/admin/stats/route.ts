@@ -62,7 +62,7 @@ export async function GET() {
     pendingRequests,
     approvedThisMonth,
     rejectedThisMonth,
-    totalRevenue: revenueResult._sum.totalPrice ?? 0,
-    revenueThisMonth: revenueThisMonthResult._sum.totalPrice ?? 0,
+    totalRevenue: Number(revenueResult._sum.totalPrice ?? 0),
+    revenueThisMonth: Number(revenueThisMonthResult._sum.totalPrice ?? 0),
   });
 }

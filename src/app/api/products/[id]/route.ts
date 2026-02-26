@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import { z } from "zod";
+import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
+
+const allRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_USER,
+];
 
 const updateProductSchema = z.object({
   name: z.string().min(2).optional(),
@@ -13,17 +19,8 @@ const updateProductSchema = z.object({
   groupId: z.string().optional().nullable(),
 });
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params;
+export const GET = withAuth(allRoles, async (_req, { params }) => {
+  const id = params!.id;
 
   const product = await prisma.product.findUnique({
     where: { id },
@@ -35,33 +32,18 @@ export async function GET(
   }
 
   return NextResponse.json(product);
-}
+});
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
+  const id = params!.id;
 
   const product = await prisma.product.findUnique({ where: { id } });
-
   if (!product) {
     return NextResponse.json({ message: "Ürün bulunamadı." }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await req.json();
   const parsed = updateProductSchema.safeParse(body);
-
   if (!parsed.success) {
     return NextResponse.json(
       { message: "Validation error", errors: parsed.error.flatten() },
@@ -75,45 +57,38 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
+export const DELETE = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (_req, { params }) => {
+    const id = params!.id;
 
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
-  const product = await prisma.product.findUnique({
-    where: { id },
-    include: {
-      conceptProducts: {
-        include: { concept: { select: { id: true } } },
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        conceptProducts: {
+          include: { concept: { select: { id: true } } },
+        },
       },
-    },
-  });
+    });
 
-  if (!product) {
-    return NextResponse.json({ message: "Ürün bulunamadı." }, { status: 404 });
-  }
+    if (!product) {
+      return NextResponse.json(
+        { message: "Ürün bulunamadı." },
+        { status: 404 },
+      );
+    }
 
-  if (product.conceptProducts.length > 0) {
-    return NextResponse.json(
-      { message: "Bu ürün aktif bir konseptte kullanılıyor, silinemez." },
-      { status: 409 },
-    );
-  }
+    if (product.conceptProducts.length > 0) {
+      return NextResponse.json(
+        { message: "Bu ürün aktif bir konseptte kullanılıyor, silinemez." },
+        { status: 409 },
+      );
+    }
 
-  await prisma.product.delete({ where: { id } });
+    await prisma.product.delete({ where: { id } });
 
-  return NextResponse.json({ message: "Ürün silindi." });
-}
+    return NextResponse.json({ message: "Ürün silindi." });
+  },
+);

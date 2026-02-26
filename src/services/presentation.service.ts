@@ -191,7 +191,7 @@ export class PresentationEngine {
       const productList = concept.products
         .map(
           (cp) =>
-            `• ${cp.product.name} — ${cp.product.salePrice.toLocaleString("tr-TR")} ₺`,
+            `• ${cp.product.name} — ${Number(cp.product.salePrice).toLocaleString("tr-TR")} ₺`,
         )
         .join("\n");
 
@@ -245,7 +245,7 @@ export class PresentationEngine {
         priceRows.push([
           cabana.name,
           new Date(price.date).toLocaleDateString("tr-TR"),
-          price.dailyPrice.toLocaleString("tr-TR"),
+          Number(price.dailyPrice).toLocaleString("tr-TR"),
         ]);
       }
     }

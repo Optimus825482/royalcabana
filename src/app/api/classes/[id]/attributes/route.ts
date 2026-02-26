@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 
 const addAttributeSchema = z.object({
@@ -10,31 +9,15 @@ const addAttributeSchema = z.object({
   value: z.string().min(1),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
+  const id = params!.id;
   const cabanaClass = await prisma.cabanaClass.findUnique({ where: { id } });
-
   if (!cabanaClass) {
     return NextResponse.json({ message: "Sınıf bulunamadı." }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await req.json();
   const parsed = addAttributeSchema.safeParse(body);
-
   if (!parsed.success) {
     return NextResponse.json(
       { message: "Validation error", errors: parsed.error.flatten() },
@@ -43,11 +26,9 @@ export async function POST(
   }
 
   const { key, value } = parsed.data;
-
   const existing = await prisma.classAttribute.findUnique({
     where: { classId_key: { classId: id, key } },
   });
-
   if (existing) {
     return NextResponse.json(
       { message: "Bu anahtar zaten mevcut." },
@@ -58,6 +39,5 @@ export async function POST(
   const attribute = await prisma.classAttribute.create({
     data: { classId: id, key, value },
   });
-
   return NextResponse.json(attribute, { status: 201 });
-}
+});

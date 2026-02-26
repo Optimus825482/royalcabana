@@ -1,7 +1,16 @@
 import { prisma as defaultPrisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import type { PriceBreakdown, PriceLineItem } from "@/types";
 
 type PrismaClientType = typeof defaultPrisma;
+type DecimalLike = Prisma.Decimal | number;
+
+/** Safely convert Prisma Decimal to number */
+function toNum(val: DecimalLike | null | undefined): number {
+  if (val == null) return 0;
+  if (typeof val === "number") return val;
+  return Number(val);
+}
 
 export class PricingEngine {
   private prisma: PrismaClientType;
@@ -39,7 +48,7 @@ export class PricingEngine {
 
       // Günlük fiyat bulunan tarihleri set'e al
       const pricedDates = new Set(
-        cabanaPrices.map((p: { date: Date }) => p.date.toISOString()),
+        cabanaPrices.map((p) => p.date.toISOString()),
       );
 
       // 2. Eksik günler için CabanaPriceRange'den fiyat ara
@@ -61,15 +70,11 @@ export class PricingEngine {
         });
 
         for (const d of missingDates) {
-          const match = (
-            priceRanges as {
-              startDate: Date;
-              endDate: Date;
-              dailyPrice: number;
-            }[]
-          ).find((r) => d >= r.startDate && d < r.endDate);
+          const match = priceRanges.find(
+            (r) => d >= r.startDate && d < r.endDate,
+          );
           if (match) {
-            rangePriceTotal += match.dailyPrice;
+            rangePriceTotal += toNum(match.dailyPrice);
             rangeDayCount++;
           }
         }
@@ -77,7 +82,7 @@ export class PricingEngine {
 
       if (cabanaPrices.length > 0 || rangeDayCount > 0) {
         const dailyTotal = cabanaPrices.reduce(
-          (sum: number, p: { dailyPrice: number }) => sum + p.dailyPrice,
+          (sum: number, p) => sum + toNum(p.dailyPrice),
           0,
         );
         cabanaDaily = dailyTotal + rangePriceTotal;
@@ -114,26 +119,26 @@ export class PricingEngine {
         include: { product: true },
       });
 
+      // Batch fetch all concept prices to avoid N+1
+      const allConceptPrices = await this.prisma.conceptPrice.findMany({
+        where: { conceptId },
+      });
+      const conceptPriceMap = new Map(
+        allConceptPrices.map((cp) => [cp.productId, cp]),
+      );
+
       for (const cp of conceptProducts) {
-        // Önce ConceptPrice tablosunda conceptId + productId eşleşmesi ara
-        const conceptPrice = await this.prisma.conceptPrice.findUnique({
-          where: {
-            conceptId_productId: {
-              conceptId,
-              productId: cp.productId,
-            },
-          },
-        });
+        const conceptPrice = conceptPriceMap.get(cp.productId);
 
         let unitPrice: number;
         let source: PriceLineItem["source"];
 
         if (conceptPrice) {
-          unitPrice = conceptPrice.price;
+          unitPrice = toNum(conceptPrice.price);
           source = "CONCEPT_SPECIFIC";
           if (priceSource === "GENERAL") priceSource = "CONCEPT_SPECIFIC";
         } else {
-          unitPrice = cp.product.salePrice;
+          unitPrice = toNum(cp.product.salePrice);
           source = "GENERAL";
         }
 
@@ -159,7 +164,11 @@ export class PricingEngine {
         where: { id: { in: productIds } },
       });
 
-      type ProductRow = { id: string; name: string; salePrice: number };
+      type ProductRow = {
+        id: string;
+        name: string;
+        salePrice: DecimalLike;
+      };
       const productMap = new Map<string, ProductRow>(
         (products as ProductRow[]).map((p) => [p.id, p]),
       );
@@ -168,13 +177,14 @@ export class PricingEngine {
         const product = productMap.get(extra.productId);
         if (!product) continue;
 
-        const total = product.salePrice * extra.quantity;
+        const price = toNum(product.salePrice);
+        const total = price * extra.quantity;
         extrasTotal += total;
 
         items.push({
           name: product.name,
           quantity: extra.quantity,
-          unitPrice: product.salePrice,
+          unitPrice: price,
           total,
           source: "GENERAL",
         });

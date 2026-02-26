@@ -65,9 +65,28 @@ export function withAuth(
     // Resolve params if present
     const params = routeContext?.params ? await routeContext.params : undefined;
 
-    return handler(req, {
-      session: session as AuthContext["session"],
-      params: params as Record<string, string> | undefined,
-    });
+    try {
+      return await handler(req, {
+        session: session as AuthContext["session"],
+        params: params as Record<string, string> | undefined,
+      });
+    } catch (error) {
+      console.error(
+        `[API Error] ${req.method} ${req.nextUrl.pathname}:`,
+        error,
+      );
+
+      if (error instanceof SyntaxError) {
+        return NextResponse.json(
+          { error: "Geçersiz istek formatı." },
+          { status: 400 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Sunucu hatası. Lütfen tekrar deneyin." },
+        { status: 500 },
+      );
+    }
   };
 }

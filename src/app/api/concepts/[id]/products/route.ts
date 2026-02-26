@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 
 const addProductSchema = z.object({
@@ -14,22 +13,8 @@ const removeProductSchema = z.object({
   productId: z.string().min(1),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
+  const id = params!.id;
   const concept = await prisma.concept.findUnique({ where: { id } });
   if (!concept) {
     return NextResponse.json(
@@ -38,9 +23,8 @@ export async function POST(
     );
   }
 
-  const body = await request.json();
+  const body = await req.json();
   const parsed = addProductSchema.safeParse(body);
-
   if (!parsed.success) {
     return NextResponse.json(
       { message: "Validation error", errors: parsed.error.flatten() },
@@ -49,11 +33,9 @@ export async function POST(
   }
 
   const { productId, quantity = 1 } = parsed.data;
-
   const existing = await prisma.conceptProduct.findUnique({
     where: { conceptId_productId: { conceptId: id, productId } },
   });
-
   if (existing) {
     return NextResponse.json(
       { message: "Bu ürün zaten konsepte eklenmiş." },
@@ -65,29 +47,13 @@ export async function POST(
     data: { conceptId: id, productId, quantity },
     include: { product: true },
   });
-
   return NextResponse.json(conceptProduct, { status: 201 });
-}
+});
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
-  const body = await request.json();
+export const DELETE = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
+  const id = params!.id;
+  const body = await req.json();
   const parsed = removeProductSchema.safeParse(body);
-
   if (!parsed.success) {
     return NextResponse.json(
       { message: "Validation error", errors: parsed.error.flatten() },
@@ -96,11 +62,9 @@ export async function DELETE(
   }
 
   const { productId } = parsed.data;
-
   const entry = await prisma.conceptProduct.findUnique({
     where: { conceptId_productId: { conceptId: id, productId } },
   });
-
   if (!entry) {
     return NextResponse.json(
       { message: "Bu ürün konsepte eklenmemiş." },
@@ -109,6 +73,5 @@ export async function DELETE(
   }
 
   await prisma.conceptProduct.delete({ where: { id: entry.id } });
-
   return NextResponse.json({ message: "Ürün konseptten kaldırıldı." });
-}
+});

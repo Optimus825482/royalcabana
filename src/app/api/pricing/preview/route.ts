@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 import { PricingEngine } from "@/lib/pricing";
+
+const adminRoles = [Role.ADMIN, Role.SYSTEM_ADMIN];
 
 const previewSchema = z.object({
   cabanaId: z.string().min(1),
@@ -17,15 +18,8 @@ const previewSchema = z.object({
     .optional(),
 });
 
-export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (![Role.ADMIN, Role.SYSTEM_ADMIN].includes(session.user.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const body = await request.json();
+export const POST = withAuth(adminRoles, async (req) => {
+  const body = await req.json();
   const parsed = previewSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -46,4 +40,4 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json(breakdown);
-}
+});

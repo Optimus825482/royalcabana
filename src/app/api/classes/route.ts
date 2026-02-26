@@ -1,9 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
+
+const allRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_USER,
+];
 
 const createClassSchema = z.object({
   name: z.string().min(2),
@@ -13,13 +19,7 @@ const createClassSchema = z.object({
     .optional(),
 });
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withAuth(allRoles, async () => {
   const classes = await prisma.cabanaClass.findMany({
     include: {
       attributes: true,
@@ -27,24 +27,12 @@ export async function GET() {
     },
     orderBy: { createdAt: "desc" },
   });
-
   return NextResponse.json(classes);
-}
+});
 
-export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
-  const body = await request.json();
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
+  const body = await req.json();
   const parsed = createClassSchema.safeParse(body);
-
   if (!parsed.success) {
     return NextResponse.json(
       { message: "Validation error", errors: parsed.error.flatten() },
@@ -75,4 +63,4 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json(cabanaClass, { status: 201 });
-}
+});

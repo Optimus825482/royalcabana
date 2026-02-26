@@ -99,7 +99,7 @@ export class ReportEngine {
       warnings.push("Eksik veri alanları: onaylı rezervasyon");
 
     const nullPriceCount = reservations.filter(
-      (r: { totalPrice: number | null }) => r.totalPrice == null,
+      (r) => r.totalPrice == null,
     ).length;
     if (nullPriceCount > 0)
       warnings.push(
@@ -107,16 +107,13 @@ export class ReportEngine {
       );
 
     const totalRevenue = reservations.reduce(
-      (s: number, r: { totalPrice: number | null }) => s + (r.totalPrice ?? 0),
+      (s: number, r) => s + Number(r.totalPrice ?? 0),
       0,
     );
     const byMonth = new Map<string, number>();
-    for (const r of reservations as {
-      startDate: Date;
-      totalPrice: number | null;
-    }[]) {
+    for (const r of reservations) {
       const key = r.startDate.toISOString().slice(0, 7);
-      byMonth.set(key, (byMonth.get(key) ?? 0) + (r.totalPrice ?? 0));
+      byMonth.set(key, (byMonth.get(key) ?? 0) + Number(r.totalPrice ?? 0));
     }
 
     return {
@@ -149,15 +146,11 @@ export class ReportEngine {
     if (extras.length === 0) warnings.push("Eksik veri alanları: ekstra ürün");
 
     const totalCost = extras.reduce(
-      (
-        s: number,
-        e: { product: { purchasePrice: number }; quantity: number },
-      ) => s + e.product.purchasePrice * e.quantity,
+      (s: number, e) => s + Number(e.product.purchasePrice) * e.quantity,
       0,
     );
     const totalSale = extras.reduce(
-      (s: number, e: { unitPrice: number; quantity: number }) =>
-        s + e.unitPrice * e.quantity,
+      (s: number, e) => s + Number(e.unitPrice) * e.quantity,
       0,
     );
 

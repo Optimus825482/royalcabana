@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api-middleware";
+import { Role } from "@/types";
 import { notificationService } from "@/services/notification.service";
 
-export async function PATCH(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const allRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_USER,
+];
 
-  const { id } = await params;
+export const PATCH = withAuth(allRoles, async (_req, { session, params }) => {
+  const id = params!.id;
   await notificationService.markAsRead(id, session.user.id);
   return NextResponse.json({ success: true });
-}
+});
