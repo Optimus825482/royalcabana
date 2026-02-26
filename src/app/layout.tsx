@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo.ico", sizes: "any" },
       { url: "/icons/Icon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/icons/Icon-96.png", sizes: "96x96", type: "image/png" },
       { url: "/icons/Icon-192.png", sizes: "192x192", type: "image/png" },
@@ -51,8 +51,23 @@ export const metadata: Metadata = {
     title: "Royal Cabana",
     description: "Royal Cabana Yönetim Sistemi",
     siteName: "Royal Cabana",
+    url: "https://royalcabana.erkanerdem.net",
     locale: "tr_TR",
     type: "website",
+    images: [
+      {
+        url: "https://royalcabana.erkanerdem.net/logo.png",
+        width: 1088,
+        height: 960,
+        alt: "Royal Cabana Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Royal Cabana",
+    description: "Royal Cabana Yönetim Sistemi",
+    images: ["https://royalcabana.erkanerdem.net/logo.png"],
   },
 };
 

@@ -9,7 +9,7 @@ const resolveDatabaseUrl = (): string | undefined => {
     return process.env.DATABASE_URL;
   }
 
-  const host = process.env.POSTGRES_HOST ?? process.env.PGHOST;
+  const host = process.env.POSTGRES_HOST ?? process.env.PGHOST ?? "localhost";
   const port = process.env.POSTGRES_PORT ?? process.env.PGPORT ?? "5432";
   const database = process.env.POSTGRES_DB ?? process.env.PGDATABASE;
   const user = process.env.POSTGRES_USER ?? process.env.PGUSER;

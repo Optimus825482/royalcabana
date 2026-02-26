@@ -2,9 +2,10 @@
 set -e
 
 if [ -z "$DATABASE_URL" ]; then
-  if [ -n "$POSTGRES_HOST" ] && [ -n "$POSTGRES_DB" ] && [ -n "$POSTGRES_USER" ] && [ -n "$POSTGRES_PASSWORD" ]; then
-    export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
-    echo "ℹ️  DATABASE_URL generated from POSTGRES_* env vars"
+  if [ -n "$POSTGRES_DB" ] && [ -n "$POSTGRES_USER" ] && [ -n "$POSTGRES_PASSWORD" ]; then
+    POSTGRES_HOST_VALUE="${POSTGRES_HOST:-localhost}"
+    export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_VALUE}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
+    echo "ℹ️  DATABASE_URL generated from POSTGRES_* env vars (host=${POSTGRES_HOST_VALUE})"
   elif [ -n "$PGHOST" ] && [ -n "$PGDATABASE" ] && [ -n "$PGUSER" ] && [ -n "$PGPASSWORD" ]; then
     export DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT:-5432}/${PGDATABASE}"
     echo "ℹ️  DATABASE_URL generated from PG* env vars"
