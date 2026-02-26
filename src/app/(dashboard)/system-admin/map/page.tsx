@@ -21,8 +21,8 @@ const defaultAddForm = {
   name: "",
   classId: "",
   conceptId: "",
-  coordX: 500,
-  coordY: 500,
+  coordX: 33.210415,
+  coordY: 35.355698,
 };
 
 export default function SystemAdminMapPage() {
@@ -78,6 +78,10 @@ export default function SystemAdminMapPage() {
   const [addForm, setAddForm] = useState(defaultAddForm);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
+  const [placementCoords, setPlacementCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
 
   // Edit panel state
   const [editClassId, setEditClassId] = useState("");
@@ -98,6 +102,16 @@ export default function SystemAdminMapPage() {
     setEditClassId(cabana.classId);
     setEditConceptId(cabana.conceptId ?? "");
     setShowDeleteConfirm(false);
+    setPlacementCoords(null);
+  }
+
+  function handleMapClick(lat: number, lng: number) {
+    // Haritaya tıklayınca yeni cabana ekleme moduna geç
+    setPlacementCoords({ lat, lng });
+    setSelectedCabana(null);
+    setAddForm((f) => ({ ...f, coordX: lng, coordY: lat }));
+    setShowAddModal(true);
+    setAddError("");
   }
 
   async function handleLocationUpdate(
@@ -149,6 +163,7 @@ export default function SystemAdminMapPage() {
       }
       setShowAddModal(false);
       setAddForm(defaultAddForm);
+      setPlacementCoords(null);
       showSuccessMsg("Kabana başarıyla eklendi.");
       queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
     } catch (e: unknown) {
@@ -245,6 +260,7 @@ export default function SystemAdminMapPage() {
             setShowAddModal(true);
             setAddForm(defaultAddForm);
             setAddError("");
+            setPlacementCoords(null);
           }}
           className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
         >
@@ -283,7 +299,9 @@ export default function SystemAdminMapPage() {
                 editable={true}
                 onCabanaClick={handleCabanaClick}
                 onLocationUpdate={handleLocationUpdate}
+                onMapClick={handleMapClick}
                 selectedCabanaId={selectedCabana?.id}
+                placementCoords={placementCoords}
               />
             </div>
           )}
@@ -342,15 +360,15 @@ export default function SystemAdminMapPage() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Koordinat X</span>
+                    <span>Enlem (Lat)</span>
                     <span className="text-neutral-200">
-                      {Math.round(selectedCabana.coordX)}
+                      {selectedCabana.coordY.toFixed(6)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Koordinat Y</span>
+                    <span>Boylam (Lng)</span>
                     <span className="text-neutral-200">
-                      {Math.round(selectedCabana.coordY)}
+                      {selectedCabana.coordX.toFixed(6)}
                     </span>
                   </div>
                 </div>
@@ -456,7 +474,10 @@ export default function SystemAdminMapPage() {
                 Yeni Kabana Ekle
               </h2>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setPlacementCoords(null);
+                }}
                 className="text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
               >
                 ×
@@ -524,28 +545,12 @@ export default function SystemAdminMapPage() {
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="block text-xs text-neutral-400 mb-1.5">
-                    Koordinat X
+                    Enlem (Lat)
                   </label>
                   <input
                     type="number"
                     required
-                    value={addForm.coordX}
-                    onChange={(e) =>
-                      setAddForm((f) => ({
-                        ...f,
-                        coordX: Number(e.target.value),
-                      }))
-                    }
-                    className={inputCls}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs text-neutral-400 mb-1.5">
-                    Koordinat Y
-                  </label>
-                  <input
-                    type="number"
-                    required
+                    step="0.000001"
                     value={addForm.coordY}
                     onChange={(e) =>
                       setAddForm((f) => ({
@@ -554,9 +559,35 @@ export default function SystemAdminMapPage() {
                       }))
                     }
                     className={inputCls}
+                    placeholder="35.3345"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-neutral-400 mb-1.5">
+                    Boylam (Lng)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    step="0.000001"
+                    value={addForm.coordX}
+                    onChange={(e) =>
+                      setAddForm((f) => ({
+                        ...f,
+                        coordX: Number(e.target.value),
+                      }))
+                    }
+                    className={inputCls}
+                    placeholder="33.9230"
                   />
                 </div>
               </div>
+              {placementCoords && (
+                <p className="text-xs text-amber-500/80">
+                  📍 Konum haritadan seçildi. Manuel olarak da
+                  düzenleyebilirsiniz.
+                </p>
+              )}
 
               {addError && (
                 <p className="text-red-400 text-xs bg-red-950/40 border border-red-800/40 rounded-lg px-3 py-2">
@@ -567,7 +598,10 @@ export default function SystemAdminMapPage() {
               <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setPlacementCoords(null);
+                  }}
                   className="px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                 >
                   İptal
