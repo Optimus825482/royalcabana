@@ -35,6 +35,7 @@ COPY --from=builder /app/public ./public
 
 # Prisma için schema ve migrations
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 # Migration + seed için gerekli tüm node_modules
 COPY --from=builder /app/node_modules ./node_modules
