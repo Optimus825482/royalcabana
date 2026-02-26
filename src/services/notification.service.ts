@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NotificationType } from "@/types";
+import { Prisma } from "@prisma/client";
 
 interface SendParams {
   userId: string;
@@ -17,7 +18,10 @@ export class NotificationService {
         type: params.type,
         title: params.title,
         message: params.message,
-        metadata: params.metadata ?? null,
+        metadata:
+          params.metadata !== undefined
+            ? (params.metadata as Prisma.InputJsonValue)
+            : Prisma.JsonNull,
       },
     });
   }
@@ -29,7 +33,10 @@ export class NotificationService {
         type: n.type,
         title: n.title,
         message: n.message,
-        metadata: n.metadata ?? null,
+        metadata:
+          n.metadata !== undefined
+            ? (n.metadata as Prisma.InputJsonValue)
+            : Prisma.JsonNull,
       })),
     });
   }

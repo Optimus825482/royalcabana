@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
+import { Prisma } from "@prisma/client";
 
 const createUserSchema = z.object({
   username: z.string().min(3),
@@ -137,8 +138,12 @@ export async function POST(request: NextRequest) {
       action: "CREATE",
       entity: "User",
       entityId: user.id,
-      oldValue: null,
-      newValue: { username: user.username, email: user.email, role: user.role },
+      oldValue: Prisma.JsonNull,
+      newValue: {
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      } as Prisma.InputJsonValue,
     },
   });
 

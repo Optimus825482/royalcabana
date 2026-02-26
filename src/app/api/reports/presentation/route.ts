@@ -17,7 +17,7 @@ export async function POST() {
 
   try {
     const buffer = await presentationEngine.generate();
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer.buffer as ArrayBuffer, {
       status: 200,
       headers: {
         "Content-Type":

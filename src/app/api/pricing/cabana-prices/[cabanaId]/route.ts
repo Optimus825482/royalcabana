@@ -6,7 +6,7 @@ import { Role } from "@/types";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { cabanaId: string } },
+  { params }: { params: Promise<{ cabanaId: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session)
@@ -15,8 +15,10 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { cabanaId } = await params;
+
   const prices = await prisma.cabanaPrice.findMany({
-    where: { cabanaId: params.cabanaId },
+    where: { cabanaId },
     orderBy: { date: "asc" },
     select: { id: true, date: true, dailyPrice: true },
   });
@@ -26,7 +28,7 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { cabanaId: string } },
+  { params }: { params: Promise<{ cabanaId: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session)
@@ -35,6 +37,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { cabanaId } = await params;
   const { searchParams } = new URL(request.url);
   const dateStr = searchParams.get("date");
 
@@ -48,7 +51,7 @@ export async function DELETE(
   const dateObj = new Date(dateStr + "T00:00:00.000Z");
 
   const existing = await prisma.cabanaPrice.findUnique({
-    where: { cabanaId_date: { cabanaId: params.cabanaId, date: dateObj } },
+    where: { cabanaId_date: { cabanaId, date: dateObj } },
   });
 
   if (!existing) {
@@ -56,7 +59,7 @@ export async function DELETE(
   }
 
   await prisma.cabanaPrice.delete({
-    where: { cabanaId_date: { cabanaId: params.cabanaId, date: dateObj } },
+    where: { cabanaId_date: { cabanaId, date: dateObj } },
   });
 
   return NextResponse.json({ success: true });

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
+import { Prisma } from "@prisma/client";
 
 const ADMIN_ALLOWED_ROLES = [Role.CASINO_USER, Role.FNB_USER];
 
@@ -16,7 +17,7 @@ const updateUserSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -31,8 +32,10 @@ export async function PATCH(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
+
   const user = await prisma.user.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       username: true,
@@ -47,7 +50,7 @@ export async function PATCH(
   }
 
   // ADMIN can only edit CASINO_USER and FNB_USER
-  if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role)) {
+  if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
     return NextResponse.json(
       { message: "Bu kullanıcıyı düzenleme yetkiniz yok." },
       { status: 403 },
@@ -77,7 +80,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.user.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
     select: {
       id: true,
@@ -102,8 +105,8 @@ export async function PATCH(
         email: user.email,
         role: user.role,
         isActive: user.isActive,
-      },
-      newValue: parsed.data,
+      } as Prisma.InputJsonValue,
+      newValue: parsed.data as Prisma.InputJsonValue,
     },
   });
 
@@ -111,8 +114,8 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } },
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -127,8 +130,10 @@ export async function DELETE(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
+
   const user = await prisma.user.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       username: true,
@@ -143,7 +148,7 @@ export async function DELETE(
   }
 
   // ADMIN can only deactivate CASINO_USER and FNB_USER
-  if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role)) {
+  if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
     return NextResponse.json(
       { message: "Bu kullanıcıyı devre dışı bırakma yetkiniz yok." },
       { status: 403 },
@@ -151,7 +156,7 @@ export async function DELETE(
   }
 
   await prisma.user.update({
-    where: { id: params.id },
+    where: { id },
     data: { isActive: false },
   });
 
@@ -161,8 +166,8 @@ export async function DELETE(
       action: "DELETE",
       entity: "User",
       entityId: user.id,
-      oldValue: { isActive: user.isActive },
-      newValue: { isActive: false },
+      oldValue: { isActive: user.isActive } as Prisma.InputJsonValue,
+      newValue: { isActive: false } as Prisma.InputJsonValue,
     },
   });
 
