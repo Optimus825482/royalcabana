@@ -12,7 +12,7 @@ export const createReservationSchema = z.object({
 
 export const approveReservationSchema = z.object({
   totalPrice: z
-    .number({ required_error: "Toplam fiyat zorunludur." })
+    .number({ error: "Toplam fiyat zorunludur." })
     .nonnegative("Fiyat negatif olamaz."),
 });
 
@@ -88,7 +88,7 @@ export const createConceptSchema = z.object({
 export function parseBody<T>(schema: z.ZodSchema<T>, data: unknown) {
   const result = schema.safeParse(data);
   if (!result.success) {
-    const firstError = result.error.errors[0]?.message ?? "Geçersiz veri.";
+    const firstError = result.error.issues[0]?.message ?? "Geçersiz veri.";
     return { success: false as const, error: firstError };
   }
   return { success: true as const, data: result.data };

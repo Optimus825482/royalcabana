@@ -2,15 +2,27 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: ReturnType<typeof createPrismaClient> | undefined;
 };
 
 // Soft delete uygulanacak modeller
 const SOFT_DELETE_MODELS = ["User", "Cabana", "Reservation", "Product"];
 
+function isSoftDeleteModel(model?: string): boolean {
+  return !!model && SOFT_DELETE_MODELS.includes(model);
+}
+
+function addSoftDeleteFilter(model: string | undefined, args: any): void {
+  if (!isSoftDeleteModel(model)) return;
+  if (!args.where) args.where = {};
+  if (args.where.deletedAt === undefined) {
+    args.where.deletedAt = null;
+  }
+}
+
 function createPrismaClient() {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-  const client = new PrismaClient({
+  const base = new PrismaClient({
     adapter,
     log:
       process.env.NODE_ENV === "development"
@@ -18,44 +30,54 @@ function createPrismaClient() {
         : ["error"],
   });
 
-  // Soft delete middleware — findMany/findFirst otomatik filtreleme
-  client.$use(async (params, next) => {
-    if (!params.model || !SOFT_DELETE_MODELS.includes(params.model)) {
-      return next(params);
-    }
-
-    // Okuma sorgularında deletedAt = null filtresi ekle
-    if (
-      params.action === "findMany" ||
-      params.action === "findFirst" ||
-      params.action === "findUnique" ||
-      params.action === "count"
-    ) {
-      if (!params.args) params.args = {};
-      if (!params.args.where) params.args.where = {};
-      // Kullanıcı açıkça deletedAt filtresi verdiyse dokunma
-      if (params.args.where.deletedAt === undefined) {
-        params.args.where.deletedAt = null;
-      }
-    }
-
-    // delete → soft delete'e çevir
-    if (params.action === "delete") {
-      params.action = "update";
-      params.args.data = { deletedAt: new Date() };
-    }
-
-    // deleteMany → soft deleteMany'e çevir
-    if (params.action === "deleteMany") {
-      params.action = "updateMany";
-      if (!params.args) params.args = {};
-      params.args.data = { deletedAt: new Date() };
-    }
-
-    return next(params);
+  const extended = base.$extends({
+    query: {
+      $allModels: {
+        async findMany({ model, args, query }: any) {
+          addSoftDeleteFilter(model, args);
+          return query(args);
+        },
+        async findFirst({ model, args, query }: any) {
+          addSoftDeleteFilter(model, args);
+          return query(args);
+        },
+        async findUnique({ model, args, query }: any) {
+          addSoftDeleteFilter(model, args);
+          return query(args);
+        },
+        async count({ model, args, query }: any) {
+          addSoftDeleteFilter(model, args);
+          return query(args);
+        },
+        async delete({ model, args, query }: any) {
+          if (isSoftDeleteModel(model)) {
+            const delegate = (base as any)[
+              model!.charAt(0).toLowerCase() + model!.slice(1)
+            ];
+            return delegate.update({
+              where: args.where,
+              data: { deletedAt: new Date() },
+            });
+          }
+          return query(args);
+        },
+        async deleteMany({ model, args, query }: any) {
+          if (isSoftDeleteModel(model)) {
+            const delegate = (base as any)[
+              model!.charAt(0).toLowerCase() + model!.slice(1)
+            ];
+            return delegate.updateMany({
+              where: args.where,
+              data: { deletedAt: new Date() },
+            });
+          }
+          return query(args);
+        },
+      },
+    },
   });
 
-  return client;
+  return extended;
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

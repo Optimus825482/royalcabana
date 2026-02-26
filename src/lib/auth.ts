@@ -76,8 +76,8 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token.expired) {
-        // Token geçersiz — session'ı boşalt
-        return { ...session, user: undefined } as typeof session;
+        // Token geçersiz — session'ı boşalt, kullanıcı yeniden login olmak zorunda
+        return { ...session, user: undefined } as unknown as typeof session;
       }
 
       if (session.user) {

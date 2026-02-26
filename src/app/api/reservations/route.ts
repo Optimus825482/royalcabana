@@ -91,6 +91,8 @@ export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
   }
 
   // Atomik çakışma kontrolü + kayıt oluşturma (race condition önleme)
+  // Boundary rule: startDate < end AND endDate > start (strict inequality)
+  // Bu sayede aynı gün check-out (endDate) ve check-in (startDate) çakışma sayılmaz
   try {
     const reservation = await prisma.$transaction(
       async (tx) => {

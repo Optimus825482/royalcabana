@@ -76,6 +76,7 @@ model CabanaClass {
   name        String   @unique
   description String
   defaults    String?
+  metadata    Json?    // JSONB — ClassAttribute EAV yerine hızlı erişim
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -112,10 +113,11 @@ model Cabana {
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
-  cabanaClass  CabanaClass   @relation(fields: [classId], references: [id])
-  concept      Concept?      @relation(fields: [conceptId], references: [id])
+  cabanaClass  CabanaClass        @relation(fields: [classId], references: [id])
+  concept      Concept?           @relation(fields: [conceptId], references: [id])
   reservations Reservation[]
   prices       CabanaPrice[]
+  priceRanges  CabanaPriceRange[]
 
   @@index([classId])
   @@index([status])
@@ -200,6 +202,23 @@ model CabanaPrice {
 
   @@unique([cabanaId, date])
   @@map("cabana_prices")
+}
+
+// Sezonluk fiyatlandırma — tarih aralığı bazlı (CabanaPrice'a ek olarak)
+model CabanaPriceRange {
+  id         String   @id @default(cuid())
+  cabanaId   String
+  startDate  DateTime @db.Date
+  endDate    DateTime @db.Date
+  dailyPrice Float
+  label      String?  // "Yaz Sezonu", "Bayram" vb.
+  priority   Int      @default(0) // Çakışan aralıklarda yüksek öncelik kazanır
+  createdAt  DateTime @default(now())
+
+  cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
+
+  @@index([cabanaId, startDate, endDate])
+  @@map("cabana_price_ranges")
 }
 
 model ConceptPrice {
@@ -342,6 +361,7 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  @@index([userId, createdAt])
   @@map("notifications")
 }
 

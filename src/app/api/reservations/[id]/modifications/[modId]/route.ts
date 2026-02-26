@@ -84,6 +84,7 @@ export const POST = withAuth([Role.ADMIN], async (req, { session, params }) => {
     const result = await prisma.$transaction(
       async (tx) => {
         // Pessimistic lock: yeni tarih/kabana için çakışma kontrolü
+        // Boundary: strict inequality — aynı gün check-out/check-in çakışma değil
         const conflicts = await tx.$queryRaw<{ id: string }[]>`
           SELECT id FROM reservations
           WHERE "cabanaId" = ${newCabanaId}

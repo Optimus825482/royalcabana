@@ -29,6 +29,7 @@ export class PricingEngine {
     if (days > 0) {
       const dateRange = this.getDateRange(startDate, endDate);
 
+      // 1. Önce günlük spesifik fiyatlara bak (CabanaPrice)
       const cabanaPrices = await this.prisma.cabanaPrice.findMany({
         where: {
           cabanaId,
@@ -36,23 +37,72 @@ export class PricingEngine {
         },
       });
 
-      if (cabanaPrices.length > 0) {
-        // Bulunan günlerin fiyatlarını topla; eksik günler 0 kabul edilir
-        cabanaDaily = cabanaPrices.reduce(
+      // Günlük fiyat bulunan tarihleri set'e al
+      const pricedDates = new Set(
+        cabanaPrices.map((p: { date: Date }) => p.date.toISOString()),
+      );
+
+      // 2. Eksik günler için CabanaPriceRange'den fiyat ara
+      const missingDates = dateRange.filter(
+        (d) => !pricedDates.has(d.toISOString()),
+      );
+
+      let rangePriceTotal = 0;
+      let rangeDayCount = 0;
+
+      if (missingDates.length > 0) {
+        const priceRanges = await this.prisma.cabanaPriceRange.findMany({
+          where: {
+            cabanaId,
+            startDate: { lte: endDate },
+            endDate: { gte: startDate },
+          },
+          orderBy: { priority: "desc" },
+        });
+
+        for (const d of missingDates) {
+          const match = (
+            priceRanges as {
+              startDate: Date;
+              endDate: Date;
+              dailyPrice: number;
+            }[]
+          ).find((r) => d >= r.startDate && d < r.endDate);
+          if (match) {
+            rangePriceTotal += match.dailyPrice;
+            rangeDayCount++;
+          }
+        }
+      }
+
+      if (cabanaPrices.length > 0 || rangeDayCount > 0) {
+        const dailyTotal = cabanaPrices.reduce(
           (sum: number, p: { dailyPrice: number }) => sum + p.dailyPrice,
           0,
         );
+        cabanaDaily = dailyTotal + rangePriceTotal;
         priceSource = "CABANA_SPECIFIC";
 
-        items.push({
-          name: "Kabana Günlük Fiyat",
-          quantity: cabanaPrices.length,
-          unitPrice: cabanaDaily / cabanaPrices.length,
-          total: cabanaDaily,
-          source: "CABANA_SPECIFIC",
-        });
+        if (cabanaPrices.length > 0) {
+          items.push({
+            name: "Kabana Günlük Fiyat",
+            quantity: cabanaPrices.length,
+            unitPrice: dailyTotal / cabanaPrices.length,
+            total: dailyTotal,
+            source: "CABANA_SPECIFIC",
+          });
+        }
+        if (rangeDayCount > 0) {
+          items.push({
+            name: "Kabana Sezon Fiyatı",
+            quantity: rangeDayCount,
+            unitPrice: rangePriceTotal / rangeDayCount,
+            total: rangePriceTotal,
+            source: "CABANA_SPECIFIC",
+          });
+        }
       }
-      // Hiç CabanaPrice kaydı yoksa cabanaDaily = 0 (fiyat belirlenmemiş)
+      // Hiç fiyat kaydı yoksa cabanaDaily = 0 (fiyat belirlenmemiş)
     }
 
     // ── 2. Konsept Ürün Fiyatları ─────────────────────────────────────────────
