@@ -15,7 +15,7 @@ const updateCabanaSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -23,8 +23,10 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await params;
+
   const cabana = await prisma.cabana.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       cabanaClass: true,
       concept: true,
@@ -41,7 +43,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -53,7 +55,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const cabana = await prisma.cabana.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+
+  const cabana = await prisma.cabana.findUnique({ where: { id } });
   if (!cabana) {
     return NextResponse.json({ error: "Kabana bulunamadı." }, { status: 404 });
   }
@@ -69,7 +73,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.cabana.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
     include: {
       cabanaClass: { select: { id: true, name: true } },
@@ -82,7 +86,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -94,8 +98,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
+
   const cabana = await prisma.cabana.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       reservations: {
         where: { status: ReservationStatus.APPROVED },
@@ -115,7 +121,7 @@ export async function DELETE(
     );
   }
 
-  await prisma.cabana.delete({ where: { id: params.id } });
+  await prisma.cabana.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }

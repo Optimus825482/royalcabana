@@ -13,7 +13,7 @@ const updateConceptSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -21,8 +21,10 @@ export async function GET(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await params;
+
   const concept = await prisma.concept.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       products: { include: { product: true } },
       cabanaClass: { select: { id: true, name: true } },
@@ -42,7 +44,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -54,7 +56,9 @@ export async function PATCH(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
-  const concept = await prisma.concept.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+
+  const concept = await prisma.concept.findUnique({ where: { id } });
 
   if (!concept) {
     return NextResponse.json(
@@ -74,7 +78,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.concept.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
     include: {
       products: { include: { product: true } },
@@ -88,7 +92,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -100,8 +104,10 @@ export async function DELETE(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
+
   const concept = await prisma.concept.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { _count: { select: { cabanas: true } } },
   });
 
@@ -119,7 +125,7 @@ export async function DELETE(
     );
   }
 
-  await prisma.concept.delete({ where: { id: params.id } });
+  await prisma.concept.delete({ where: { id } });
 
   return NextResponse.json({ message: "Konsept silindi." });
 }

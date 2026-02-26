@@ -15,7 +15,7 @@ const updateProductSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -23,8 +23,10 @@ export async function GET(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await params;
+
   const product = await prisma.product.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { group: true },
   });
 
@@ -37,7 +39,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -49,7 +51,9 @@ export async function PATCH(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
-  const product = await prisma.product.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+
+  const product = await prisma.product.findUnique({ where: { id } });
 
   if (!product) {
     return NextResponse.json({ message: "Ürün bulunamadı." }, { status: 404 });
@@ -66,7 +70,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.product.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
   });
 
@@ -75,7 +79,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -87,8 +91,10 @@ export async function DELETE(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
+
   const product = await prisma.product.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       conceptProducts: {
         include: { concept: { select: { id: true } } },
@@ -102,14 +108,12 @@ export async function DELETE(
 
   if (product.conceptProducts.length > 0) {
     return NextResponse.json(
-      {
-        message: "Bu ürün aktif bir konseptte kullanılıyor, silinemez.",
-      },
+      { message: "Bu ürün aktif bir konseptte kullanılıyor, silinemez." },
       { status: 409 },
     );
   }
 
-  await prisma.product.delete({ where: { id: params.id } });
+  await prisma.product.delete({ where: { id } });
 
   return NextResponse.json({ message: "Ürün silindi." });
 }

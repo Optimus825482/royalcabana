@@ -6,7 +6,7 @@ import { Role } from "@/types";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -18,8 +18,10 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
+
   const reservation = await prisma.reservation.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       cabana: {
         include: {

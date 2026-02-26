@@ -12,7 +12,7 @@ const addAttributeSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -24,9 +24,9 @@ export async function POST(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
-  const cabanaClass = await prisma.cabanaClass.findUnique({
-    where: { id: params.id },
-  });
+  const { id } = await params;
+
+  const cabanaClass = await prisma.cabanaClass.findUnique({ where: { id } });
 
   if (!cabanaClass) {
     return NextResponse.json({ message: "Sınıf bulunamadı." }, { status: 404 });
@@ -45,7 +45,7 @@ export async function POST(
   const { key, value } = parsed.data;
 
   const existing = await prisma.classAttribute.findUnique({
-    where: { classId_key: { classId: params.id, key } },
+    where: { classId_key: { classId: id, key } },
   });
 
   if (existing) {
@@ -56,7 +56,7 @@ export async function POST(
   }
 
   const attribute = await prisma.classAttribute.create({
-    data: { classId: params.id, key, value },
+    data: { classId: id, key, value },
   });
 
   return NextResponse.json(attribute, { status: 201 });

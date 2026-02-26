@@ -12,7 +12,7 @@ const updateSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session)
@@ -20,9 +20,9 @@ export async function PATCH(
   if (session.user.role !== Role.SYSTEM_ADMIN)
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
-  const group = await prisma.productGroup.findUnique({
-    where: { id: params.id },
-  });
+  const { id } = await params;
+
+  const group = await prisma.productGroup.findUnique({ where: { id } });
   if (!group)
     return NextResponse.json({ message: "Grup bulunamadı." }, { status: 404 });
 
@@ -32,7 +32,7 @@ export async function PATCH(
     return NextResponse.json({ message: "Validation error" }, { status: 400 });
 
   const updated = await prisma.productGroup.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
   });
   return NextResponse.json(updated);
@@ -40,7 +40,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session)
@@ -48,18 +48,18 @@ export async function DELETE(
   if (session.user.role !== Role.SYSTEM_ADMIN)
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
-  const group = await prisma.productGroup.findUnique({
-    where: { id: params.id },
-  });
+  const { id } = await params;
+
+  const group = await prisma.productGroup.findUnique({ where: { id } });
   if (!group)
     return NextResponse.json({ message: "Grup bulunamadı." }, { status: 404 });
 
   // Gruptaki ürünleri grupsuz bırak
   await prisma.product.updateMany({
-    where: { groupId: params.id },
+    where: { groupId: id },
     data: { groupId: null },
   });
-  await prisma.productGroup.delete({ where: { id: params.id } });
+  await prisma.productGroup.delete({ where: { id } });
 
   return NextResponse.json({ message: "Grup silindi." });
 }

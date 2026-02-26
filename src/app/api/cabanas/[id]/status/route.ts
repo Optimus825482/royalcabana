@@ -11,7 +11,7 @@ const statusSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -23,7 +23,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const cabana = await prisma.cabana.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+
+  const cabana = await prisma.cabana.findUnique({ where: { id } });
   if (!cabana) {
     return NextResponse.json({ error: "Kabana bulunamadı." }, { status: 404 });
   }
@@ -39,7 +41,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.cabana.update({
-    where: { id: params.id },
+    where: { id },
     data: { status: parsed.data.status },
     select: { id: true, name: true, status: true },
   });

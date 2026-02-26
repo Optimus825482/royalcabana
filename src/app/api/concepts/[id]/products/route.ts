@@ -16,7 +16,7 @@ const removeProductSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -28,7 +28,9 @@ export async function POST(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
-  const concept = await prisma.concept.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+
+  const concept = await prisma.concept.findUnique({ where: { id } });
   if (!concept) {
     return NextResponse.json(
       { message: "Konsept bulunamadı." },
@@ -49,7 +51,7 @@ export async function POST(
   const { productId, quantity = 1 } = parsed.data;
 
   const existing = await prisma.conceptProduct.findUnique({
-    where: { conceptId_productId: { conceptId: params.id, productId } },
+    where: { conceptId_productId: { conceptId: id, productId } },
   });
 
   if (existing) {
@@ -60,7 +62,7 @@ export async function POST(
   }
 
   const conceptProduct = await prisma.conceptProduct.create({
-    data: { conceptId: params.id, productId, quantity },
+    data: { conceptId: id, productId, quantity },
     include: { product: true },
   });
 
@@ -69,7 +71,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -80,6 +82,8 @@ export async function DELETE(
   if (session.user.role !== Role.SYSTEM_ADMIN) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
+
+  const { id } = await params;
 
   const body = await request.json();
   const parsed = removeProductSchema.safeParse(body);
@@ -94,7 +98,7 @@ export async function DELETE(
   const { productId } = parsed.data;
 
   const entry = await prisma.conceptProduct.findUnique({
-    where: { conceptId_productId: { conceptId: params.id, productId } },
+    where: { conceptId_productId: { conceptId: id, productId } },
   });
 
   if (!entry) {

@@ -12,7 +12,7 @@ const updateClassSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -20,8 +20,10 @@ export async function GET(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await params;
+
   const cabanaClass = await prisma.cabanaClass.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       attributes: true,
       cabanas: true,
@@ -37,7 +39,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -49,9 +51,9 @@ export async function PATCH(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
-  const cabanaClass = await prisma.cabanaClass.findUnique({
-    where: { id: params.id },
-  });
+  const { id } = await params;
+
+  const cabanaClass = await prisma.cabanaClass.findUnique({ where: { id } });
 
   if (!cabanaClass) {
     return NextResponse.json({ message: "Sınıf bulunamadı." }, { status: 404 });
@@ -68,7 +70,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.cabanaClass.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
     include: {
       attributes: true,
@@ -81,7 +83,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -93,8 +95,10 @@ export async function DELETE(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
+
   const cabanaClass = await prisma.cabanaClass.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       cabanas: { where: { status: { not: CabanaStatus.CLOSED } } },
     },
@@ -111,7 +115,7 @@ export async function DELETE(
     );
   }
 
-  await prisma.cabanaClass.delete({ where: { id: params.id } });
+  await prisma.cabanaClass.delete({ where: { id } });
 
   return NextResponse.json({ message: "Sınıf silindi." });
 }

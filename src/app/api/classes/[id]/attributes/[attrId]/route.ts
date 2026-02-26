@@ -6,7 +6,7 @@ import { Role } from "@/types";
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string; attrId: string } },
+  { params }: { params: Promise<{ id: string; attrId: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -18,8 +18,10 @@ export async function DELETE(
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
+  const { id, attrId } = await params;
+
   const attribute = await prisma.classAttribute.findFirst({
-    where: { id: params.attrId, classId: params.id },
+    where: { id: attrId, classId: id },
   });
 
   if (!attribute) {
@@ -29,7 +31,7 @@ export async function DELETE(
     );
   }
 
-  await prisma.classAttribute.delete({ where: { id: params.attrId } });
+  await prisma.classAttribute.delete({ where: { id: attrId } });
 
   return NextResponse.json({ message: "Özellik silindi." });
 }

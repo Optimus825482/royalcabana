@@ -6,7 +6,7 @@ import { Role } from "@/types";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -18,6 +18,8 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
+
   const body = await request.json();
   const { reason } = body;
 
@@ -28,9 +30,7 @@ export async function POST(
     );
   }
 
-  const reservation = await prisma.reservation.findUnique({
-    where: { id: params.id },
-  });
+  const reservation = await prisma.reservation.findUnique({ where: { id } });
 
   if (!reservation) {
     return NextResponse.json(
@@ -48,7 +48,7 @@ export async function POST(
 
   const [updated] = await prisma.$transaction([
     prisma.reservation.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: "REJECTED",
         rejectionReason: String(reason).trim(),
@@ -61,7 +61,7 @@ export async function POST(
     }),
     prisma.reservationStatusHistory.create({
       data: {
-        reservationId: params.id,
+        reservationId: id,
         fromStatus: "PENDING",
         toStatus: "REJECTED",
         changedBy: session.user.id,
