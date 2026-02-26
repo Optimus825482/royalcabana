@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
+import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
+
+const addExtrasSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        quantity: z.number().int().positive(),
+      }),
+    )
+    .min(1, "En az bir ürün seçilmelidir."),
+});
 
 export const GET = withAuth(
   [Role.FNB_USER, Role.ADMIN],
@@ -41,16 +54,16 @@ export const POST = withAuth(
     }
 
     const body = await req.json();
-    const { items } = body as {
-      items: Array<{ productId: string; quantity: number }>;
-    };
+    const parsed = addExtrasSchema.safeParse(body);
 
-    if (!items || items.length === 0) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "En az bir ürün seçilmelidir." },
+        { error: parsed.error.issues[0]?.message ?? "Geçersiz veri." },
         { status: 400 },
       );
     }
+
+    const { items } = parsed.data;
 
     const productIds = items.map((i) => i.productId);
     const products = await prisma.product.findMany({
@@ -112,15 +125,17 @@ export const POST = withAuth(
       return extras;
     });
 
-    // Rezervasyon sahibine bildirim
-    await prisma.notification.create({
-      data: {
-        userId: reservation.userId,
-        type: "EXTRA_ADDED",
-        title: "Ekstra Ürün Eklendi",
-        message: `Rezervasyonunuza ${items.length} ekstra ürün eklendi.`,
-        metadata: { reservationId: id },
-      },
+    // Rezervasyon sahibine bildirim — non-blocking (Rule 3.7)
+    after(async () => {
+      await prisma.notification.create({
+        data: {
+          userId: reservation.userId,
+          type: "EXTRA_ADDED",
+          title: "Ekstra Ürün Eklendi",
+          message: `Rezervasyonunuza ${items.length} ekstra ürün eklendi.`,
+          metadata: { reservationId: id },
+        },
+      });
     });
 
     return NextResponse.json(created, { status: 201 });

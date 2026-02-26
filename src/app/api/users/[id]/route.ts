@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { withAuth } from "@/lib/api-middleware";
@@ -33,7 +33,7 @@ export const PATCH = withAuth(
     });
 
     if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const isAdmin = session.user.role === Role.ADMIN;
@@ -41,7 +41,7 @@ export const PATCH = withAuth(
     // ADMIN can only edit CASINO_USER and FNB_USER
     if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
       return NextResponse.json(
-        { message: "Bu kullanıcıyı düzenleme yetkiniz yok." },
+        { error: "Bu kullanıcıyı düzenleme yetkiniz yok." },
         { status: 403 },
       );
     }
@@ -51,7 +51,7 @@ export const PATCH = withAuth(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        { error: "Validation error", errors: parsed.error.flatten() },
         { status: 400 },
       );
     }
@@ -63,7 +63,7 @@ export const PATCH = withAuth(
       !ADMIN_ALLOWED_ROLES.includes(parsed.data.role)
     ) {
       return NextResponse.json(
-        { message: "Admin yalnızca Casino ve F&B rolü atayabilir." },
+        { error: "Admin yalnızca Casino ve F&B rolü atayabilir." },
         { status: 403 },
       );
     }
@@ -90,23 +90,25 @@ export const PATCH = withAuth(
     });
 
     const { password: _pw, ...auditNewValue } = parsed.data;
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: "UPDATE",
-        entity: "User",
-        entityId: user.id,
-        oldValue: {
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          isActive: user.isActive,
-        } as Prisma.InputJsonValue,
-        newValue: {
-          ...auditNewValue,
-          ...(password ? { passwordChanged: true } : {}),
-        } as Prisma.InputJsonValue,
-      },
+    after(async () => {
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: "UPDATE",
+          entity: "User",
+          entityId: user.id,
+          oldValue: {
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive,
+          } as Prisma.InputJsonValue,
+          newValue: {
+            ...auditNewValue,
+            ...(password ? { passwordChanged: true } : {}),
+          } as Prisma.InputJsonValue,
+        },
+      });
     });
 
     return NextResponse.json(updated);
@@ -130,14 +132,14 @@ export const DELETE = withAuth(
     });
 
     if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const isAdmin = session.user.role === Role.ADMIN;
 
     if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
       return NextResponse.json(
-        { message: "Bu kullanıcıyı devre dışı bırakma yetkiniz yok." },
+        { error: "Bu kullanıcıyı devre dışı bırakma yetkiniz yok." },
         { status: 403 },
       );
     }
@@ -147,15 +149,17 @@ export const DELETE = withAuth(
       data: { isActive: false },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: "DELETE",
-        entity: "User",
-        entityId: user.id,
-        oldValue: { isActive: user.isActive } as Prisma.InputJsonValue,
-        newValue: { isActive: false } as Prisma.InputJsonValue,
-      },
+    after(async () => {
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: "DELETE",
+          entity: "User",
+          entityId: user.id,
+          oldValue: { isActive: user.isActive } as Prisma.InputJsonValue,
+          newValue: { isActive: false } as Prisma.InputJsonValue,
+        },
+      });
     });
 
     return NextResponse.json({ message: "User deactivated" });

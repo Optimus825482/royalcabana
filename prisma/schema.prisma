@@ -186,6 +186,7 @@ model ConceptProduct {
   product Product @relation(fields: [productId], references: [id])
 
   @@unique([conceptId, productId])
+  @@index([conceptId])
   @@map("concept_products")
 }
 
@@ -279,6 +280,7 @@ model ReservationStatusHistory {
 
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 
+  @@index([reservationId])
   @@map("reservation_status_history")
 }
 
@@ -297,6 +299,7 @@ model ModificationRequest {
 
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 
+  @@index([reservationId])
   @@map("modification_requests")
 }
 
@@ -311,6 +314,7 @@ model CancellationRequest {
 
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 
+  @@index([reservationId])
   @@map("cancellation_requests")
 }
 
@@ -326,6 +330,7 @@ model ExtraConceptRequest {
 
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 
+  @@index([reservationId])
   @@map("extra_concept_requests")
 }
 
@@ -343,6 +348,7 @@ model ExtraItem {
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   product     Product     @relation(fields: [productId], references: [id])
 
+  @@index([reservationId])
   @@map("extra_items")
 }
 
@@ -380,6 +386,7 @@ model AuditLog {
   user User @relation(fields: [userId], references: [id])
 
   @@index([entity, entityId])
+  @@index([userId])
   @@map("audit_logs")
 }
 

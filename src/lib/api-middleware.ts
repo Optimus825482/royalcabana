@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth/next";
+import { getAuthSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -52,7 +51,7 @@ export function withAuth(
     }
 
     // Auth
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

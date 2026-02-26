@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { cancellationRequestSchema, parseBody } from "@/lib/validators";
@@ -62,20 +63,23 @@ export const POST = withAuth(
       }),
     ]);
 
-    const admins = await prisma.user.findMany({
-      where: { role: "ADMIN", isActive: true },
-    });
-    if (admins.length > 0) {
-      await prisma.notification.createMany({
-        data: admins.map((admin) => ({
-          userId: admin.id,
-          type: "CANCELLATION_REQUEST" as const,
-          title: "İptal Talebi",
-          message: `${reservation.guestName} için iptal talebi oluşturuldu.`,
-          metadata: { reservationId: id },
-        })),
+    // Admin'lere bildirim — non-blocking (Rule 3.7)
+    after(async () => {
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMIN", isActive: true },
       });
-    }
+      if (admins.length > 0) {
+        await prisma.notification.createMany({
+          data: admins.map((admin) => ({
+            userId: admin.id,
+            type: "CANCELLATION_REQUEST" as const,
+            title: "İptal Talebi",
+            message: `${reservation.guestName} için iptal talebi oluşturuldu.`,
+            metadata: { reservationId: id },
+          })),
+        });
+      }
+    });
 
     return NextResponse.json(cancelRequest, { status: 201 });
   },

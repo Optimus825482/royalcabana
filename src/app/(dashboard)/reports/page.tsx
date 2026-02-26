@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { Role, ReportType } from "@/types";
+import { Field, inputCls } from "@/components/shared/FormComponents";
 
 const PresentationCanvas = lazy(
   () => import("@/components/reports/PresentationCanvas"),
@@ -462,21 +463,6 @@ export default function ReportsPage() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-neutral-400 mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
 function ActionButton({
   label,
   icon,
@@ -513,5 +499,4 @@ function ActionButton({
   );
 }
 
-const inputCls =
-  "w-full min-h-[44px] bg-neutral-800 border border-neutral-700 focus:border-amber-500 text-neutral-100 rounded-lg px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600";
+// (inputCls imported from FormComponents)

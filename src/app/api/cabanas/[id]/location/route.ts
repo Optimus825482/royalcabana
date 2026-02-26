@@ -1,37 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
+import { withAuth } from "@/lib/api-middleware";
 
 const locationSchema = z.object({
   coordX: z.number(),
   coordY: z.number(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
+export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
+  const id = params?.id;
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
-
-  const cabana = await prisma.cabana.findUnique({ where: { id } });
-  if (!cabana) {
-    return NextResponse.json({ error: "Kabana bulunamadı." }, { status: 404 });
-  }
-
-  const body = await request.json();
+  const body = await req.json();
   const parsed = locationSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -41,11 +22,14 @@ export async function PATCH(
     );
   }
 
-  const updated = await prisma.cabana.update({
-    where: { id },
-    data: { coordX: parsed.data.coordX, coordY: parsed.data.coordY },
-    select: { id: true, name: true, coordX: true, coordY: true },
-  });
-
-  return NextResponse.json(updated);
-}
+  try {
+    const updated = await prisma.cabana.update({
+      where: { id },
+      data: { coordX: parsed.data.coordX, coordY: parsed.data.coordY },
+      select: { id: true, name: true, coordX: true, coordY: true },
+    });
+    return NextResponse.json(updated);
+  } catch {
+    return NextResponse.json({ error: "Kabana bulunamadı." }, { status: 404 });
+  }
+});

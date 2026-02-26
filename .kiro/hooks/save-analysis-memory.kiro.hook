@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Analiz Sonuçlarını Hafızaya Kaydet",
+  "description": "Agent durduğunda, eğer sub-agent analiz sonuçları veya önemli bulgular varsa bunları Qdrant hafızaya kaydetmeyi hatırlatır. Context transfer'de kayıp yaşanmasını önler.",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Bu sohbette sub-agent (invokeSubAgent) ile analiz yapıldıysa veya önemli bulgular/çözümler üretildiyse, bunları mcp_qdrant_memory_mem_store ile Qdrant hafızaya kaydet. Kayıt formatı: proje adı, agent adı, tarih, bulgular (CRITICAL/HIGH/MEDIUM), dosya yolları. Tags: [\"project-analysis\", proje-adı, agent-adı, tarih]. Eğer zaten kaydedildiyse veya kayda değer bir şey yoksa sessizce geç."
+  }
+}

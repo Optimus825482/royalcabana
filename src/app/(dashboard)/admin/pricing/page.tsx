@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { PriceBreakdown } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -114,24 +115,27 @@ function CabanaPricesTab({ cabanas }: { cabanas: Cabana[] }) {
       return { key, val: prices[key] };
     }).filter((e) => e.val !== undefined && e.val !== "");
 
-    let ok = true;
-    for (const { key, val } of entries) {
-      const res = await fetch("/api/pricing/cabana-prices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cabanaId: selectedCabana,
-          date: key,
-          dailyPrice: parseFloat(val),
-        }),
-      });
-      if (!res.ok) {
-        ok = false;
-        break;
-      }
+    // Batch save — tüm fiyatları paralel gönder (Rule 1.4)
+    try {
+      const results = await Promise.all(
+        entries.map(({ key, val }) =>
+          fetch("/api/pricing/cabana-prices", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cabanaId: selectedCabana,
+              date: key,
+              dailyPrice: parseFloat(val),
+            }),
+          }),
+        ),
+      );
+      const ok = results.every((r) => r.ok);
+      setMessage(ok ? "Fiyatlar kaydedildi." : "Bazı fiyatlar kaydedilemedi.");
+    } catch {
+      setMessage("Kayıt sırasında hata oluştu.");
     }
     setSaving(false);
-    setMessage(ok ? "Fiyatlar kaydedildi." : "Kayıt sırasında hata oluştu.");
   };
 
   const [year, mon] = month.split("-").map(Number);
@@ -248,26 +252,35 @@ function ConceptPricesTab({ concepts }: { concepts: Concept[] }) {
     if (!selectedConcept || !concept) return;
     setSaving(true);
     setMessage("");
-    let ok = true;
-    for (const cp of concept.products) {
-      const val = conceptPrices[cp.product.id];
-      if (val === undefined || val === "") continue;
-      const res = await fetch("/api/pricing/concept-prices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conceptId: selectedConcept,
-          productId: cp.product.id,
-          price: parseFloat(val),
-        }),
-      });
-      if (!res.ok) {
-        ok = false;
-        break;
-      }
+
+    const entries = concept.products
+      .map((cp) => ({
+        productId: cp.product.id,
+        val: conceptPrices[cp.product.id],
+      }))
+      .filter((e) => e.val !== undefined && e.val !== "");
+
+    // Batch save — tüm konsept fiyatlarını paralel gönder (Rule 1.4)
+    try {
+      const results = await Promise.all(
+        entries.map(({ productId, val }) =>
+          fetch("/api/pricing/concept-prices", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              conceptId: selectedConcept,
+              productId,
+              price: parseFloat(val),
+            }),
+          }),
+        ),
+      );
+      const ok = results.every((r) => r.ok);
+      setMessage(ok ? "Fiyatlar kaydedildi." : "Bazı fiyatlar kaydedilemedi.");
+    } catch {
+      setMessage("Kayıt sırasında hata oluştu.");
     }
     setSaving(false);
-    setMessage(ok ? "Fiyatlar kaydedildi." : "Kayıt sırasında hata oluştu.");
   };
 
   return (
@@ -543,18 +556,24 @@ function PricePreviewTab({
 
 export default function PricingPage() {
   const [tab, setTab] = useState<"cabana" | "concept" | "preview">("cabana");
-  const [cabanas, setCabanas] = useState<Cabana[]>([]);
-  const [concepts, setConcepts] = useState<Concept[]>([]);
 
-  useEffect(() => {
-    fetch("/api/cabanas")
-      .then((r) => r.json())
-      .then((d) => setCabanas(d.cabanas ?? []));
+  const { data: cabanas = [] } = useQuery<Cabana[]>({
+    queryKey: ["cabanas-pricing"],
+    queryFn: async () => {
+      const r = await fetch("/api/cabanas");
+      const d = await r.json();
+      return d.cabanas ?? [];
+    },
+  });
 
-    fetch("/api/concepts")
-      .then((r) => r.json())
-      .then((d) => setConcepts(Array.isArray(d) ? d : []));
-  }, []);
+  const { data: concepts = [] } = useQuery<Concept[]>({
+    queryKey: ["concepts-pricing"],
+    queryFn: async () => {
+      const r = await fetch("/api/concepts");
+      const d = await r.json();
+      return Array.isArray(d) ? d : [];
+    },
+  });
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">

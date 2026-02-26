@@ -28,7 +28,7 @@ export const GET = withAuth(allRoles, async (_req, { params }) => {
   });
 
   if (!product) {
-    return NextResponse.json({ message: "Ürün bulunamadı." }, { status: 404 });
+    return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
   }
 
   return NextResponse.json(product);
@@ -39,14 +39,14 @@ export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
 
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product) {
-    return NextResponse.json({ message: "Ürün bulunamadı." }, { status: 404 });
+    return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
   }
 
   const body = await req.json();
   const parsed = updateProductSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { message: "Validation error", errors: parsed.error.flatten() },
+      { error: "Validation error", errors: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -66,23 +66,19 @@ export const DELETE = withAuth(
 
     const product = await prisma.product.findUnique({
       where: { id },
-      include: {
-        conceptProducts: {
-          include: { concept: { select: { id: true } } },
-        },
+      select: {
+        id: true,
+        _count: { select: { conceptProducts: true } },
       },
     });
 
     if (!product) {
-      return NextResponse.json(
-        { message: "Ürün bulunamadı." },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
     }
 
-    if (product.conceptProducts.length > 0) {
+    if (product._count.conceptProducts > 0) {
       return NextResponse.json(
-        { message: "Bu ürün aktif bir konseptte kullanılıyor, silinemez." },
+        { error: "Bu ürün aktif bir konseptte kullanılıyor, silinemez." },
         { status: 409 },
       );
     }

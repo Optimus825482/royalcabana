@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
@@ -96,15 +96,17 @@ export const POST = withAuth([Role.ADMIN], async (req, { session, params }) => {
     }),
   ]);
 
-  // Kullanıcıya bildirim
-  await prisma.notification.create({
-    data: {
-      userId: cancelRequest.reservation.userId,
-      type: "STATUS_CHANGED",
-      title: "Rezervasyon İptal Edildi",
-      message: "İptal talebiniz onaylandı. Rezervasyonunuz iptal edilmiştir.",
-      metadata: { reservationId },
-    },
+  // Kullanıcıya bildirim (non-blocking)
+  after(async () => {
+    await prisma.notification.create({
+      data: {
+        userId: cancelRequest.reservation.userId,
+        type: "STATUS_CHANGED",
+        title: "Rezervasyon İptal Edildi",
+        message: "İptal talebiniz onaylandı. Rezervasyonunuz iptal edilmiştir.",
+        metadata: { reservationId },
+      },
+    });
   });
 
   return NextResponse.json(updated);

@@ -35,23 +35,61 @@ export class PricingEngine {
     let cabanaDaily = 0;
     let priceSource: PriceBreakdown["priceSource"] = "GENERAL";
 
+    // ── Paralel veri çekme: bağımsız sorguları aynı anda başlat ──
+    const cabanaPricesPromise =
+      days > 0
+        ? this.prisma.cabanaPrice.findMany({
+            where: {
+              cabanaId,
+              date: { in: this.getDateRange(startDate, endDate) },
+            },
+          })
+        : Promise.resolve([]);
+
+    const priceRangesPromise =
+      days > 0
+        ? this.prisma.cabanaPriceRange.findMany({
+            where: {
+              cabanaId,
+              startDate: { lte: endDate },
+              endDate: { gte: startDate },
+            },
+            orderBy: { priority: "desc" },
+          })
+        : Promise.resolve([]);
+
+    const conceptDataPromise = conceptId
+      ? Promise.all([
+          this.prisma.conceptProduct.findMany({
+            where: { conceptId },
+            include: { product: true },
+          }),
+          this.prisma.conceptPrice.findMany({ where: { conceptId } }),
+        ])
+      : Promise.resolve(null);
+
+    const extraProductsPromise =
+      extraItems.length > 0
+        ? this.prisma.product.findMany({
+            where: { id: { in: extraItems.map((e) => e.productId) } },
+          })
+        : Promise.resolve([]);
+
+    // Tüm bağımsız sorguları paralel bekle (Rule 1.4)
+    const [cabanaPrices, priceRanges, conceptData, extraProducts] =
+      await Promise.all([
+        cabanaPricesPromise,
+        priceRangesPromise,
+        conceptDataPromise,
+        extraProductsPromise,
+      ]);
+
+    // ── Kabana fiyat hesaplama ──
     if (days > 0) {
       const dateRange = this.getDateRange(startDate, endDate);
-
-      // 1. Önce günlük spesifik fiyatlara bak (CabanaPrice)
-      const cabanaPrices = await this.prisma.cabanaPrice.findMany({
-        where: {
-          cabanaId,
-          date: { in: dateRange },
-        },
-      });
-
-      // Günlük fiyat bulunan tarihleri set'e al
       const pricedDates = new Set(
         cabanaPrices.map((p) => p.date.toISOString()),
       );
-
-      // 2. Eksik günler için CabanaPriceRange'den fiyat ara
       const missingDates = dateRange.filter(
         (d) => !pricedDates.has(d.toISOString()),
       );
@@ -60,15 +98,6 @@ export class PricingEngine {
       let rangeDayCount = 0;
 
       if (missingDates.length > 0) {
-        const priceRanges = await this.prisma.cabanaPriceRange.findMany({
-          where: {
-            cabanaId,
-            startDate: { lte: endDate },
-            endDate: { gte: startDate },
-          },
-          orderBy: { priority: "desc" },
-        });
-
         for (const d of missingDates) {
           const match = priceRanges.find(
             (r) => d >= r.startDate && d < r.endDate,
@@ -107,22 +136,13 @@ export class PricingEngine {
           });
         }
       }
-      // Hiç fiyat kaydı yoksa cabanaDaily = 0 (fiyat belirlenmemiş)
     }
 
     // ── 2. Konsept Ürün Fiyatları ─────────────────────────────────────────────
     let conceptTotal = 0;
 
-    if (conceptId) {
-      const conceptProducts = await this.prisma.conceptProduct.findMany({
-        where: { conceptId },
-        include: { product: true },
-      });
-
-      // Batch fetch all concept prices to avoid N+1
-      const allConceptPrices = await this.prisma.conceptPrice.findMany({
-        where: { conceptId },
-      });
+    if (conceptData) {
+      const [conceptProducts, allConceptPrices] = conceptData;
       const conceptPriceMap = new Map(
         allConceptPrices.map((cp) => [cp.productId, cp]),
       );
@@ -159,18 +179,13 @@ export class PricingEngine {
     let extrasTotal = 0;
 
     if (extraItems.length > 0) {
-      const productIds = extraItems.map((e) => e.productId);
-      const products = await this.prisma.product.findMany({
-        where: { id: { in: productIds } },
-      });
-
       type ProductRow = {
         id: string;
         name: string;
         salePrice: DecimalLike;
       };
       const productMap = new Map<string, ProductRow>(
-        (products as ProductRow[]).map((p) => [p.id, p]),
+        (extraProducts as ProductRow[]).map((p) => [p.id, p]),
       );
 
       for (const extra of extraItems) {

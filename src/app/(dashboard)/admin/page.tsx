@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface AdminStats {
   totalCabanas: number;
@@ -15,13 +16,16 @@ interface AdminStats {
   revenueThisMonth: number;
 }
 
+// Module-scope formatter — avoid re-creation per render (Rule 7.9)
+const currencyFormatter = new Intl.NumberFormat("tr-TR", {
+  style: "currency",
+  currency: "TRY",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return currencyFormatter.format(value);
 }
 
 function SkeletonCard() {
@@ -35,25 +39,20 @@ function SkeletonCard() {
 }
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const {
+    data: stats = null,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery<AdminStats>({
+    queryKey: ["admin-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/stats");
+      if (!res.ok) throw new Error("Veri alınamadı");
+      return res.json();
+    },
+  });
 
-  useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((res) => {
-        if (!res.ok) throw new Error("Veri alınamadı");
-        return res.json();
-      })
-      .then((data) => {
-        setStats(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("İstatistikler yüklenirken hata oluştu.");
-        setLoading(false);
-      });
-  }, []);
+  const error = queryError ? "İstatistikler yüklenirken hata oluştu." : "";
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">

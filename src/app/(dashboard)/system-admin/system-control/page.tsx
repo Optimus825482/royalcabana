@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CabanaStatus } from "@/types";
 
 interface CabanaRow {
@@ -18,14 +19,34 @@ const STATUS_LABELS: Record<CabanaStatus, string> = {
 };
 
 export default function SystemControlPage() {
-  const [systemOpen, setSystemOpen] = useState<boolean | null>(null);
-  const [systemLoading, setSystemLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: systemOpen = null, isLoading: systemLoading } = useQuery<
+    boolean | null
+  >({
+    queryKey: ["system-config-control"],
+    queryFn: async () => {
+      const res = await fetch("/api/system/config");
+      if (!res.ok) throw new Error("Sistem durumu yüklenemedi.");
+      const data = await res.json();
+      return data.isOpen as boolean;
+    },
+  });
+
+  const { data: cabanas = [], isLoading: cabanaLoading } = useQuery<
+    CabanaRow[]
+  >({
+    queryKey: ["cabanas-control"],
+    queryFn: async () => {
+      const res = await fetch("/api/system/reservation-status");
+      if (!res.ok) throw new Error("Kabana listesi yüklenemedi.");
+      const data = await res.json();
+      return data.cabanas;
+    },
+  });
+
   const [systemToggling, setSystemToggling] = useState(false);
-
-  const [cabanas, setCabanas] = useState<CabanaRow[]>([]);
-  const [cabanaLoading, setCabanaLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -33,39 +54,6 @@ export default function SystemControlPage() {
     setSuccess(msg);
     setTimeout(() => setSuccess(""), 3000);
   }
-
-  const fetchSystemConfig = useCallback(async () => {
-    setSystemLoading(true);
-    try {
-      const res = await fetch("/api/system/config");
-      if (!res.ok) throw new Error("Sistem durumu yüklenemedi.");
-      const data = await res.json();
-      setSystemOpen(data.isOpen);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
-    } finally {
-      setSystemLoading(false);
-    }
-  }, []);
-
-  const fetchCabanas = useCallback(async () => {
-    setCabanaLoading(true);
-    try {
-      const res = await fetch("/api/system/reservation-status");
-      if (!res.ok) throw new Error("Kabana listesi yüklenemedi.");
-      const data = await res.json();
-      setCabanas(data.cabanas);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
-    } finally {
-      setCabanaLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchSystemConfig();
-    fetchCabanas();
-  }, [fetchSystemConfig, fetchCabanas]);
 
   async function handleSystemToggle() {
     if (systemOpen === null) return;
@@ -82,7 +70,7 @@ export default function SystemControlPage() {
         throw new Error(data.message || "Sistem durumu güncellenemedi.");
       }
       const data = await res.json();
-      setSystemOpen(data.isOpen);
+      queryClient.invalidateQueries({ queryKey: ["system-config-control"] });
       showSuccess(
         data.isOpen
           ? "Sistem rezervasyona açıldı."
@@ -111,16 +99,10 @@ export default function SystemControlPage() {
         const data = await res.json();
         throw new Error(data.message || "Kabana durumu güncellenemedi.");
       }
-      const updated = await res.json();
-      setCabanas((prev) =>
-        prev.map((c) =>
-          c.id === updated.id
-            ? { ...c, isOpenForReservation: updated.isOpenForReservation }
-            : c,
-        ),
-      );
+      await res.json();
+      queryClient.invalidateQueries({ queryKey: ["cabanas-control"] });
       showSuccess(
-        `${updated.name} ${updated.isOpenForReservation ? "rezervasyona açıldı" : "rezervasyona kapatıldı"}.`,
+        `${cabana.name} ${!cabana.isOpenForReservation ? "rezervasyona açıldı" : "rezervasyona kapatıldı"}.`,
       );
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Bir hata oluştu.");

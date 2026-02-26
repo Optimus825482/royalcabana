@@ -14,14 +14,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const sessionPromise = getServerSession(authOptions);
+  const localePromise = getLocale();
+
+  const session = await sessionPromise;
 
   if (!session) {
     redirect("/login");
   }
 
-  const locale = await getLocale();
-  const messages = await getMessages();
+  const [locale, messages] = await Promise.all([localePromise, getMessages()]);
 
   return (
     <SessionProvider session={session}>

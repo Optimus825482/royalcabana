@@ -1,6 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Modal,
+  Field,
+  ErrorMsg,
+  inputCls,
+  cancelBtnCls,
+  submitBtnCls,
+} from "@/components/shared/FormComponents";
 
 interface ClassAttribute {
   id: string;
@@ -19,9 +28,22 @@ interface CabanaClass {
 const defaultCreateForm = { name: "", description: "" };
 
 export default function ClassesPage() {
-  const [classes, setClasses] = useState<CabanaClass[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+
+  const {
+    data: classes = [],
+    isLoading: loading,
+    error: queryError,
+  } = useQuery<CabanaClass[]>({
+    queryKey: ["classes"],
+    queryFn: async () => {
+      const res = await fetch("/api/classes");
+      if (!res.ok) throw new Error("Sınıflar yüklenemedi.");
+      return res.json();
+    },
+  });
+
+  const [error, setError] = useState(queryError ? String(queryError) : "");
   const [success, setSuccess] = useState("");
 
   // Expanded rows for attribute management
@@ -51,25 +73,6 @@ export default function ClassesPage() {
   const [attrLoading, setAttrLoading] = useState<Record<string, boolean>>({});
   const [attrError, setAttrError] = useState<Record<string, string>>({});
 
-  const fetchClasses = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/classes");
-      if (!res.ok) throw new Error("Sınıflar yüklenemedi.");
-      const data = await res.json();
-      setClasses(data);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchClasses();
-  }, [fetchClasses]);
-
   function showSuccess(msg: string) {
     setSuccess(msg);
     setTimeout(() => setSuccess(""), 3000);
@@ -93,7 +96,7 @@ export default function ClassesPage() {
       setShowCreate(false);
       setCreateForm(defaultCreateForm);
       showSuccess("Sınıf başarıyla oluşturuldu.");
-      fetchClasses();
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (e: unknown) {
       setCreateError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -125,7 +128,7 @@ export default function ClassesPage() {
       }
       setEditClass(null);
       showSuccess("Sınıf başarıyla güncellendi.");
-      fetchClasses();
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (e: unknown) {
       setEditError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -148,7 +151,7 @@ export default function ClassesPage() {
       }
       setDeleteClass(null);
       showSuccess("Sınıf silindi.");
-      fetchClasses();
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (e: unknown) {
       setDeleteError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -173,7 +176,7 @@ export default function ClassesPage() {
         throw new Error(data.message || "Özellik eklenemedi.");
       }
       setAttrForms((p) => ({ ...p, [classId]: { key: "", value: "" } }));
-      fetchClasses();
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (e: unknown) {
       setAttrError((p) => ({
         ...p,
@@ -194,7 +197,7 @@ export default function ClassesPage() {
         const data = await res.json();
         throw new Error(data.message || "Özellik silinemedi.");
       }
-      fetchClasses();
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Bir hata oluştu.");
     }
@@ -537,63 +540,4 @@ export default function ClassesPage() {
   );
 }
 
-// --- Shared sub-components ---
-
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-md sm:mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-neutral-900 flex items-center justify-between px-5 py-4 border-b border-neutral-800">
-          <h2 className="text-sm font-semibold text-yellow-400">{title}</h2>
-          <button
-            onClick={onClose}
-            className="w-11 h-11 flex items-center justify-center text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
-          >
-            ×
-          </button>
-        </div>
-        <div className="px-5 py-5">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-neutral-400 mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function ErrorMsg({ msg }: { msg: string }) {
-  return (
-    <p className="text-red-400 text-xs bg-red-950/40 border border-red-800/40 rounded-lg px-3 py-2">
-      {msg}
-    </p>
-  );
-}
-
-const inputCls =
-  "w-full min-h-[44px] bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600";
-
-const cancelBtnCls =
-  "min-h-[44px] px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
-
-const submitBtnCls =
-  "min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";
+// --- Shared sub-components imported from @/components/shared/FormComponents ---

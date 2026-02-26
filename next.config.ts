@@ -5,6 +5,18 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "radix-ui",
+      "@react-three/drei",
+      "@fullcalendar/core",
+      "@fullcalendar/daygrid",
+      "@fullcalendar/interaction",
+      "@fullcalendar/timegrid",
+      "@fullcalendar/resource-timeline",
+    ],
+  },
   images: {
     formats: ["image/avif", "image/webp"],
   },

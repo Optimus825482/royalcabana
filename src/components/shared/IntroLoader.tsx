@@ -11,8 +11,8 @@ export default function IntroLoader({ onDone }: IntroLoaderProps) {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setFadeOut(true), 2500);
-    const doneTimer = setTimeout(() => onDone(), 3000);
+    const fadeTimer = setTimeout(() => setFadeOut(true), 1000);
+    const doneTimer = setTimeout(() => onDone(), 1300);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);

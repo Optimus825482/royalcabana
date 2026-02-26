@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -61,7 +61,7 @@ export const POST = withAuth(
     const parsed = createUserSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        { error: "Validation error", errors: parsed.error.flatten() },
         { status: 400 },
       );
     }
@@ -71,7 +71,7 @@ export const POST = withAuth(
     // ADMIN can only create CASINO_USER and FNB_USER
     if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(role)) {
       return NextResponse.json(
-        { message: "Admin yalnızca Casino ve F&B kullanıcısı oluşturabilir." },
+        { error: "Admin yalnızca Casino ve F&B kullanıcısı oluşturabilir." },
         { status: 403 },
       );
     }
@@ -81,7 +81,7 @@ export const POST = withAuth(
     });
     if (existing) {
       return NextResponse.json(
-        { message: "Username or email already exists" },
+        { error: "Username or email already exists" },
         { status: 409 },
       );
     }
@@ -102,19 +102,21 @@ export const POST = withAuth(
       },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: "CREATE",
-        entity: "User",
-        entityId: user.id,
-        oldValue: Prisma.JsonNull,
-        newValue: {
-          username: user.username,
-          email: user.email,
-          role: user.role,
-        } as Prisma.InputJsonValue,
-      },
+    after(async () => {
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: "CREATE",
+          entity: "User",
+          entityId: user.id,
+          oldValue: Prisma.JsonNull,
+          newValue: {
+            username: user.username,
+            email: user.email,
+            role: user.role,
+          } as Prisma.InputJsonValue,
+        },
+      });
     });
 
     return NextResponse.json(user, { status: 201 });

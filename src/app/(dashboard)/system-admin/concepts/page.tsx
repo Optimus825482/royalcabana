@@ -1,6 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Modal,
+  Field,
+  ErrorMsg,
+  inputCls,
+  selectCls,
+  cancelBtnCls,
+  submitBtnCls,
+} from "@/components/shared/FormComponents";
 
 interface Product {
   id: string;
@@ -34,11 +44,37 @@ interface Concept {
 const defaultCreateForm = { name: "", description: "", classId: "" };
 
 export default function ConceptsPage() {
-  const [concepts, setConcepts] = useState<Concept[]>([]);
-  const [classes, setClasses] = useState<CabanaClass[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+
+  const {
+    data: conceptsData,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["concepts-admin"],
+    queryFn: async () => {
+      const [cRes, clRes, pRes] = await Promise.all([
+        fetch("/api/concepts"),
+        fetch("/api/classes"),
+        fetch("/api/products"),
+      ]);
+      if (!cRes.ok) throw new Error("Konseptler yüklenemedi.");
+      const concepts = await cRes.json();
+      const classes = clRes.ok ? await clRes.json() : [];
+      const products = pRes.ok ? await pRes.json() : [];
+      return {
+        concepts: concepts as Concept[],
+        classes: classes as CabanaClass[],
+        products: products as Product[],
+      };
+    },
+  });
+
+  const concepts = conceptsData?.concepts ?? [];
+  const classes = conceptsData?.classes ?? [];
+  const products = conceptsData?.products ?? [];
+
+  const [error, setError] = useState(queryError ? String(queryError) : "");
   const [success, setSuccess] = useState("");
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -75,44 +111,6 @@ export default function ConceptsPage() {
     Record<string, string>
   >({});
 
-  const fetchConcepts = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/concepts");
-      if (!res.ok) throw new Error("Konseptler yüklenemedi.");
-      setConcepts(await res.json());
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchClasses = useCallback(async () => {
-    try {
-      const res = await fetch("/api/classes");
-      if (res.ok) setClasses(await res.json());
-    } catch {
-      // non-critical
-    }
-  }, []);
-
-  const fetchProducts = useCallback(async () => {
-    try {
-      const res = await fetch("/api/products");
-      if (res.ok) setProducts(await res.json());
-    } catch {
-      // non-critical
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchConcepts();
-    fetchClasses();
-    fetchProducts();
-  }, [fetchConcepts, fetchClasses, fetchProducts]);
-
   function showSuccess(msg: string) {
     setSuccess(msg);
     setTimeout(() => setSuccess(""), 3000);
@@ -140,7 +138,7 @@ export default function ConceptsPage() {
       setShowCreate(false);
       setCreateForm(defaultCreateForm);
       showSuccess("Konsept başarıyla oluşturuldu.");
-      fetchConcepts();
+      queryClient.invalidateQueries({ queryKey: ["concepts-admin"] });
     } catch (e: unknown) {
       setCreateError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -180,7 +178,7 @@ export default function ConceptsPage() {
       }
       setEditConcept(null);
       showSuccess("Konsept başarıyla güncellendi.");
-      fetchConcepts();
+      queryClient.invalidateQueries({ queryKey: ["concepts-admin"] });
     } catch (e: unknown) {
       setEditError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -201,7 +199,7 @@ export default function ConceptsPage() {
       if (!res.ok) throw new Error(data.message || "Konsept silinemedi.");
       setDeleteConcept(null);
       showSuccess("Konsept silindi.");
-      fetchConcepts();
+      queryClient.invalidateQueries({ queryKey: ["concepts-admin"] });
     } catch (e: unknown) {
       setDeleteError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -226,7 +224,7 @@ export default function ConceptsPage() {
         throw new Error(data.message || "Ürün eklenemedi.");
       }
       setAddProductForms((p) => ({ ...p, [conceptId]: "" }));
-      fetchConcepts();
+      queryClient.invalidateQueries({ queryKey: ["concepts-admin"] });
     } catch (e: unknown) {
       setAddProductError((p) => ({
         ...p,
@@ -249,7 +247,7 @@ export default function ConceptsPage() {
         const data = await res.json();
         throw new Error(data.message || "Ürün kaldırılamadı.");
       }
-      fetchConcepts();
+      queryClient.invalidateQueries({ queryKey: ["concepts-admin"] });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Bir hata oluştu.");
     }
@@ -634,66 +632,4 @@ export default function ConceptsPage() {
   );
 }
 
-// --- Shared sub-components ---
-
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-md sm:mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 sticky top-0 bg-neutral-900 z-10">
-          <h2 className="text-sm font-semibold text-yellow-400">{title}</h2>
-          <button
-            onClick={onClose}
-            className="w-11 h-11 flex items-center justify-center text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
-          >
-            ×
-          </button>
-        </div>
-        <div className="px-5 py-5">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-neutral-400 mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function ErrorMsg({ msg }: { msg: string }) {
-  return (
-    <p className="text-red-400 text-xs bg-red-950/40 border border-red-800/40 rounded-lg px-3 py-2">
-      {msg}
-    </p>
-  );
-}
-
-const inputCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg min-h-[44px] px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600";
-
-const selectCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg min-h-[44px] px-4 py-3 text-base sm:text-sm outline-none transition-colors";
-
-const cancelBtnCls =
-  "min-h-[44px] px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
-
-const submitBtnCls =
-  "min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";
+// --- Shared sub-components imported from @/components/shared/FormComponents ---

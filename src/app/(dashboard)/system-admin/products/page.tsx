@@ -1,6 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Modal,
+  Field,
+  ErrorMsg,
+  inputCls,
+  selectCls,
+  cancelBtnCls,
+  submitBtnCls,
+} from "@/components/shared/FormComponents";
 
 interface ProductGroup {
   id: string;
@@ -38,10 +48,33 @@ function hasPriceWarning(p: string, s: string) {
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [groups, setGroups] = useState<ProductGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+
+  const {
+    data: productsAndGroups,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["products-and-groups"],
+    queryFn: async () => {
+      const [pRes, gRes] = await Promise.all([
+        fetch("/api/products"),
+        fetch("/api/product-groups"),
+      ]);
+      if (!pRes.ok) throw new Error("Ürünler yüklenemedi.");
+      if (!gRes.ok) throw new Error("Gruplar yüklenemedi.");
+      const [products, groups] = await Promise.all([pRes.json(), gRes.json()]);
+      return {
+        products: products as Product[],
+        groups: groups as ProductGroup[],
+      };
+    },
+  });
+
+  const products = productsAndGroups?.products ?? [];
+  const groups = productsAndGroups?.groups ?? [];
+
+  const [error, setError] = useState(queryError ? String(queryError) : "");
   const [success, setSuccess] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
@@ -84,29 +117,6 @@ export default function ProductsPage() {
   const [deleteGroup, setDeleteGroup] = useState<ProductGroup | null>(null);
   const [deleteGroupLoading, setDeleteGroupLoading] = useState(false);
   const [deleteGroupError, setDeleteGroupError] = useState("");
-
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [pRes, gRes] = await Promise.all([
-        fetch("/api/products"),
-        fetch("/api/product-groups"),
-      ]);
-      if (!pRes.ok) throw new Error("Ürünler yüklenemedi.");
-      if (!gRes.ok) throw new Error("Gruplar yüklenemedi.");
-      setProducts(await pRes.json());
-      setGroups(await gRes.json());
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
 
   function showSuccess(msg: string) {
     setSuccess(msg);
@@ -153,7 +163,7 @@ export default function ProductsPage() {
       setCreatePriceWarn(false);
       setCreatePriceOk(false);
       showSuccess("Ürün oluşturuldu.");
-      fetchAll();
+      queryClient.invalidateQueries({ queryKey: ["products-and-groups"] });
     } catch (e: unknown) {
       setCreateError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -211,7 +221,7 @@ export default function ProductsPage() {
       }
       setEditProduct(null);
       showSuccess("Ürün güncellendi.");
-      fetchAll();
+      queryClient.invalidateQueries({ queryKey: ["products-and-groups"] });
     } catch (e: unknown) {
       setEditError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -231,7 +241,7 @@ export default function ProductsPage() {
       if (!res.ok) throw new Error(d.message || "Silinemedi.");
       setDeleteProduct(null);
       showSuccess("Ürün silindi.");
-      fetchAll();
+      queryClient.invalidateQueries({ queryKey: ["products-and-groups"] });
     } catch (e: unknown) {
       setDeleteError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -260,7 +270,7 @@ export default function ProductsPage() {
       setShowCreateGroup(false);
       setGroupForm(defaultGroupForm);
       showSuccess("Grup oluşturuldu.");
-      fetchAll();
+      queryClient.invalidateQueries({ queryKey: ["products-and-groups"] });
     } catch (e: unknown) {
       setGroupError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -294,7 +304,7 @@ export default function ProductsPage() {
       }
       setEditGroup(null);
       showSuccess("Grup güncellendi.");
-      fetchAll();
+      queryClient.invalidateQueries({ queryKey: ["products-and-groups"] });
     } catch (e: unknown) {
       setEditGroupError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -314,7 +324,7 @@ export default function ProductsPage() {
       if (!res.ok) throw new Error(d.message || "Silinemedi.");
       setDeleteGroup(null);
       showSuccess("Grup silindi.");
-      fetchAll();
+      queryClient.invalidateQueries({ queryKey: ["products-and-groups"] });
     } catch (e: unknown) {
       setDeleteGroupError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -993,47 +1003,7 @@ function ProductTable({
   );
 }
 
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-md sm:mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 sticky top-0 bg-neutral-900 z-10">
-          <h2 className="text-sm font-semibold text-yellow-400">{title}</h2>
-          <button
-            onClick={onClose}
-            className="w-11 h-11 flex items-center justify-center text-neutral-500 hover:text-neutral-300 text-lg leading-none transition-colors"
-          >
-            ×
-          </button>
-        </div>
-        <div className="px-5 py-5">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-neutral-400 mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
+// --- Shared sub-components imported from @/components/shared/FormComponents ---
 
 function PriceWarning({
   confirmed,
@@ -1061,20 +1031,3 @@ function PriceWarning({
     </div>
   );
 }
-
-function ErrorMsg({ msg }: { msg: string }) {
-  return (
-    <p className="text-red-400 text-xs bg-red-950/40 border border-red-800/40 rounded-lg px-3 py-2">
-      {msg}
-    </p>
-  );
-}
-
-const inputCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg min-h-[44px] px-4 py-3 text-base sm:text-sm outline-none transition-colors placeholder:text-neutral-600";
-const selectCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg min-h-[44px] px-4 py-3 text-base sm:text-sm outline-none transition-colors";
-const cancelBtnCls =
-  "min-h-[44px] px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors";
-const submitBtnCls =
-  "min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors";

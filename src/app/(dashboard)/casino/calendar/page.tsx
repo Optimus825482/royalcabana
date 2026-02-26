@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ReservationCalendar from "@/components/calendar/ReservationCalendar";
@@ -121,23 +121,29 @@ export default function CasinoCalendarPage() {
   const isLoading = resLoading || cabanasLoading;
 
   // FullCalendar resources
-  const resources: CabanaResource[] = cabanas.map((c) => ({
-    id: c.id,
-    title: c.name,
-    classId: c.classId,
-  }));
+  const resources: CabanaResource[] = useMemo(
+    () =>
+      cabanas.map((c) => ({
+        id: c.id,
+        title: c.name,
+        classId: c.classId,
+      })),
+    [cabanas],
+  );
 
   // FullCalendar events
-  const events: ReservationEvent[] = (reservationData?.reservations ?? []).map(
-    (r) => ({
-      id: r.id,
-      title: r.guestName,
-      start: r.startDate.split("T")[0],
-      end: r.endDate.split("T")[0],
-      resourceId: r.cabanaId,
-      status: r.status,
-      guestName: r.guestName,
-    }),
+  const events: ReservationEvent[] = useMemo(
+    () =>
+      (reservationData?.reservations ?? []).map((r) => ({
+        id: r.id,
+        title: r.guestName,
+        start: r.startDate.split("T")[0],
+        end: r.endDate.split("T")[0],
+        resourceId: r.cabanaId,
+        status: r.status,
+        guestName: r.guestName,
+      })),
+    [reservationData?.reservations],
   );
 
   // Unique classes for filter

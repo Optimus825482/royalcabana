@@ -1,54 +1,44 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
+import { withAuth } from "@/lib/api-middleware";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (![Role.ADMIN, Role.SYSTEM_ADMIN].includes(session.user.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const [totalCabanas, availableCabanas, reservedCabanas, closedCabanas] =
-    await Promise.all([
-      prisma.cabana.count(),
-      prisma.cabana.count({ where: { status: "AVAILABLE" } }),
-      prisma.cabana.count({ where: { status: "RESERVED" } }),
-      prisma.cabana.count({ where: { status: "CLOSED" } }),
-    ]);
-
+export const GET = withAuth([Role.ADMIN, Role.SYSTEM_ADMIN], async () => {
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
-  const pendingRequests = await prisma.reservation.count({
-    where: { status: "PENDING" },
-  });
-
-  const [approvedThisMonth, rejectedThisMonth] = await Promise.all([
+  const [
+    totalCabanas,
+    availableCabanas,
+    reservedCabanas,
+    closedCabanas,
+    pendingRequests,
+    approvedThisMonth,
+    rejectedThisMonth,
+    revenueResult,
+    revenueThisMonthResult,
+  ] = await Promise.all([
+    prisma.cabana.count(),
+    prisma.cabana.count({ where: { status: "AVAILABLE" } }),
+    prisma.cabana.count({ where: { status: "RESERVED" } }),
+    prisma.cabana.count({ where: { status: "CLOSED" } }),
+    prisma.reservation.count({ where: { status: "PENDING" } }),
     prisma.reservation.count({
       where: { status: "APPROVED", updatedAt: { gte: monthStart } },
     }),
     prisma.reservation.count({
       where: { status: "REJECTED", updatedAt: { gte: monthStart } },
     }),
+    prisma.reservation.aggregate({
+      where: { status: "APPROVED" },
+      _sum: { totalPrice: true },
+    }),
+    prisma.reservation.aggregate({
+      where: { status: "APPROVED", updatedAt: { gte: monthStart } },
+      _sum: { totalPrice: true },
+    }),
   ]);
-
-  const revenueResult = await prisma.reservation.aggregate({
-    where: { status: "APPROVED" },
-    _sum: { totalPrice: true },
-  });
-
-  const revenueThisMonthResult = await prisma.reservation.aggregate({
-    where: { status: "APPROVED", updatedAt: { gte: monthStart } },
-    _sum: { totalPrice: true },
-  });
 
   const occupancyRate =
     totalCabanas > 0 ? (reservedCabanas / totalCabanas) * 100 : 0;
@@ -65,4 +55,4 @@ export async function GET() {
     totalRevenue: Number(revenueResult._sum.totalPrice ?? 0),
     revenueThisMonth: Number(revenueThisMonthResult._sum.totalPrice ?? 0),
   });
-}
+});

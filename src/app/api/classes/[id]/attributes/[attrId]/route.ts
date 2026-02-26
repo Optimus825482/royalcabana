@@ -1,37 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 import { Role } from "@/types";
+import { withAuth } from "@/lib/api-middleware";
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string; attrId: string }> },
-) {
-  const session = await getServerSession(authOptions);
+export const DELETE = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (_req, { params }) => {
+    const id = params?.id;
+    const attrId = params?.attrId;
 
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
+    const attribute = await prisma.classAttribute.findFirst({
+      where: { id: attrId, classId: id },
+    });
 
-  if (session.user.role !== Role.SYSTEM_ADMIN) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
+    if (!attribute) {
+      return NextResponse.json(
+        { error: "Özellik bulunamadı." },
+        { status: 404 },
+      );
+    }
 
-  const { id, attrId } = await params;
+    await prisma.classAttribute.delete({ where: { id: attrId } });
 
-  const attribute = await prisma.classAttribute.findFirst({
-    where: { id: attrId, classId: id },
-  });
-
-  if (!attribute) {
-    return NextResponse.json(
-      { message: "Özellik bulunamadı." },
-      { status: 404 },
-    );
-  }
-
-  await prisma.classAttribute.delete({ where: { id: attrId } });
-
-  return NextResponse.json({ message: "Özellik silindi." });
-}
+    return NextResponse.json({ message: "Özellik silindi." });
+  },
+);

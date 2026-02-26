@@ -1,6 +1,8 @@
 import { NextAuthOptions } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
 
@@ -88,3 +90,9 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+/**
+ * Per-request deduplication — aynı request içinde birden fazla
+ * getServerSession(authOptions) çağrısını tek DB hit'e düşürür (Rule 3.6)
+ */
+export const getAuthSession = cache(() => getServerSession(authOptions));

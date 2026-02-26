@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import CabanaMap from "@/components/map/CabanaMap";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { inputCls, selectCls } from "@/components/shared/FormComponents";
 
 interface CabanaClass {
   id: string;
@@ -24,11 +26,47 @@ const defaultAddForm = {
 };
 
 export default function SystemAdminMapPage() {
-  const [cabanas, setCabanas] = useState<CabanaWithStatus[]>([]);
-  const [classes, setClasses] = useState<CabanaClass[]>([]);
-  const [concepts, setConcepts] = useState<Concept[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+
+  const {
+    data: mapData,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["map-admin-data"],
+    queryFn: async () => {
+      const [cabanasRes, classesRes, conceptsRes] = await Promise.all([
+        fetch("/api/cabanas"),
+        fetch("/api/classes"),
+        fetch("/api/concepts"),
+      ]);
+      if (!cabanasRes.ok) throw new Error("Kabanalar yüklenemedi.");
+      if (!classesRes.ok) throw new Error("Sınıflar yüklenemedi.");
+      if (!conceptsRes.ok) throw new Error("Konseptler yüklenemedi.");
+      const [cabanasData, classesData, conceptsData] = await Promise.all([
+        cabanasRes.json(),
+        classesRes.json(),
+        conceptsRes.json(),
+      ]);
+      return {
+        cabanas: (Array.isArray(cabanasData)
+          ? cabanasData
+          : (cabanasData.cabanas ?? [])) as CabanaWithStatus[],
+        classes: (Array.isArray(classesData)
+          ? classesData
+          : (classesData.classes ?? [])) as CabanaClass[],
+        concepts: (Array.isArray(conceptsData)
+          ? conceptsData
+          : (conceptsData.concepts ?? [])) as Concept[],
+      };
+    },
+  });
+
+  const cabanas = mapData?.cabanas ?? [];
+  const classes = mapData?.classes ?? [];
+  const concepts = mapData?.concepts ?? [];
+
+  const [error, setError] = useState(queryError ? String(queryError) : "");
   const [success, setSuccess] = useState("");
 
   const [selectedCabana, setSelectedCabana] = useState<CabanaWithStatus | null>(
@@ -49,46 +87,6 @@ export default function SystemAdminMapPage() {
   // Delete confirm
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [cabanasRes, classesRes, conceptsRes] = await Promise.all([
-        fetch("/api/cabanas"),
-        fetch("/api/classes"),
-        fetch("/api/concepts"),
-      ]);
-      if (!cabanasRes.ok) throw new Error("Kabanalar yüklenemedi.");
-      if (!classesRes.ok) throw new Error("Sınıflar yüklenemedi.");
-      if (!conceptsRes.ok) throw new Error("Konseptler yüklenemedi.");
-
-      const [cabanasData, classesData, conceptsData] = await Promise.all([
-        cabanasRes.json(),
-        classesRes.json(),
-        conceptsRes.json(),
-      ]);
-      setCabanas(
-        Array.isArray(cabanasData) ? cabanasData : (cabanasData.cabanas ?? []),
-      );
-      setClasses(
-        Array.isArray(classesData) ? classesData : (classesData.classes ?? []),
-      );
-      setConcepts(
-        Array.isArray(conceptsData)
-          ? conceptsData
-          : (conceptsData.concepts ?? []),
-      );
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   function showSuccessMsg(msg: string) {
     setSuccess(msg);
@@ -154,7 +152,7 @@ export default function SystemAdminMapPage() {
       setShowAddModal(false);
       setAddForm(defaultAddForm);
       showSuccessMsg("Kabana başarıyla eklendi.");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
     } catch (e: unknown) {
       setAddError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -181,7 +179,7 @@ export default function SystemAdminMapPage() {
         throw new Error(data.message || "Kabana güncellenemedi.");
       }
       showSuccessMsg("Kabana güncellendi.");
-      await fetchData();
+      await queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
       // Refresh selected cabana
       const updated = cabanas.find((c) => c.id === selectedCabana.id);
       if (updated)
@@ -212,7 +210,7 @@ export default function SystemAdminMapPage() {
       showSuccessMsg("Kabana silindi.");
       setSelectedCabana(null);
       setShowDeleteConfirm(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -592,8 +590,4 @@ export default function SystemAdminMapPage() {
   );
 }
 
-const inputCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-3 py-2 text-sm outline-none transition-colors placeholder:text-neutral-600";
-
-const selectCls =
-  "w-full bg-neutral-800 border border-neutral-700 focus:border-yellow-600 text-neutral-100 rounded-lg px-3 py-2 text-sm outline-none transition-colors";
+// (inputCls, selectCls imported from FormComponents)
