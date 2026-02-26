@@ -4,37 +4,66 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import {
   MapContainer,
-  TileLayer,
+  ImageOverlay,
   Marker,
   CircleMarker,
   Popup,
   useMapEvents,
+  useMap,
 } from "react-leaflet";
-import { useRef, useState, useMemo, useCallback } from "react";
+import { useRef, useState, useMemo, useCallback, useEffect } from "react";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
 
-// ─── Tesis merkez koordinatı (değiştirilebilir) ─────────────────────────────
-const DEFAULT_CENTER: L.LatLngExpression = [35.355698, 33.210415]; // Merit Royal, Alsancak, Kıbrıs
-const DEFAULT_ZOOM = 19;
+// ─── Görsel tanımları ────────────────────────────────────────────────────────
 
-// ─── Tile Layer kaynakları ───────────────────────────────────────────────────
-const TILE_LAYERS = {
-  satellite: {
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution: "Tiles &copy; Esri",
-    maxNativeZoom: 19,
-    maxZoom: 22,
-  },
-  street: {
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-    maxNativeZoom: 19,
-    maxZoom: 22,
-  },
-} as const;
+interface ViewDef {
+  label: string;
+  icon: string;
+  src: string;
+  width: number;
+  height: number;
+}
 
-type TileMode = keyof typeof TILE_LAYERS;
+const VIEWS: Record<string, ViewDef> = {
+  ust: {
+    label: "Üst",
+    icon: "🔝",
+    src: "/gorsel/ust.webp",
+    width: 1472,
+    height: 704,
+  },
+  on: {
+    label: "Ön",
+    icon: "🏖️",
+    src: "/gorsel/on.webp",
+    width: 1920,
+    height: 544,
+  },
+  sag: {
+    label: "Sağ",
+    icon: "➡️",
+    src: "/gorsel/sag.webp",
+    width: 1056,
+    height: 992,
+  },
+  sol: {
+    label: "Sol",
+    icon: "⬅️",
+    src: "/gorsel/sol.webp",
+    width: 1600,
+    height: 1098,
+  },
+  arka: {
+    label: "Arka",
+    icon: "🔙",
+    src: "/gorsel/arka.webp",
+    width: 951,
+    height: 587,
+  },
+};
+
+type ViewKey = keyof typeof VIEWS;
+const VIEW_KEYS = Object.keys(VIEWS) as ViewKey[];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -66,26 +95,45 @@ function getStatusLabel(cabana: CabanaWithStatus): string {
   }
 }
 
-function createPinIcon(color: string, selected: boolean): L.DivIcon {
-  const size = selected ? 32 : 24;
-  const shadow = selected
-    ? "0 0 12px rgba(255,255,255,0.5)"
-    : "0 2px 6px rgba(0,0,0,0.4)";
+function createCabanaIcon(color: string, selected: boolean): L.DivIcon {
+  const size = selected ? 36 : 26;
+  const glow = selected ? `0 0 14px ${color}88` : `0 2px 8px rgba(0,0,0,0.5)`;
+  const border = selected
+    ? "3px solid #fff"
+    : `2px solid rgba(255,255,255,0.7)`;
   return L.divIcon({
     className: "",
     html: `<div style="
       width:${size}px; height:${size}px;
       border-radius:50%;
-      background:${color};
-      border:${selected ? "3px solid #fff" : `2px solid ${color}`};
-      box-shadow:${shadow};
+      background: radial-gradient(circle at 35% 35%, ${color}ee, ${color}99);
+      border:${border};
+      box-shadow:${glow};
       cursor:pointer;
+      transition: all 0.2s ease;
       display:flex; align-items:center; justify-content:center;
     ">
-      <div style="width:${size * 0.35}px; height:${size * 0.35}px; border-radius:50%; background:rgba(255,255,255,0.6);"></div>
+      <div style="width:${size * 0.3}px; height:${size * 0.3}px; border-radius:50%; background:rgba(255,255,255,0.5);"></div>
     </div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
+  });
+}
+
+function createPlacementIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      width:30px; height:30px;
+      border-radius:50%;
+      background:rgba(234,179,8,0.6);
+      border:3px dashed #eab308;
+      box-shadow:0 0 16px rgba(234,179,8,0.4);
+      animation: cabana-pulse 1.5s ease-in-out infinite;
+    "></div>
+    <style>@keyframes cabana-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.2);opacity:0.7}}</style>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
   });
 }
 
@@ -142,7 +190,7 @@ function DraggableMarker({
   const markerRef = useRef<L.Marker>(null);
   const color = getCabanaColor(cabana);
   const icon = useMemo(
-    () => createPinIcon(color, isSelected),
+    () => createCabanaIcon(color, isSelected),
     [color, isSelected],
   );
 
@@ -151,9 +199,9 @@ function DraggableMarker({
       dragend() {
         const marker = markerRef.current;
         if (marker) {
-          const latlng = marker.getLatLng();
-          // coordX = longitude, coordY = latitude
-          onLocationUpdate(cabana.id, latlng.lng, latlng.lat);
+          const pos = marker.getLatLng();
+          // CRS.Simple: lat = y, lng = x
+          onLocationUpdate(cabana.id, pos.lng, pos.lat);
         }
       },
       click() {
@@ -168,7 +216,7 @@ function DraggableMarker({
       ref={markerRef}
       position={[cabana.coordY, cabana.coordX]}
       icon={icon}
-      draggable={true}
+      draggable
       eventHandlers={eventHandlers}
     >
       <Popup>
@@ -207,12 +255,12 @@ function StaticMarker({ cabana, onClick, isSelected }: StaticMarkerProps) {
   );
 }
 
-// ─── Click-to-Place Handler ──────────────────────────────────────────────────
+// ─── Map Click Handler ───────────────────────────────────────────────────────
 
 function MapClickHandler({
   onMapClick,
 }: {
-  onMapClick?: (lat: number, lng: number) => void;
+  onMapClick?: (y: number, x: number) => void;
 }) {
   useMapEvents({
     click(e) {
@@ -225,26 +273,18 @@ function MapClickHandler({
 // ─── Placement Preview Marker ────────────────────────────────────────────────
 
 function PlacementMarker({ lat, lng }: { lat: number; lng: number }) {
-  const icon = useMemo(
-    () =>
-      L.divIcon({
-        className: "",
-        html: `<div style="
-          width:28px; height:28px;
-          border-radius:50%;
-          background:rgba(234,179,8,0.7);
-          border:3px dashed #eab308;
-          box-shadow:0 0 12px rgba(234,179,8,0.4);
-          animation: pulse 1.5s ease-in-out infinite;
-        "></div>
-        <style>@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}</style>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-      }),
-    [],
-  );
-
+  const icon = useMemo(() => createPlacementIcon(), []);
   return <Marker position={[lat, lng]} icon={icon} />;
+}
+
+// ─── View Change Handler ─────────────────────────────────────────────────────
+
+function FitBoundsOnChange({ bounds }: { bounds: L.LatLngBoundsExpression }) {
+  const map = useMap();
+  useEffect(() => {
+    map.fitBounds(bounds, { animate: true, duration: 0.3 });
+  }, [map, bounds]);
+  return null;
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -268,8 +308,22 @@ export default function CabanaMapInner({
   selectedCabanaId,
   placementCoords,
 }: MapComponentProps) {
-  const [tileMode, setTileMode] = useState<TileMode>("satellite");
-  const tile = TILE_LAYERS[tileMode];
+  const [activeView, setActiveView] = useState<ViewKey>("ust");
+  const view = VIEWS[activeView];
+
+  // CRS.Simple bounds: [[0,0], [height, width]]
+  const bounds = useMemo<L.LatLngBoundsExpression>(
+    () => [
+      [0, 0],
+      [view.height, view.width],
+    ],
+    [view],
+  );
+
+  const center = useMemo<L.LatLngExpression>(
+    () => [view.height / 2, view.width / 2],
+    [view],
+  );
 
   const handleLocationUpdate = useCallback(
     (cabanaId: string, coordX: number, coordY: number) => {
@@ -278,44 +332,29 @@ export default function CabanaMapInner({
     [onLocationUpdate],
   );
 
-  // Haritanın merkezi: mevcut cabana'lar varsa ortalarını al, yoksa default
-  const center = useMemo<L.LatLngExpression>(() => {
-    const valid = cabanas.filter(
-      (c) => c.coordY !== 0 && c.coordX !== 0 && Math.abs(c.coordY) <= 90,
-    );
-    if (valid.length === 0) return DEFAULT_CENTER;
-    const avgLat = valid.reduce((s, c) => s + c.coordY, 0) / valid.length;
-    const avgLng = valid.reduce((s, c) => s + c.coordX, 0) / valid.length;
-    return [avgLat, avgLng];
-  }, [cabanas]);
-
   return (
     <div className="flex flex-col h-full">
-      {/* Tile mode toggle */}
-      <div className="flex gap-1 mb-2">
-        <button
-          onClick={() => setTileMode("satellite")}
-          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
-            tileMode === "satellite"
-              ? "bg-amber-600 text-white"
-              : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"
-          }`}
-        >
-          🛰️ Uydu
-        </button>
-        <button
-          onClick={() => setTileMode("street")}
-          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
-            tileMode === "street"
-              ? "bg-amber-600 text-white"
-              : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"
-          }`}
-        >
-          🗺️ Harita
-        </button>
+      {/* View tabs */}
+      <div className="flex items-center gap-1 mb-2 flex-wrap">
+        {VIEW_KEYS.map((key) => {
+          const v = VIEWS[key];
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveView(key)}
+              className={`px-3 py-1.5 text-xs rounded-md transition-all ${
+                activeView === key
+                  ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20"
+                  : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+              }`}
+            >
+              {v.icon} {v.label}
+            </button>
+          );
+        })}
         {editable && onMapClick && (
           <span className="ml-auto text-xs text-neutral-500 self-center">
-            Haritaya tıklayarak konum seçin
+            Görsele tıklayarak konum seçin
           </span>
         )}
       </div>
@@ -323,19 +362,18 @@ export default function CabanaMapInner({
       {/* Map */}
       <div className="flex-1 rounded-lg overflow-hidden border border-neutral-700 min-h-[280px] md:min-h-[400px]">
         <MapContainer
+          crs={L.CRS.Simple}
           center={center}
-          zoom={DEFAULT_ZOOM}
-          style={{ height: "100%", width: "100%", background: "#1a1a1a" }}
-          minZoom={14}
-          maxZoom={22}
+          zoom={0}
+          minZoom={-2}
+          maxZoom={3}
+          style={{ height: "100%", width: "100%", background: "#111" }}
+          attributionControl={false}
+          zoomSnap={0.25}
+          zoomDelta={0.5}
         >
-          <TileLayer
-            key={tileMode}
-            url={tile.url}
-            attribution={tile.attribution}
-            maxZoom={tile.maxZoom}
-            maxNativeZoom={tile.maxNativeZoom}
-          />
+          <FitBoundsOnChange bounds={bounds} />
+          <ImageOverlay url={view.src} bounds={bounds} />
 
           {editable && onMapClick && (
             <MapClickHandler onMapClick={onMapClick} />
@@ -372,20 +410,20 @@ export default function CabanaMapInner({
       {/* Legend */}
       <div className="flex gap-4 mt-2 text-xs text-neutral-500">
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />
+          <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />{" "}
           Müsait
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
+          <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />{" "}
           Rezerve
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-gray-500 inline-block" />
+          <span className="w-3 h-3 rounded-full bg-gray-500 inline-block" />{" "}
           Kapalı
         </span>
         {editable && (
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-yellow-500 border border-dashed border-yellow-400 inline-block" />
+            <span className="w-3 h-3 rounded-full bg-yellow-500 border border-dashed border-yellow-400 inline-block" />{" "}
             Yeni konum
           </span>
         )}

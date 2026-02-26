@@ -21,8 +21,8 @@ const defaultAddForm = {
   name: "",
   classId: "",
   conceptId: "",
-  coordX: 33.210415,
-  coordY: 35.355698,
+  coordX: 500,
+  coordY: 500,
 };
 
 export default function SystemAdminMapPage() {
@@ -360,15 +360,15 @@ export default function SystemAdminMapPage() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Enlem (Lat)</span>
+                    <span>Konum X</span>
                     <span className="text-neutral-200">
-                      {selectedCabana.coordY.toFixed(6)}
+                      {Math.round(selectedCabana.coordX)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Boylam (Lng)</span>
+                    <span>Konum Y</span>
                     <span className="text-neutral-200">
-                      {selectedCabana.coordX.toFixed(6)}
+                      {Math.round(selectedCabana.coordY)}
                     </span>
                   </div>
                 </div>
@@ -545,32 +545,13 @@ export default function SystemAdminMapPage() {
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="block text-xs text-neutral-400 mb-1.5">
-                    Enlem (Lat)
+                    Konum X
                   </label>
                   <input
                     type="number"
                     required
-                    step="0.000001"
-                    value={addForm.coordY}
-                    onChange={(e) =>
-                      setAddForm((f) => ({
-                        ...f,
-                        coordY: Number(e.target.value),
-                      }))
-                    }
-                    className={inputCls}
-                    placeholder="35.3345"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs text-neutral-400 mb-1.5">
-                    Boylam (Lng)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    step="0.000001"
-                    value={addForm.coordX}
+                    step="1"
+                    value={Math.round(addForm.coordX)}
                     onChange={(e) =>
                       setAddForm((f) => ({
                         ...f,
@@ -578,13 +559,30 @@ export default function SystemAdminMapPage() {
                       }))
                     }
                     className={inputCls}
-                    placeholder="33.9230"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-neutral-400 mb-1.5">
+                    Konum Y
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    step="1"
+                    value={Math.round(addForm.coordY)}
+                    onChange={(e) =>
+                      setAddForm((f) => ({
+                        ...f,
+                        coordY: Number(e.target.value),
+                      }))
+                    }
+                    className={inputCls}
                   />
                 </div>
               </div>
               {placementCoords && (
                 <p className="text-xs text-amber-500/80">
-                  📍 Konum haritadan seçildi. Manuel olarak da
+                  📍 Konum görselden seçildi. Manuel olarak da
                   düzenleyebilirsiniz.
                 </p>
               )}
