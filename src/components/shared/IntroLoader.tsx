@@ -11,7 +11,6 @@ export default function IntroLoader({ onDone }: IntroLoaderProps) {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    // 2.5 sn sonra fade-out başlat, 3 sn sonra tamamen kaldır
     const fadeTimer = setTimeout(() => setFadeOut(true), 2500);
     const doneTimer = setTimeout(() => onDone(), 3000);
     return () => {
@@ -29,34 +28,45 @@ export default function IntroLoader({ onDone }: IntroLoaderProps) {
       <div className="relative flex items-center justify-center">
         {/* Dış büyük ring */}
         <div
-          className="absolute w-52 h-52 rounded-full border border-amber-500/10 border-t-amber-400/40 animate-spin"
+          className="absolute w-72 h-72 rounded-full border border-amber-500/20 border-t-amber-400/50 animate-spin"
           style={{ animationDuration: "3s" }}
         />
         {/* Orta ring */}
         <div
-          className="absolute w-40 h-40 rounded-full border-2 border-amber-500/15 border-t-amber-400/60 animate-spin"
+          className="absolute w-56 h-56 rounded-full border-2 border-amber-500/25 border-t-amber-400/70 animate-spin"
           style={{ animationDuration: "1.8s" }}
         />
         {/* İç ring */}
         <div
-          className="absolute w-28 h-28 rounded-full border-2 border-amber-500/20 border-t-amber-400 animate-spin"
+          className="absolute w-44 h-44 rounded-full border-2 border-amber-500/30 border-t-amber-400 animate-spin"
           style={{ animationDuration: "1s" }}
         />
 
-        {/* Logo */}
-        <div className="rounded-2xl shadow-[0_0_40px_rgba(245,158,11,0.35)] animate-pulse">
+        {/* Logo container — büyük, parlak glow */}
+        <div
+          className="relative z-10 rounded-3xl p-1"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)",
+            boxShadow:
+              "0 0 60px rgba(245,158,11,0.5), 0 0 120px rgba(245,158,11,0.2), inset 0 0 30px rgba(245,158,11,0.05)",
+          }}
+        >
           <Image
             src="/logo.png"
             alt="Royal Cabana"
-            width={96}
-            height={96}
+            width={160}
+            height={160}
             className="rounded-2xl"
             priority
           />
         </div>
       </div>
 
-      <p className="mt-10 text-sm text-neutral-500 tracking-widest uppercase animate-pulse">
+      <p
+        className="mt-14 text-base text-amber-400/80 tracking-[0.3em] uppercase font-light"
+        style={{ textShadow: "0 0 20px rgba(245,158,11,0.4)" }}
+      >
         Royal Cabana
       </p>
     </div>
