@@ -82,7 +82,7 @@ export default function ReportsPage() {
   const [previewError, setPreviewError] = useState("");
 
   const [exportLoading, setExportLoading] = useState<
-    "pdf" | "excel" | "presentation" | null
+    "pdf" | "excel" | "presentation" | "html-presentation" | null
   >(null);
   const [exportError, setExportError] = useState("");
   const [exportSuccess, setExportSuccess] = useState("");
@@ -205,6 +205,27 @@ export default function ReportsPage() {
       const blob = await res.blob();
       await downloadBlob(blob, "royal-cabana-sunum.pptx");
       showSuccess("Sunum başarıyla indirildi.");
+    } catch (e: unknown) {
+      setExportError(e instanceof Error ? e.message : "Bir hata oluştu.");
+    } finally {
+      setExportLoading(null);
+    }
+  }
+
+  async function handleHtmlPresentation() {
+    setExportLoading("html-presentation");
+    setExportError("");
+    try {
+      const res = await fetch("/api/reports/presentation?format=html", {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "HTML sunum oluşturulamadı.");
+      }
+      const blob = await res.blob();
+      await downloadBlob(blob, "royal-cabana-sunum.html");
+      showSuccess("HTML sunum başarıyla indirildi.");
     } catch (e: unknown) {
       setExportError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -356,13 +377,20 @@ export default function ReportsPage() {
                 variant="primary"
               />
               <ActionButton
-                label="Sunum Oluştur"
+                label="PPTX Sunum"
                 icon="🎯"
                 loading={exportLoading === "presentation"}
                 onClick={handlePresentation}
                 disabled={exportLoading !== null}
                 variant="secondary"
-                className="sm:col-span-2"
+              />
+              <ActionButton
+                label="HTML Sunum"
+                icon="🌐"
+                loading={exportLoading === "html-presentation"}
+                onClick={handleHtmlPresentation}
+                disabled={exportLoading !== null}
+                variant="secondary"
               />
             </div>
           </div>
