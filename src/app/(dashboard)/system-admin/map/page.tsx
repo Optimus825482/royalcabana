@@ -467,7 +467,7 @@ export default function SystemAdminMapPage() {
 
       {/* Add Cabana Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
               <h2 className="text-sm font-semibold text-yellow-400">

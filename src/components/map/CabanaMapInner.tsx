@@ -332,6 +332,8 @@ export default function CabanaMapInner({
     [onLocationUpdate],
   );
 
+  const isTopView = activeView === "ust";
+
   return (
     <div className="flex flex-col h-full">
       {/* View tabs */}
@@ -352,9 +354,14 @@ export default function CabanaMapInner({
             </button>
           );
         })}
-        {editable && onMapClick && (
+        {editable && isTopView && onMapClick && (
           <span className="ml-auto text-xs text-neutral-500 self-center">
             Görsele tıklayarak konum seçin
+          </span>
+        )}
+        {!isTopView && (
+          <span className="ml-auto text-xs text-amber-500/70 self-center">
+            Yerleştirme sadece Üst görünümde yapılır
           </span>
         )}
       </div>
@@ -375,35 +382,36 @@ export default function CabanaMapInner({
           <FitBoundsOnChange bounds={bounds} />
           <ImageOverlay url={view.src} bounds={bounds} />
 
-          {editable && onMapClick && (
+          {isTopView && editable && onMapClick && (
             <MapClickHandler onMapClick={onMapClick} />
           )}
 
-          {placementCoords && (
+          {isTopView && placementCoords && (
             <PlacementMarker
               lat={placementCoords.lat}
               lng={placementCoords.lng}
             />
           )}
 
-          {cabanas.map((cabana) =>
-            editable ? (
-              <DraggableMarker
-                key={cabana.id}
-                cabana={cabana}
-                onLocationUpdate={handleLocationUpdate}
-                onClick={onCabanaClick}
-                isSelected={cabana.id === selectedCabanaId}
-              />
-            ) : (
-              <StaticMarker
-                key={cabana.id}
-                cabana={cabana}
-                onClick={onCabanaClick}
-                isSelected={cabana.id === selectedCabanaId}
-              />
-            ),
-          )}
+          {isTopView &&
+            cabanas.map((cabana) =>
+              editable ? (
+                <DraggableMarker
+                  key={cabana.id}
+                  cabana={cabana}
+                  onLocationUpdate={handleLocationUpdate}
+                  onClick={onCabanaClick}
+                  isSelected={cabana.id === selectedCabanaId}
+                />
+              ) : (
+                <StaticMarker
+                  key={cabana.id}
+                  cabana={cabana}
+                  onClick={onCabanaClick}
+                  isSelected={cabana.id === selectedCabanaId}
+                />
+              ),
+            )}
         </MapContainer>
       </div>
 
