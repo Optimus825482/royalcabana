@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 const createCabanaSchema = z.object({
   name: z.string().min(1),
@@ -35,7 +36,7 @@ export const GET = withAuth(allRoles, async (req) => {
   return NextResponse.json(cabanas);
 });
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
   const body = await req.json();
   const parsed = createCabanaSchema.safeParse(body);
 
@@ -68,6 +69,14 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
       cabanaClass: { select: { id: true, name: true } },
       concept: { select: { id: true, name: true } },
     },
+  });
+
+  logAudit({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Cabana",
+    entityId: cabana.id,
+    newValue: { name, classId, conceptId, coordX, coordY },
   });
 
   return NextResponse.json(cabana, { status: 201 });

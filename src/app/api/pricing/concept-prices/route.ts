@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 const adminRoles = [Role.ADMIN, Role.SYSTEM_ADMIN];
 
@@ -26,7 +27,7 @@ export const GET = withAuth(adminRoles, async (req) => {
   return NextResponse.json({ prices });
 });
 
-export const POST = withAuth(adminRoles, async (req) => {
+export const POST = withAuth(adminRoles, async (req, { session }) => {
   const body = await req.json();
   const parsed = upsertSchema.safeParse(body);
   if (!parsed.success) {
@@ -38,6 +39,10 @@ export const POST = withAuth(adminRoles, async (req) => {
 
   const { conceptId, productId, price } = parsed.data;
 
+  const existing = await prisma.conceptPrice.findUnique({
+    where: { conceptId_productId: { conceptId, productId } },
+  });
+
   const record = await prisma.conceptPrice.upsert({
     where: { conceptId_productId: { conceptId, productId } },
     update: { price },
@@ -46,5 +51,15 @@ export const POST = withAuth(adminRoles, async (req) => {
       product: { select: { id: true, name: true, salePrice: true } },
     },
   });
+
+  logAudit({
+    userId: session.user.id,
+    action: "PRICE_UPDATE",
+    entity: "ConceptPrice",
+    entityId: record.id,
+    oldValue: existing ? { price: Number(existing.price) } : null,
+    newValue: { conceptId, productId, price },
+  });
+
   return NextResponse.json(record);
 });

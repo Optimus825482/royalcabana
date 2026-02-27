@@ -2,7 +2,7 @@ import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 
-const PORT = process.env.SOCKET_PORT ? parseInt(process.env.SOCKET_PORT) : 3001;
+const PORT = process.env.SOCKET_PORT ? parseInt(process.env.SOCKET_PORT) : 3007;
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET;
 if (!JWT_SECRET && process.env.NODE_ENV === "production") {
@@ -11,7 +11,7 @@ if (!JWT_SECRET && process.env.NODE_ENV === "production") {
 const SECRET = JWT_SECRET ?? "dev-secret";
 
 const CLIENT_ORIGIN =
-  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3006";
 
 interface JwtPayload {
   sub: string;
@@ -39,7 +39,44 @@ function checkSocketRate(
   return entry.count <= limit;
 }
 
-const httpServer = createServer();
+const httpServer = createServer((req, res) => {
+  // Internal emit endpoint — used by Next.js API routes to push notifications
+  if (req.method === "POST" && req.url === "/emit") {
+    let body = "";
+    req.on("data", (chunk: Buffer) => {
+      body += chunk.toString();
+    });
+    req.on("end", () => {
+      try {
+        const { userId, event, data } = JSON.parse(body);
+        if (userId && event) {
+          io.to(`user:${userId}`).emit(event, data);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true }));
+        } else {
+          res.writeHead(400);
+          res.end("Missing userId or event");
+        }
+      } catch {
+        res.writeHead(400);
+        res.end("Invalid JSON");
+      }
+    });
+    return;
+  }
+
+  // Health check
+  if (req.method === "GET" && req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({ status: "ok", connections: io.engine.clientsCount }),
+    );
+    return;
+  }
+
+  res.writeHead(404);
+  res.end("Not found");
+});
 
 const io = new Server(httpServer, {
   cors: {

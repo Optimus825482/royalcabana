@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 const allRoles = [
   Role.ADMIN,
@@ -30,7 +31,7 @@ export const GET = withAuth(allRoles, async () => {
   return NextResponse.json(classes);
 });
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
   const body = await req.json();
   const parsed = createClassSchema.safeParse(body);
   if (!parsed.success) {
@@ -60,6 +61,14 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
       attributes: true,
       _count: { select: { cabanas: true } },
     },
+  });
+
+  logAudit({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "CabanaClass",
+    entityId: cabanaClass.id,
+    newValue: { name, description },
   });
 
   return NextResponse.json(cabanaClass, { status: 201 });

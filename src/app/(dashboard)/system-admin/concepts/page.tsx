@@ -35,13 +35,19 @@ interface Concept {
   id: string;
   name: string;
   description: string;
+  serviceFee: number;
   classId: string | null;
   cabanaClass: CabanaClass | null;
   products: ConceptProduct[];
   _count: { cabanas: number };
 }
 
-const defaultCreateForm = { name: "", description: "", classId: "" };
+const defaultCreateForm = {
+  name: "",
+  description: "",
+  classId: "",
+  serviceFee: "",
+};
 
 export default function ConceptsPage() {
   const queryClient = useQueryClient();
@@ -91,6 +97,7 @@ export default function ConceptsPage() {
     name: "",
     description: "",
     classId: "",
+    serviceFee: "",
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
@@ -129,6 +136,9 @@ export default function ConceptsPage() {
           name: createForm.name,
           description: createForm.description,
           classId: createForm.classId || undefined,
+          serviceFee: createForm.serviceFee
+            ? parseFloat(createForm.serviceFee)
+            : 0,
         }),
       });
       if (!res.ok) {
@@ -153,6 +163,7 @@ export default function ConceptsPage() {
       name: concept.name,
       description: concept.description,
       classId: concept.classId ?? "",
+      serviceFee: String(concept.serviceFee ?? 0),
     });
     setEditError("");
   }
@@ -170,6 +181,7 @@ export default function ConceptsPage() {
           name: editForm.name,
           description: editForm.description,
           classId: editForm.classId || null,
+          serviceFee: editForm.serviceFee ? parseFloat(editForm.serviceFee) : 0,
         }),
       });
       if (!res.ok) {
@@ -334,6 +346,15 @@ export default function ConceptsPage() {
                     <span className="text-xs px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700">
                       {concept._count.cabanas} kabana
                     </span>
+                    {Number(concept.serviceFee) > 0 && (
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-green-950/40 text-green-400 border border-green-800/30">
+                        Hizmet:{" "}
+                        {Number(concept.serviceFee).toLocaleString("tr-TR", {
+                          style: "currency",
+                          currency: "TRY",
+                        })}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -410,6 +431,20 @@ export default function ConceptsPage() {
                     </div>
                   )}
 
+                  {Number(concept.serviceFee) > 0 && (
+                    <div className="flex items-center justify-between bg-yellow-950/20 border border-yellow-800/20 rounded-lg px-3 py-2 mb-3">
+                      <span className="text-xs text-yellow-400 font-medium">
+                        Konsept Hizmet Ücreti
+                      </span>
+                      <span className="text-xs text-yellow-300 font-semibold">
+                        {Number(concept.serviceFee).toLocaleString("tr-TR", {
+                          style: "currency",
+                          currency: "TRY",
+                        })}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Add product form */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <select
@@ -482,6 +517,19 @@ export default function ConceptsPage() {
                 placeholder="Konsept açıklaması..."
               />
             </Field>
+            <Field label="Hizmet Ücreti (₺)">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={createForm.serviceFee}
+                onChange={(e) =>
+                  setCreateForm((f) => ({ ...f, serviceFee: e.target.value }))
+                }
+                className={inputCls}
+                placeholder="0.00"
+              />
+            </Field>
             <Field label="Sınıf (opsiyonel)">
               <select
                 value={createForm.classId}
@@ -545,6 +593,19 @@ export default function ConceptsPage() {
                   setEditForm((f) => ({ ...f, description: e.target.value }))
                 }
                 className={inputCls + " resize-none"}
+              />
+            </Field>
+            <Field label="Hizmet Ücreti (₺)">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={editForm.serviceFee}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, serviceFee: e.target.value }))
+                }
+                className={inputCls}
+                placeholder="0.00"
               />
             </Field>
             <Field label="Sınıf (opsiyonel)">

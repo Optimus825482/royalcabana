@@ -6,7 +6,14 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Soft delete uygulanacak modeller
-const SOFT_DELETE_MODELS = ["User", "Cabana", "Reservation", "Product"];
+const SOFT_DELETE_MODELS = [
+  "User",
+  "Cabana",
+  "Reservation",
+  "Product",
+  "Guest",
+  "Staff",
+];
 
 function isSoftDeleteModel(model?: string): boolean {
   return !!model && SOFT_DELETE_MODELS.includes(model);

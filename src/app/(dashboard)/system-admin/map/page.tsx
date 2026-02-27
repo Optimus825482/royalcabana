@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CabanaMap from "@/components/map/CabanaMap";
+import CabanaThreeView from "@/components/three/CabanaThreeView";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ const defaultAddForm = {
 
 export default function SystemAdminMapPage() {
   const queryClient = useQueryClient();
+  const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
 
   const {
     data: mapData,
@@ -118,12 +120,15 @@ export default function SystemAdminMapPage() {
     cabanaId: string,
     coordX: number,
     coordY: number,
+    rotation?: number,
   ) {
     try {
+      const body: Record<string, number> = { coordX, coordY };
+      if (rotation !== undefined) body.rotation = rotation;
       const res = await fetch(`/api/cabanas/${cabanaId}/location`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ coordX, coordY }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Konum güncellenemedi.");
       queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
@@ -255,17 +260,42 @@ export default function SystemAdminMapPage() {
             Kabanaları harita üzerinde yönetin
           </p>
         </div>
-        <button
-          onClick={() => {
-            setShowAddModal(true);
-            setAddForm(defaultAddForm);
-            setAddError("");
-            setPlacementCoords(null);
-          }}
-          className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          + Yeni Kabana Ekle
-        </button>
+        <div className="flex items-center gap-3">
+          {/* 2D / 3D Toggle */}
+          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("2d")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                viewMode === "2d"
+                  ? "bg-yellow-500 text-neutral-950"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
+            >
+              2D
+            </button>
+            <button
+              onClick={() => setViewMode("3d")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                viewMode === "3d"
+                  ? "bg-yellow-500 text-neutral-950"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
+            >
+              3D
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setShowAddModal(true);
+              setAddForm(defaultAddForm);
+              setAddError("");
+              setPlacementCoords(null);
+            }}
+            className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            + Yeni Kabana Ekle
+          </button>
+        </div>
       </div>
 
       {/* Toast messages */}
@@ -294,15 +324,27 @@ export default function SystemAdminMapPage() {
             </div>
           ) : (
             <div className="h-full min-h-[300px] md:min-h-[500px]">
-              <CabanaMap
-                cabanas={cabanas}
-                editable={true}
-                onCabanaClick={handleCabanaClick}
-                onLocationUpdate={handleLocationUpdate}
-                onMapClick={handleMapClick}
-                selectedCabanaId={selectedCabana?.id}
-                placementCoords={placementCoords}
-              />
+              {viewMode === "2d" ? (
+                <CabanaMap
+                  cabanas={cabanas}
+                  editable={true}
+                  onCabanaClick={handleCabanaClick}
+                  onLocationUpdate={handleLocationUpdate}
+                  onMapClick={handleMapClick}
+                  selectedCabanaId={selectedCabana?.id}
+                  placementCoords={placementCoords}
+                />
+              ) : (
+                <CabanaThreeView
+                  cabanas={cabanas}
+                  editable={true}
+                  onCabanaClick={handleCabanaClick}
+                  onLocationUpdate={handleLocationUpdate}
+                  onMapClick={handleMapClick}
+                  selectedCabanaId={selectedCabana?.id}
+                  placementCoords={placementCoords}
+                />
+              )}
             </div>
           )}
         </div>

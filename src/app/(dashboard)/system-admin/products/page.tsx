@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Modal,
@@ -517,7 +517,7 @@ export default function ProductsPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Alış Fiyatı (₺)">
+            <Field label="Maliyet (₺)">
               <input
                 type="number"
                 required
@@ -600,7 +600,7 @@ export default function ProductsPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Alış Fiyatı (₺)">
+            <Field label="Maliyet (₺)">
               <input
                 type="number"
                 required
@@ -893,7 +893,7 @@ function ProductTable({
         <thead>
           <tr className="border-b border-neutral-800 text-neutral-500 text-xs uppercase tracking-wide">
             <th className="text-left px-5 py-3 font-medium">Ürün Adı</th>
-            <th className="text-right px-5 py-3 font-medium">Alış Fiyatı</th>
+            <th className="text-right px-5 py-3 font-medium">Maliyet</th>
             <th className="text-right px-5 py-3 font-medium">Satış Fiyatı</th>
             <th className="text-center px-5 py-3 font-medium">Durum</th>
             <th className="text-right px-5 py-3 font-medium">İşlemler</th>
@@ -970,7 +970,7 @@ function ProductTable({
             </div>
             <div className="flex items-center gap-4 text-xs">
               <span className="text-neutral-500">
-                Alış:{" "}
+                Maliyet:{" "}
                 <span className="text-neutral-300">
                   {formatTRY(p.purchasePrice)}
                 </span>
@@ -1015,7 +1015,7 @@ function PriceWarning({
   return (
     <div className="bg-yellow-950/40 border border-yellow-700/40 rounded-lg px-3 py-3">
       <p className="text-yellow-400 text-xs mb-2">
-        Alış fiyatı satış fiyatından yüksek. Devam etmek istiyor musunuz?
+        Maliyet satış fiyatından yüksek. Devam etmek istiyor musunuz?
       </p>
       <label className="flex items-center gap-2 cursor-pointer">
         <input

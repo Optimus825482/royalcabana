@@ -40,6 +40,36 @@ export default function LoginPage() {
       const session = await getSession();
       const role = session?.user?.role as Role | undefined;
 
+      // Collect device info & location, POST to login-track
+      const trackData: { latitude?: number; longitude?: number } = {};
+      try {
+        if ("geolocation" in navigator && navigator.permissions) {
+          const perm = await navigator.permissions.query({
+            name: "geolocation",
+          });
+          if (perm.state !== "denied") {
+            const pos = await new Promise<GeolocationPosition>(
+              (resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                  timeout: 5000,
+                  maximumAge: 300000,
+                });
+              },
+            );
+            trackData.latitude = pos.coords.latitude;
+            trackData.longitude = pos.coords.longitude;
+          }
+        }
+      } catch {
+        // User denied or geolocation unavailable — continue without
+      }
+
+      fetch("/api/auth/login-track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(trackData),
+      }).catch(() => {});
+
       if (role && MODULE_ACCESS[role]?.length > 0) {
         router.push(MODULE_ACCESS[role][0]);
       } else {

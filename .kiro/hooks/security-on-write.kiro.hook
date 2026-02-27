@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Security Check on API Write",
+  "description": "API route, auth, middleware dosyalarına yazıldığında güvenlik kontrolü hatırlatır. Injection, auth bypass, hardcoded secret gibi riskleri yakalar.",
+  "version": "1",
+  "when": {
+    "type": "postToolUse",
+    "toolTypes": [
+      "write"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Az önce bir dosya yazıldı/düzenlendi. Eğer bu dosya bir API route (src/app/api/**), middleware, auth ile ilgili dosya veya güvenlik açısından hassas bir dosya ise, şu kontrolleri sessizce yap:\n\n1. Hardcoded secret/credential var mı?\n2. Input validation eksik mi?\n3. Auth/authorization check atlanmış mı?\n4. SQL injection, XSS, IDOR riski var mı?\n5. Rate limiting gerekli mi ama yok mu?\n\nEğer sorun YOKSA sessizce geç, hiçbir şey söyleme.\nEğer sorun VARSA kısa ve net olarak bildir: dosya adı, risk seviyesi (Critical/High/Medium), ne yapılması gerektiği.\n\nNOT: Bu kontrol sadece API/auth/middleware dosyaları için geçerli. Normal UI component veya style dosyalarında tetiklenme — sessizce geç."
+  }
+}

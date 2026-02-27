@@ -3,6 +3,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Bell,
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  Pencil,
+  Ban,
+  PlusCircle,
+  ShoppingBag,
+  RefreshCw,
+} from "lucide-react";
 
 interface Notification {
   id: string;
@@ -13,15 +24,26 @@ interface Notification {
   createdAt: string;
 }
 
-const TYPE_ICON: Record<string, string> = {
-  NEW_REQUEST: "📋",
-  APPROVED: "✅",
-  REJECTED: "❌",
-  MODIFICATION_REQUEST: "✏️",
-  CANCELLATION_REQUEST: "🚫",
-  EXTRA_CONCEPT_REQUEST: "➕",
-  EXTRA_ADDED: "🛍️",
-  STATUS_CHANGED: "🔄",
+const TYPE_ICON: Record<string, typeof ClipboardList> = {
+  NEW_REQUEST: ClipboardList,
+  APPROVED: CheckCircle2,
+  REJECTED: XCircle,
+  MODIFICATION_REQUEST: Pencil,
+  CANCELLATION_REQUEST: Ban,
+  EXTRA_CONCEPT_REQUEST: PlusCircle,
+  EXTRA_ADDED: ShoppingBag,
+  STATUS_CHANGED: RefreshCw,
+};
+
+const TYPE_COLOR: Record<string, string> = {
+  NEW_REQUEST: "text-blue-400",
+  APPROVED: "text-green-400",
+  REJECTED: "text-red-400",
+  MODIFICATION_REQUEST: "text-orange-400",
+  CANCELLATION_REQUEST: "text-red-400",
+  EXTRA_CONCEPT_REQUEST: "text-purple-400",
+  EXTRA_ADDED: "text-emerald-400",
+  STATUS_CHANGED: "text-cyan-400",
 };
 
 async function fetchUnread(): Promise<{
@@ -53,13 +75,14 @@ export default function NotificationPanel() {
     if (!session?.user) return;
 
     let cleanup: (() => void) | undefined;
+    let cancelled = false;
 
     import("@/lib/socket").then(({ getSocket }) => {
-      // NextAuth JWT token — use session token via API
+      if (cancelled) return;
       fetch("/api/auth/token")
         .then((r) => r.json())
         .then(({ token }) => {
-          if (!token) return;
+          if (!token || cancelled) return;
           const socket = getSocket(token);
           socket.on("notification", () => {
             queryClient.invalidateQueries({
@@ -69,11 +92,14 @@ export default function NotificationPanel() {
           cleanup = () => socket.off("notification");
         })
         .catch(() => {
-          // Socket unavailable — polling fallback active
+          // Auth token fetch failed — polling fallback active
         });
     });
 
-    return () => cleanup?.();
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
   }, [session, queryClient]);
 
   // Close on outside click
@@ -110,19 +136,7 @@ export default function NotificationPanel() {
         className="relative p-2 rounded-lg text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors"
         aria-label="Bildirimler"
       >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.8}
-            d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-          />
-        </svg>
+        <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold bg-yellow-500 text-neutral-950 rounded-full px-1">
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -164,17 +178,24 @@ export default function NotificationPanel() {
                   }`}
                 >
                   <div className="flex items-start gap-2.5">
-                    <span className="text-base shrink-0 mt-0.5">
-                      {TYPE_ICON[n.type] ?? "🔔"}
-                    </span>
+                    {(() => {
+                      const IconComp = TYPE_ICON[n.type] ?? Bell;
+                      const iconColor =
+                        TYPE_COLOR[n.type] ?? "text-neutral-400";
+                      return (
+                        <IconComp
+                          className={`w-4 h-4 shrink-0 mt-0.5 ${iconColor}`}
+                        />
+                      );
+                    })()}
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-neutral-200 truncate">
+                      <p className="text-xs font-semibold text-neutral-100 truncate">
                         {n.title}
                       </p>
-                      <p className="text-xs text-neutral-500 mt-0.5 line-clamp-2">
+                      <p className="text-xs text-neutral-400 mt-0.5 line-clamp-2">
                         {n.message}
                       </p>
-                      <p className="text-[10px] text-neutral-700 mt-1">
+                      <p className="text-[10px] text-neutral-600 mt-1">
                         {new Date(n.createdAt).toLocaleString("tr-TR", {
                           dateStyle: "short",
                           timeStyle: "short",

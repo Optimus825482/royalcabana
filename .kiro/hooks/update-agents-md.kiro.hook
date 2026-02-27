@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Update AGENTS.md",
+  "description": "Manuel tetiklendiğinde projeyi analiz edip AGENTS.md dosyasını signal-dense formatta günceller.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "AGENTS.md dosyasını güncelle. Şu adımları izle:\n\n1. Mevcut AGENTS.md'yi oku\n2. Projenin package.json, prisma schema, src/ yapısını tara\n3. Signal-dense format ile güncelle:\n   - Must-follow constraints\n   - Validation before finishing (test/lint/build komutları)\n   - Repo-specific conventions\n   - Important locations (sadece non-obvious olanlar)\n   - Change safety rules\n   - Known gotchas\n\nKurallar:\n- Generic advice YAZMA (write clean code, handle errors gibi)\n- Tooling tarafından enforce edilen kuralları TEKRARLAMA\n- Her bullet project-specific veya gerçek bir hatayı önleyici olmalı\n- Kısa, skimmable, operasyonel checklist formatında\n- Mevcut kritik kuralları KORU, sadece stale/generic olanları çıkar"
+  }
+}

@@ -7,6 +7,7 @@ import { withAuth } from "@/lib/api-middleware";
 const locationSchema = z.object({
   coordX: z.number(),
   coordY: z.number(),
+  rotation: z.number().optional(),
 });
 
 export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
@@ -23,10 +24,23 @@ export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
   }
 
   try {
+    const data: Record<string, number> = {
+      coordX: parsed.data.coordX,
+      coordY: parsed.data.coordY,
+    };
+    if (parsed.data.rotation !== undefined) {
+      data.rotation = parsed.data.rotation;
+    }
     const updated = await prisma.cabana.update({
       where: { id },
-      data: { coordX: parsed.data.coordX, coordY: parsed.data.coordY },
-      select: { id: true, name: true, coordX: true, coordY: true },
+      data,
+      select: {
+        id: true,
+        name: true,
+        coordX: true,
+        coordY: true,
+        rotation: true,
+      },
     });
     return NextResponse.json(updated);
   } catch {

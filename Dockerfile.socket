@@ -1,0 +1,12 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+COPY socket-server/ ./socket-server/
+
+EXPOSE 3007
+
+CMD ["npx", "tsx", "socket-server/index.ts"]

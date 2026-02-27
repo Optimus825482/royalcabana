@@ -11,59 +11,14 @@ import {
   useMapEvents,
   useMap,
 } from "react-leaflet";
-import { useRef, useState, useMemo, useCallback, useEffect } from "react";
+import { useRef, useMemo, useCallback, useEffect } from "react";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
 
-// ─── Görsel tanımları ────────────────────────────────────────────────────────
+// ─── Image config ────────────────────────────────────────────────────────────
 
-interface ViewDef {
-  label: string;
-  icon: string;
-  src: string;
-  width: number;
-  height: number;
-}
-
-const VIEWS: Record<string, ViewDef> = {
-  ust: {
-    label: "Üst",
-    icon: "🔝",
-    src: "/gorsel/ust.webp",
-    width: 1472,
-    height: 704,
-  },
-  on: {
-    label: "Ön",
-    icon: "🏖️",
-    src: "/gorsel/on.webp",
-    width: 1920,
-    height: 544,
-  },
-  sag: {
-    label: "Sağ",
-    icon: "➡️",
-    src: "/gorsel/sag.webp",
-    width: 1056,
-    height: 992,
-  },
-  sol: {
-    label: "Sol",
-    icon: "⬅️",
-    src: "/gorsel/sol.webp",
-    width: 1600,
-    height: 1098,
-  },
-  arka: {
-    label: "Arka",
-    icon: "🔙",
-    src: "/gorsel/arka.webp",
-    width: 951,
-    height: 587,
-  },
-};
-
-type ViewKey = keyof typeof VIEWS;
-const VIEW_KEYS = Object.keys(VIEWS) as ViewKey[];
+const IMAGE_SRC = "/gorsel/ust.webp";
+const IMAGE_WIDTH = 1472;
+const IMAGE_HEIGHT = 704;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -200,7 +155,6 @@ function DraggableMarker({
         const marker = markerRef.current;
         if (marker) {
           const pos = marker.getLatLng();
-          // CRS.Simple: lat = y, lng = x
           onLocationUpdate(cabana.id, pos.lng, pos.lat);
         }
       },
@@ -277,12 +231,12 @@ function PlacementMarker({ lat, lng }: { lat: number; lng: number }) {
   return <Marker position={[lat, lng]} icon={icon} />;
 }
 
-// ─── View Change Handler ─────────────────────────────────────────────────────
+// ─── Fit Bounds on Mount ─────────────────────────────────────────────────────
 
-function FitBoundsOnChange({ bounds }: { bounds: L.LatLngBoundsExpression }) {
+function FitBoundsOnMount({ bounds }: { bounds: L.LatLngBoundsExpression }) {
   const map = useMap();
   useEffect(() => {
-    map.fitBounds(bounds, { animate: true, duration: 0.3 });
+    map.fitBounds(bounds, { animate: false });
   }, [map, bounds]);
   return null;
 }
@@ -308,21 +262,17 @@ export default function CabanaMapInner({
   selectedCabanaId,
   placementCoords,
 }: MapComponentProps) {
-  const [activeView, setActiveView] = useState<ViewKey>("ust");
-  const view = VIEWS[activeView];
-
-  // CRS.Simple bounds: [[0,0], [height, width]]
   const bounds = useMemo<L.LatLngBoundsExpression>(
     () => [
       [0, 0],
-      [view.height, view.width],
+      [IMAGE_HEIGHT, IMAGE_WIDTH],
     ],
-    [view],
+    [],
   );
 
   const center = useMemo<L.LatLngExpression>(
-    () => [view.height / 2, view.width / 2],
-    [view],
+    () => [IMAGE_HEIGHT / 2, IMAGE_WIDTH / 2],
+    [],
   );
 
   const handleLocationUpdate = useCallback(
@@ -332,39 +282,16 @@ export default function CabanaMapInner({
     [onLocationUpdate],
   );
 
-  const isTopView = activeView === "ust";
-
   return (
     <div className="flex flex-col h-full">
-      {/* View tabs */}
-      <div className="flex items-center gap-1 mb-2 flex-wrap">
-        {VIEW_KEYS.map((key) => {
-          const v = VIEWS[key];
-          return (
-            <button
-              key={key}
-              onClick={() => setActiveView(key)}
-              className={`px-3 py-1.5 text-xs rounded-md transition-all ${
-                activeView === key
-                  ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20"
-                  : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-              }`}
-            >
-              {v.icon} {v.label}
-            </button>
-          );
-        })}
-        {editable && isTopView && onMapClick && (
-          <span className="ml-auto text-xs text-neutral-500 self-center">
+      {/* Header hint */}
+      {editable && onMapClick && (
+        <div className="flex items-center mb-2">
+          <span className="text-xs text-neutral-500">
             Görsele tıklayarak konum seçin
           </span>
-        )}
-        {!isTopView && (
-          <span className="ml-auto text-xs text-amber-500/70 self-center">
-            Yerleştirme sadece Üst görünümde yapılır
-          </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Map */}
       <div className="flex-1 rounded-lg overflow-hidden border border-neutral-700 min-h-[280px] md:min-h-[400px]">
@@ -379,39 +306,38 @@ export default function CabanaMapInner({
           zoomSnap={0.25}
           zoomDelta={0.5}
         >
-          <FitBoundsOnChange bounds={bounds} />
-          <ImageOverlay url={view.src} bounds={bounds} />
+          <FitBoundsOnMount bounds={bounds} />
+          <ImageOverlay url={IMAGE_SRC} bounds={bounds} />
 
-          {isTopView && editable && onMapClick && (
+          {editable && onMapClick && (
             <MapClickHandler onMapClick={onMapClick} />
           )}
 
-          {isTopView && placementCoords && (
+          {placementCoords && (
             <PlacementMarker
               lat={placementCoords.lat}
               lng={placementCoords.lng}
             />
           )}
 
-          {isTopView &&
-            cabanas.map((cabana) =>
-              editable ? (
-                <DraggableMarker
-                  key={cabana.id}
-                  cabana={cabana}
-                  onLocationUpdate={handleLocationUpdate}
-                  onClick={onCabanaClick}
-                  isSelected={cabana.id === selectedCabanaId}
-                />
-              ) : (
-                <StaticMarker
-                  key={cabana.id}
-                  cabana={cabana}
-                  onClick={onCabanaClick}
-                  isSelected={cabana.id === selectedCabanaId}
-                />
-              ),
-            )}
+          {cabanas.map((cabana) =>
+            editable ? (
+              <DraggableMarker
+                key={cabana.id}
+                cabana={cabana}
+                onLocationUpdate={handleLocationUpdate}
+                onClick={onCabanaClick}
+                isSelected={cabana.id === selectedCabanaId}
+              />
+            ) : (
+              <StaticMarker
+                key={cabana.id}
+                cabana={cabana}
+                onClick={onCabanaClick}
+                isSelected={cabana.id === selectedCabanaId}
+              />
+            ),
+          )}
         </MapContainer>
       </div>
 

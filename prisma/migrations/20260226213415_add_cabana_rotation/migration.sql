@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "cabanas" ADD COLUMN     "rotation" DOUBLE PRECISION NOT NULL DEFAULT 0;

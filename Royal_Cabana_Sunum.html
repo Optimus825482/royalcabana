@@ -1,0 +1,438 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#111;color:#e0e0e0;padding:24px}
+.slide{background:#1a1a2e;border-radius:12px;padding:48px;margin-bottom:32px;min-height:400px;position:relative;box-shadow:0 4px 24px rgba(0,0,0,.4)}
+.slide-number{position:absolute;top:16px;right:20px;font-size:13px;color:#888}
+.slide-content{line-height:1.7}
+.slide.cover,.slide.end{text-align:center;display:flex;align-items:center;justify-content:center}
+.slide.cover .slide-content{max-width:80%}
+.two-cols-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.col-left,.col-right{min-width:0}
+h1{font-size:2em;margin-bottom:16px;color:#fff}
+h2{font-size:1.5em;margin-bottom:12px;color:#f0f0f0}
+h3{font-size:1.2em;margin-bottom:8px;color:#ddd}
+p{margin-bottom:8px}
+ul,ol{padding-left:24px;margin-bottom:12px}
+li{margin-bottom:4px}
+strong{color:#60a5fa}
+code{background:#2d2d44;padding:2px 6px;border-radius:4px;font-size:.9em}
+pre{background:#0d1117;padding:16px;border-radius:8px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0}
+blockquote{border-left:3px solid #60a5fa;padding-left:16px;color:#aaa;margin:12px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th,td{border:1px solid #333;padding:8px 12px;text-align:left}
+th{background:#2d2d44}
+</style></head><body><div class="slide default text-center" id="slide-0">
+          <div class="slide-number">1</div>
+          <div class="slide-content "><style>
+h1 {
+  font-size: 3.5em !important;
+  font-weight: 700 !important;
+  text-shadow: 0 4px 30px rgba(0,0,0,0.5);
+}
+h2 {
+  color: #fbbf24 !important;
+  font-weight: 400 !important;
+}
+</style>
+<h1>Royal Cabana</h1>
+
+<h2>Kabana Yönetim Sistemi</h2>
+
+<div class="pt-8">
+  <span class="px-4 py-2 rounded-full bg-white/10 backdrop-blur text-sm">
+    🏖️ Merit Royal · Alsancak, Kıbrıs
+  </span>
+</div>
+
+<div class="abs-br m-6 flex gap-2 text-sm opacity-50">
+  📅 27 Şubat 2026
+</div>
+
+</div>
+        </div><div class="slide two-cols " id="slide-1">
+          <div class="slide-number">2</div>
+          <div class="slide-content two-cols-grid"><style>
+h1 { color: #fbbf24 !important; }
+h3 { color: #60a5fa !important; }
+</style>
+<div class="col-left"># Sistem Tanımı
+
+<strong>Royal Cabana Rezervasyon Sistemi</strong>, Merit Royal Hotel bünyesindeki kabana alanlarının dijital yönetimini sağlayan kapsamlı bir platformdur.
+
+
+
+<ul><li>🏖️ <strong>Kabana Yönetimi</strong> — Envanter, sınıf ve konsept takibi</li><li>📅 <strong>Rezervasyon</strong> — Gerçek zamanlı müsaitlik ve onay akışı</li><li>💰 <strong>Dinamik Fiyatlandırma</strong> — Sezon, sınıf ve konsept bazlı</li><li>🍽️ <strong>F&B Entegrasyonu</strong> — Kabana içi yiyecek-içecek siparişi</li><li>👥 <strong>Misafir Veritabanı</strong> — VIP seviye ve geçmiş takibi</li><li>📊 <strong>Raporlama</strong> — Doluluk, gelir ve performans analizleri</li></ul>
+
+
+
+</div><div class="col-right">
+<div class="ml-4 mt-12">
+
+### Teknoloji Altyapısı
+
+| Katman | Teknoloji |
+|--------|-----------|
+| Frontend | Next.js 15 + React |
+| Backend | Next.js API Routes |
+| Veritabanı | PostgreSQL + Prisma |
+| Gerçek Zamanlı | Socket.IO |
+| Harita | Leaflet.js |
+| Sunum | Slidev |
+
+</div>
+
+</div></div>
+        </div><div class="slide default " id="slide-2">
+          <div class="slide-number">3</div>
+          <div class="slide-content "><style>
+h1 { color: #fbbf24 !important; }
+h3 { color: #60a5fa !important; }
+</style>
+<h1>Kabana Envanteri</h1>
+
+<div class="grid grid-cols-4 gap-4 mt-8">
+  <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
+    <div class="text-3xl font-bold text-blue-400">2</div>
+<div class="text-sm text-blue-300 mt-1">Toplam Kabana</div>
+</div>
+<div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+    <div class="text-3xl font-bold text-green-400">2</div>
+<div class="text-sm text-green-300 mt-1">Müsait (100%)</div>
+</div>
+<div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center">
+    <div class="text-3xl font-bold text-yellow-400">0</div>
+<div class="text-sm text-yellow-300 mt-1">Rezerveli (0%)</div>
+</div>
+<div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+    <div class="text-3xl font-bold text-red-400">0</div>
+<div class="text-sm text-red-300 mt-1">Kapalı (0%)</div>
+</div>
+</div>
+
+<div class="mt-8 grid grid-cols-2 gap-8">
+  <div>
+
+### Sınıf Dağılımı
+
+  - **Aile Kabana**: 1 kabana
+  - **Premium Kabana**: 0 kabana
+  - **Standart Kabana**: 1 kabana
+  - **VIP Kabana**: 0 kabana
+
+  </div>
+<div>
+
+### Rezervasyona Açık
+
+- **2** / 2 kabana aktif olarak rezervasyona açık
+
+  </div>
+</div>
+
+</div>
+        </div><div class="slide default " id="slide-3">
+          <div class="slide-number">4</div>
+          <div class="slide-content "><style>
+h1 { color: #fbbf24 !important; }
+table { font-size: 0.75em; }
+th { background: rgba(251, 191, 36, 0.15) !important; color: #fbbf24 !important; }
+</style>
+<h1>Kabana Yerleşim Planı</h1>
+
+<div class="mt-4 text-xs">
+
+| Kabana | Sınıf | Konsept | Durum | Rez. Açık |
+|--------|-------|---------|-------|-----------|
+| 🟢 Kabana-02 | Standart Kabana | Temel Paket | Müsait | ✅ |
+| 🟢 Kabana-06 | Aile Kabana | — | Müsait | ✅ |
+
+</div>
+
+<div class="abs-br m-4 text-xs opacity-50">
+  🟢 Müsait &nbsp; 🟡 Rezerveli &nbsp; 🔴 Kapalı
+</div>
+
+</div>
+        </div><div class="slide default " id="slide-4">
+          <div class="slide-number">5</div>
+          <div class="slide-content "><style>
+h1 { color: #fbbf24 !important; }
+</style>
+<h1>Kabana Sınıfları</h1>
+
+<div class="grid grid-cols-2 gap-4 mt-6">
+
+  <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div class="flex justify-between items-center mb-2">
+      <span class="text-lg font-bold text-amber-400">Aile Kabana</span>
+      <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full text-xs">1 kabana</span>
+    </div>
+<p class="text-sm text-neutral-300 mb-2">Aileler için geniş alan ve çocuk dostu hizmetler sunan kabana</p>
+
+</div>
+
+<div class="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div class="flex justify-between items-center mb-2">
+      <span class="text-lg font-bold text-amber-400">Premium Kabana</span>
+      <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full text-xs">0 kabana</span>
+    </div>
+<p class="text-sm text-neutral-300 mb-2">Üst düzey konfor ve özel hizmetler sunan premium kabana sınıfı</p>
+
+</div>
+
+<div class="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div class="flex justify-between items-center mb-2">
+      <span class="text-lg font-bold text-amber-400">Standart Kabana</span>
+      <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full text-xs">1 kabana</span>
+    </div>
+<p class="text-sm text-neutral-300 mb-2">Temel konfor ve hizmetler sunan standart kabana sınıfı</p>
+
+</div>
+
+<div class="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div class="flex justify-between items-center mb-2">
+      <span class="text-lg font-bold text-amber-400">VIP Kabana</span>
+      <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full text-xs">0 kabana</span>
+    </div>
+<p class="text-sm text-neutral-300 mb-2">En üst düzey lüks ve kişiselleştirilmiş hizmet sunan VIP kabana</p>
+
+</div>
+
+</div>
+
+</div>
+        </div><div class="slide default " id="slide-5">
+          <div class="slide-number">6</div>
+          <div class="slide-content "><style>
+h1 { color: #fbbf24 !important; }
+</style>
+<h1>Konsept Tanımları ve İçerikleri</h1>
+
+<div class="grid grid-cols-2 gap-4 mt-4 text-sm">
+
+  <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div class="flex justify-between items-center mb-2">
+      <span class="text-lg font-bold text-amber-400">Premium Paket</span>
+      <span class="text-sm text-green-400">₺750,00</span>
+    </div>
+<p class="text-sm text-neutral-300 mb-2">Premium hizmetleri içeren üst düzey paket</p>
+<div class="text-xs text-neutral-400">Karşılama İçeceği (2x — ₺150,00) · Meyve Tabağı (1x — ₺250,00) · Şezlong Servisi (2x — ₺100,00)</div>
+
+</div>
+
+<div class="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div class="flex justify-between items-center mb-2">
+      <span class="text-lg font-bold text-amber-400">Temel Paket</span>
+      <span class="text-sm text-green-400">₺300,00</span>
+    </div>
+<p class="text-sm text-neutral-300 mb-2">Temel hizmetleri içeren standart paket</p>
+<div class="text-xs text-neutral-400">Karşılama İçeceği (1x — ₺150,00) · Havlu Servisi (2x — ₺75,00)</div>
+
+</div>
+
+</div>
+
+</div>
+        </div><div class="slide two-cols " id="slide-6">
+          <div class="slide-number">7</div>
+          <div class="slide-content two-cols-grid"><style>
+h1 { color: #fbbf24 !important; }
+h3 { color: #60a5fa !important; }
+table { font-size: 0.8em; }
+</style>
+<div class="col-left"># Fiyatlandırma Politikaları
+
+<h3>Sınıf Bazlı Fiyat Özeti</h3>
+
+<table><thead><tr><th>Sınıf</th><th>Kabana</th><th>Min</th><th>Max</th><th>Ort</th></tr></thead><tbody><tr><td>Aile Kabana</td><td>1</td><td>₺0,00</td><td>₺0,00</td><td>₺0,00</td></tr><tr><td>Standart Kabana</td><td>1</td><td>₺0,00</td><td>₺0,00</td><td>₺0,00</td></tr></tbody></table>
+
+
+
+
+<strong>Fiyatlandırma Katmanları:</strong>
+<ol><li>📌 Kabana bazlı günlük fiyat</li><li>📅 Sezon/dönem bazlı aralık fiyatı</li><li>🎯 Konsept bazlı ürün fiyatı</li><li>➕ Ekstra ürün/hizmet fiyatı</li></ol>
+
+
+
+</div><div class="col-right">
+<div class="ml-4 mt-12">
+
+### Sezon Fiyatları
+
+*Henüz sezon fiyatı tanımlanmamış.*
+
+</div>
+
+</div></div>
+        </div><div class="slide default " id="slide-7">
+          <div class="slide-number">8</div>
+          <div class="slide-content "><style>
+h1 { color: #fbbf24 !important; }
+h3 { color: #fbbf24 !important; }
+</style>
+<h1>Çalışma Prensipleri</h1>
+
+<div class="grid grid-cols-3 gap-6 mt-8">
+  <div class="text-center">
+    <div class="text-4xl mb-3">📋</div>
+<h3 class="text-amber-400 font-bold mb-2">1. Talep</h3>
+<p class="text-sm text-neutral-300">Casino kullanıcısı kabana seçer, tarih ve misafir bilgilerini girerek rezervasyon talebi oluşturur.</p>
+</div>
+<div class="text-center">
+    <div class="text-4xl mb-3">✅</div>
+<h3 class="text-amber-400 font-bold mb-2">2. Onay</h3>
+<p class="text-sm text-neutral-300">Admin talepleri inceler, uygunsa onaylar. Otomatik fiyat hesaplaması yapılır. Misafire bildirim gönderilir.</p>
+</div>
+<div class="text-center">
+    <div class="text-4xl mb-3">🏖️</div>
+<h3 class="text-amber-400 font-bold mb-2">3. Kullanım</h3>
+<p class="text-sm text-neutral-300">Check-in/out takibi, F&B sipariş yönetimi, ekstra konsept talepleri gerçek zamanlı işlenir.</p>
+</div>
+</div>
+
+<div class="mt-8 bg-white/5 border border-white/10 rounded-xl p-4">
+
+### Akış Detayı
+
+```
+Talep → Onay Bekliyor → Onaylandı → Check-in → Aktif Kullanım → Check-out → Tamamlandı
+         ↓                                        ↓
+      Reddedildi                          Değişiklik/İptal Talebi
+```
+
+</div>
+
+</div>
+        </div><div class="slide default " id="slide-8">
+          <div class="slide-number">9</div>
+          <div class="slide-content "><style>
+h1 { color: #fbbf24 !important; }
+</style>
+<h1>Kullanıcı Rolleri</h1>
+
+<div class="grid grid-cols-2 gap-6 mt-6">
+  <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-5">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-2xl">🛡️</span>
+      <span class="text-lg font-bold text-purple-400">System Admin</span>
+    </div>
+<ul class="text-sm text-neutral-300 space-y-1">
+<li>• Tüm sistem ayarları ve konfigürasyon</li>
+<li>• Kullanıcı, sınıf, konsept ve ürün yönetimi</li>
+<li>• Fiyatlandırma politikaları</li>
+<li>• Raporlama ve sunum oluşturma</li>
+<li>• Personel ve görev tanımları</li>
+</ul>
+</div>
+<div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-5">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-2xl">👔</span>
+      <span class="text-lg font-bold text-blue-400">Admin</span>
+    </div>
+<ul class="text-sm text-neutral-300 space-y-1">
+<li>• Rezervasyon onay/red işlemleri</li>
+<li>• Fiyat güncelleme</li>
+<li>• Check-in / Check-out yönetimi</li>
+<li>• Personel atama ve görev takibi</li>
+<li>• Operasyonel raporlar</li>
+</ul>
+</div>
+<div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-5">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-2xl">🎰</span>
+      <span class="text-lg font-bold text-amber-400">Casino User</span>
+    </div>
+<ul class="text-sm text-neutral-300 space-y-1">
+<li>• Kabana müsaitlik görüntüleme</li>
+<li>• Rezervasyon talebi oluşturma</li>
+<li>• Değişiklik ve iptal talepleri</li>
+<li>• Ekstra konsept talepleri</li>
+<li>• Değerlendirme ve yorum</li>
+</ul>
+</div>
+<div class="bg-green-500/10 border border-green-500/30 rounded-xl p-5">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-2xl">🍽️</span>
+      <span class="text-lg font-bold text-green-400">F&B User</span>
+    </div>
+<ul class="text-sm text-neutral-300 space-y-1">
+<li>• Kabana F&B sipariş yönetimi</li>
+<li>• Sipariş durumu takibi</li>
+<li>• Günlük sipariş özeti</li>
+<li>• Stok ve ürün bilgisi görüntüleme</li>
+</ul>
+</div>
+</div>
+
+</div>
+        </div><div class="slide default " id="slide-9">
+          <div class="slide-number">10</div>
+          <div class="slide-content "><style>
+h1 { color: #fbbf24 !important; }
+</style>
+<h1>Sistem Avantajları</h1>
+
+<div class="grid grid-cols-3 gap-5 mt-8">
+  <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+    <div class="text-3xl mb-2">⚡</div>
+<h3 class="text-amber-400 font-bold text-sm mb-2">Gerçek Zamanlı</h3>
+<p class="text-xs text-neutral-400">Socket.IO ile anlık bildirimler, canlı durum güncellemeleri</p>
+</div>
+<div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+    <div class="text-3xl mb-2">💰</div>
+<h3 class="text-amber-400 font-bold text-sm mb-2">Dinamik Fiyatlandırma</h3>
+<p class="text-xs text-neutral-400">Sezon, sınıf ve konsept bazlı esnek fiyat yönetimi</p>
+</div>
+<div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+    <div class="text-3xl mb-2">🗺️</div>
+<h3 class="text-amber-400 font-bold text-sm mb-2">Görsel Harita</h3>
+<p class="text-xs text-neutral-400">Kabana yerleşimini interaktif harita üzerinde görüntüleme</p>
+</div>
+<div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+    <div class="text-3xl mb-2">📱</div>
+<h3 class="text-amber-400 font-bold text-sm mb-2">Responsive Tasarım</h3>
+<p class="text-xs text-neutral-400">Masaüstü, tablet ve mobil cihazlarda sorunsuz kullanım</p>
+</div>
+<div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+    <div class="text-3xl mb-2">🔒</div>
+<h3 class="text-amber-400 font-bold text-sm mb-2">Güvenlik</h3>
+<p class="text-xs text-neutral-400">Rol bazlı erişim kontrolü, JWT kimlik doğrulama, denetim kaydı</p>
+</div>
+<div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+    <div class="text-3xl mb-2">📊</div>
+<h3 class="text-amber-400 font-bold text-sm mb-2">Kapsamlı Raporlama</h3>
+<p class="text-xs text-neutral-400">Doluluk, gelir, maliyet analizi ve sunum oluşturma</p>
+</div>
+</div>
+
+</div>
+        </div><div class="slide center text-center" id="slide-10">
+          <div class="slide-number">11</div>
+          <div class="slide-content "><style>
+h1 {
+  font-size: 3em !important;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+</style>
+<h1>Teşekkürler</h1>
+
+<div class="mt-4 text-lg text-neutral-300">
+  Royal Cabana Rezervasyon Sistemi
+</div>
+
+<div class="mt-2 text-sm text-neutral-500">
+  Merit Royal · Alsancak, Kıbrıs
+</div>
+
+<div class="mt-8 flex justify-center gap-8 text-sm text-neutral-400">
+  <span>📧 info@meritroyalbet.com</span>
+  <span>🌐 meritroyalbet.com</span>
+</div>
+
+</div>
+        </div></body></html>

@@ -12,6 +12,10 @@ interface CabanaRow {
   cabanaClass: { name: string };
 }
 
+interface ModuleConfig {
+  reviews: { enabled: boolean };
+}
+
 const STATUS_LABELS: Record<CabanaStatus, string> = {
   [CabanaStatus.AVAILABLE]: "Müsait",
   [CabanaStatus.RESERVED]: "Rezerve",
@@ -45,8 +49,19 @@ export default function SystemControlPage() {
     },
   });
 
+  const { data: moduleConfig, isLoading: moduleLoading } =
+    useQuery<ModuleConfig>({
+      queryKey: ["module-config"],
+      queryFn: async () => {
+        const res = await fetch("/api/system/modules");
+        if (!res.ok) throw new Error("Modül ayarları yüklenemedi.");
+        return res.json();
+      },
+    });
+
   const [systemToggling, setSystemToggling] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [moduleToggling, setModuleToggling] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -108,6 +123,39 @@ export default function SystemControlPage() {
       setError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
       setTogglingId(null);
+    }
+  }
+
+  async function handleModuleToggle(module: "reviews") {
+    if (!moduleConfig) return;
+    setModuleToggling(module);
+    setError("");
+    try {
+      const updated = {
+        ...moduleConfig,
+        [module]: {
+          ...moduleConfig[module],
+          enabled: !moduleConfig[module].enabled,
+        },
+      };
+      const res = await fetch("/api/system/modules", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Modül durumu güncellenemedi.");
+      }
+      queryClient.invalidateQueries({ queryKey: ["module-config"] });
+      const label = "Değerlendirmeler";
+      showSuccess(
+        `${label} modülü ${!moduleConfig[module].enabled ? "aktif edildi" : "devre dışı bırakıldı"}.`,
+      );
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
+    } finally {
+      setModuleToggling(null);
     }
   }
 
@@ -173,6 +221,58 @@ export default function SystemControlPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Modül Yönetimi */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-neutral-300 mb-4">
+          Modül Yönetimi
+        </h2>
+        {moduleLoading ? (
+          <div className="text-neutral-500 text-sm">Yükleniyor...</div>
+        ) : moduleConfig ? (
+          <div className="space-y-4">
+            {[
+              {
+                key: "reviews" as const,
+                label: "Değerlendirmeler",
+                desc: "Misafirlerin kabana değerlendirmesi yapabilmesi",
+              },
+            ].map((mod) => (
+              <div key={mod.key} className="flex items-center justify-between">
+                <div>
+                  <p className="text-neutral-100 font-medium">{mod.label}</p>
+                  <p className="text-sm text-neutral-500 mt-0.5">{mod.desc}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`text-sm font-medium ${moduleConfig[mod.key].enabled ? "text-green-400" : "text-red-400"}`}
+                  >
+                    {moduleConfig[mod.key].enabled ? "Aktif" : "Kapalı"}
+                  </span>
+                  <button
+                    onClick={() => handleModuleToggle(mod.key)}
+                    disabled={moduleToggling === mod.key}
+                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                      moduleConfig[mod.key].enabled
+                        ? "bg-green-600"
+                        : "bg-neutral-700"
+                    }`}
+                    aria-label={`${mod.label} toggle`}
+                  >
+                    <span
+                      className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${
+                        moduleConfig[mod.key].enabled
+                          ? "translate-x-7"
+                          : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {/* Kabana Bazında Rezervasyon Durumu */}

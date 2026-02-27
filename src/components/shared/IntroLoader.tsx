@@ -57,7 +57,7 @@ export default function IntroLoader({ onDone }: IntroLoaderProps) {
             alt="Royal Cabana"
             width={160}
             height={160}
-            className="rounded-2xl"
+            className="rounded-2xl w-auto h-auto"
             priority
           />
         </div>

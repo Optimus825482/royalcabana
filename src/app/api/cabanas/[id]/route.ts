@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role, ReservationStatus } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 const updateCabanaSchema = z.object({
   name: z.string().min(1).optional(),
@@ -38,39 +39,60 @@ export const GET = withAuth(allRoles, async (_req, { params }) => {
   return NextResponse.json(cabana);
 });
 
-export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
-  const id = params!.id;
+export const PATCH = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session, params }) => {
+    const id = params!.id;
 
-  const cabana = await prisma.cabana.findUnique({ where: { id } });
-  if (!cabana) {
-    return NextResponse.json({ error: "Kabana bulunamadı." }, { status: 404 });
-  }
+    const cabana = await prisma.cabana.findUnique({ where: { id } });
+    if (!cabana) {
+      return NextResponse.json(
+        { error: "Kabana bulunamadı." },
+        { status: 404 },
+      );
+    }
 
-  const body = await req.json();
-  const parsed = updateCabanaSchema.safeParse(body);
+    const body = await req.json();
+    const parsed = updateCabanaSchema.safeParse(body);
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-  const updated = await prisma.cabana.update({
-    where: { id },
-    data: parsed.data,
-    include: {
-      cabanaClass: { select: { id: true, name: true } },
-      concept: { select: { id: true, name: true } },
-    },
-  });
+    const updated = await prisma.cabana.update({
+      where: { id },
+      data: parsed.data,
+      include: {
+        cabanaClass: { select: { id: true, name: true } },
+        concept: { select: { id: true, name: true } },
+      },
+    });
 
-  return NextResponse.json(updated);
-});
+    logAudit({
+      userId: session.user.id,
+      action: "UPDATE",
+      entity: "Cabana",
+      entityId: id,
+      oldValue: {
+        name: cabana.name,
+        classId: cabana.classId,
+        conceptId: cabana.conceptId,
+        coordX: cabana.coordX,
+        coordY: cabana.coordY,
+      },
+      newValue: parsed.data,
+    });
+
+    return NextResponse.json(updated);
+  },
+);
 
 export const DELETE = withAuth(
   [Role.SYSTEM_ADMIN],
-  async (_req, { params }) => {
+  async (_req, { session, params }) => {
     const id = params!.id;
 
     const cabana = await prisma.cabana.findUnique({
@@ -98,6 +120,18 @@ export const DELETE = withAuth(
     }
 
     await prisma.cabana.delete({ where: { id } });
+
+    logAudit({
+      userId: session.user.id,
+      action: "DELETE",
+      entity: "Cabana",
+      entityId: id,
+      oldValue: {
+        name: cabana.name,
+        classId: cabana.classId,
+        conceptId: cabana.conceptId,
+      },
+    });
 
     return NextResponse.json({ success: true });
   },

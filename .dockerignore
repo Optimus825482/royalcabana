@@ -13,3 +13,4 @@ gorsel
 .vscode
 docker-compose.yml
 Dockerfile
+slidev-workspace

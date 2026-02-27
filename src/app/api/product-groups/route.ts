@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 const allRoles = [
   Role.ADMIN,
@@ -24,7 +25,7 @@ export const GET = withAuth(allRoles, async () => {
   return NextResponse.json(groups);
 });
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
@@ -34,5 +35,14 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
     );
   }
   const group = await prisma.productGroup.create({ data: parsed.data });
+
+  logAudit({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "ProductGroup",
+    entityId: group.id,
+    newValue: parsed.data,
+  });
+
   return NextResponse.json(group, { status: 201 });
 });

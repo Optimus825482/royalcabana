@@ -26,6 +26,8 @@ enum ReservationStatus {
   APPROVED
   REJECTED
   CANCELLED
+  CHECKED_IN
+  CHECKED_OUT
   MODIFICATION_PENDING
   EXTRA_PENDING
 }
@@ -45,6 +47,9 @@ enum NotificationType {
   EXTRA_CONCEPT_REQUEST
   EXTRA_ADDED
   STATUS_CHANGED
+  CHECK_IN
+  CHECK_OUT
+  FNB_ORDER
 }
 
 // ===== KULLANICI VE YETKİLENDİRME =====
@@ -61,9 +66,13 @@ model User {
   updatedAt    DateTime  @updatedAt
   createdBy    String?
 
-  reservations  Reservation[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
+  reservations     Reservation[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  loginSessions    LoginSession[]
+  waitlistEntries  WaitlistEntry[]
+  recurringBookings RecurringBooking[]
+  reviews            Review[]
 
   @@index([deletedAt])
   @@map("users")
@@ -107,6 +116,7 @@ model Cabana {
   conceptId            String?
   coordX               Float
   coordY               Float
+  rotation             Float        @default(0)
   status               CabanaStatus @default(AVAILABLE)
   isOpenForReservation Boolean      @default(true)
   deletedAt            DateTime?
@@ -115,9 +125,14 @@ model Cabana {
 
   cabanaClass  CabanaClass        @relation(fields: [classId], references: [id])
   concept      Concept?           @relation(fields: [conceptId], references: [id])
-  reservations Reservation[]
-  prices       CabanaPrice[]
-  priceRanges  CabanaPriceRange[]
+  reservations     Reservation[]
+  prices           CabanaPrice[]
+  priceRanges      CabanaPriceRange[]
+  fnbOrders        FnbOrder[]
+  blackoutDates    BlackoutDate[]
+  waitlistEntries  WaitlistEntry[]
+  recurringBookings RecurringBooking[]
+  staffAssignments StaffAssignment[]
 
   @@index([classId])
   @@index([status])
@@ -144,6 +159,7 @@ model Concept {
   name        String   @unique
   description String
   classId     String?
+  serviceFee  Decimal  @default(0) @db.Decimal(10, 2)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -166,10 +182,14 @@ model Product {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  stockQuantity   Int              @default(0)
+  minStockAlert   Int              @default(0)
   group           ProductGroup?    @relation(fields: [groupId], references: [id])
   conceptProducts ConceptProduct[]
   conceptPrices   ConceptPrice[]
   extraItems      ExtraItem[]
+  priceHistory    ProductPriceHistory[]
+  fnbOrderItems   FnbOrderItem[]
 
   @@index([groupId])
   @@index([deletedAt])
@@ -188,6 +208,23 @@ model ConceptProduct {
   @@unique([conceptId, productId])
   @@index([conceptId])
   @@map("concept_products")
+}
+
+// ===== ÜRÜN FİYAT GEÇMİŞİ =====
+
+model ProductPriceHistory {
+  id            String   @id @default(cuid())
+  productId     String
+  purchasePrice Decimal  @db.Decimal(10, 2)
+  salePrice     Decimal  @db.Decimal(10, 2)
+  source        String   @default("MANUAL") // MANUAL, IMPORT
+  changedBy     String
+  createdAt     DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+  @@map("product_price_history")
 }
 
 // ===== DİNAMİK FİYATLANDIRMA =====
@@ -242,6 +279,7 @@ model Reservation {
   id              String            @id @default(cuid())
   cabanaId        String
   userId          String
+  guestId         String?
   guestName       String
   startDate       DateTime          @db.Date
   endDate         DateTime          @db.Date
@@ -249,20 +287,28 @@ model Reservation {
   status          ReservationStatus @default(PENDING)
   totalPrice      Decimal?  @db.Decimal(10, 2)
   rejectionReason String?
+  checkInAt       DateTime?
+  checkOutAt      DateTime?
+  checkedInBy     String?
+  checkedOutBy    String?
   deletedAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
   cabana        Cabana                     @relation(fields: [cabanaId], references: [id])
   user          User                       @relation(fields: [userId], references: [id])
+  guest         Guest?                     @relation(fields: [guestId], references: [id])
   statusHistory ReservationStatusHistory[]
   modifications ModificationRequest[]
   cancellations CancellationRequest[]
   extraConcepts ExtraConceptRequest[]
   extraItems    ExtraItem[]
+  fnbOrders     FnbOrder[]
+  review        Review?
 
   @@index([cabanaId])
   @@index([userId])
+  @@index([guestId])
   @@index([status])
   @@index([startDate, endDate])
   @@index([deletedAt])
@@ -390,6 +436,117 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// ===== OTURUM TAKİBİ =====
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  UNKNOWN
+}
+
+model LoginSession {
+  id         String     @id @default(cuid())
+  userId     String
+  loginAt    DateTime   @default(now())
+  logoutAt   DateTime?
+  duration   Int?       // saniye cinsinden
+  ipAddress  String?
+  userAgent  String?
+  deviceType DeviceType @default(UNKNOWN)
+  browser    String?
+  os         String?
+  latitude   Float?
+  longitude  Float?
+  city       String?
+  country    String?
+  isActive   Boolean    @default(true)
+  lastSeenAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([loginAt])
+  @@map("login_sessions")
+}
+
+// ===== MİSAFİR VERİTABANI =====
+
+model Guest {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String?
+  email         String?
+  vipLevel      VipLevel  @default(STANDARD)
+  notes         String?
+  isBlacklisted Boolean   @default(false)
+  totalVisits   Int       @default(0)
+  lastVisitAt   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  reservations Reservation[]
+
+  @@index([name])
+  @@index([phone])
+  @@index([isBlacklisted])
+  @@index([deletedAt])
+  @@map("guests")
+}
+
+enum VipLevel {
+  STANDARD
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+// ===== F&B SİPARİŞ YÖNETİMİ =====
+
+model FnbOrder {
+  id            String        @id @default(cuid())
+  reservationId String
+  cabanaId      String
+  status        FnbOrderStatus @default(PREPARING)
+  notes         String?
+  createdBy     String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  cabana      Cabana      @relation(fields: [cabanaId], references: [id])
+  items       FnbOrderItem[]
+
+  @@index([reservationId])
+  @@index([cabanaId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("fnb_orders")
+}
+
+model FnbOrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int     @default(1)
+  unitPrice Decimal @db.Decimal(10, 2)
+
+  order   FnbOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product  @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("fnb_order_items")
+}
+
+enum FnbOrderStatus {
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
 // ===== SİSTEM KONFİGÜRASYON =====
 
 model SystemConfig {
@@ -400,3 +557,164 @@ model SystemConfig {
 
   @@map("system_configs")
 }
+
+// ===== BLACKOUT DATES =====
+model BlackoutDate {
+  id        String   @id @default(cuid())
+  cabanaId  String?
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  reason    String?
+  createdBy String
+  createdAt DateTime @default(now())
+
+  cabana Cabana? @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
+
+  @@index([startDate, endDate])
+  @@index([cabanaId])
+  @@map("blackout_dates")
+}
+
+// ===== BEKLEME LİSTESİ =====
+model WaitlistEntry {
+  id            String    @id @default(cuid())
+  cabanaId      String
+  userId        String
+  guestName     String
+  desiredStart  DateTime  @db.Date
+  desiredEnd    DateTime  @db.Date
+  notes         String?
+  isNotified    Boolean   @default(false)
+  notifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([cabanaId, desiredStart])
+  @@index([userId])
+  @@map("waitlist_entries")
+}
+
+// ===== TEKRARLAYAN REZERVASYONLAR =====
+model RecurringBooking {
+  id              String   @id @default(cuid())
+  cabanaId        String
+  userId          String
+  guestName       String
+  pattern         RecurringPattern
+  dayOfWeek       Int?
+  dayOfMonth      Int?
+  startDate       DateTime @db.Date
+  endDate         DateTime @db.Date
+  isActive        Boolean  @default(true)
+  lastGeneratedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  cabana Cabana @relation(fields: [cabanaId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([cabanaId])
+  @@index([isActive])
+  @@map("recurring_bookings")
+}
+
+enum RecurringPattern {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+// ===== GÖREV TANIMLARI =====
+model TaskDefinition {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  category    String?
+  priority    String    @default("NORMAL")
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  staffTasks StaffTask[]
+
+  @@index([isActive])
+  @@index([category])
+  @@index([deletedAt])
+  @@map("task_definitions")
+}
+
+// ===== PERSONEL YÖNETİMİ =====
+model Staff {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  position  String
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  assignments StaffAssignment[]
+  tasks       StaffTask[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("staff")
+}
+
+model StaffAssignment {
+  id        String   @id @default(cuid())
+  staffId   String
+  cabanaId  String
+  date      DateTime @db.Date
+  shift     String?
+  createdAt DateTime @default(now())
+
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, cabanaId, date])
+  @@index([date])
+  @@map("staff_assignments")
+}
+
+model StaffTask {
+  id               String    @id @default(cuid())
+  staffId          String
+  taskDefinitionId String?
+  title            String
+  description      String?
+  date             DateTime  @db.Date
+  isCompleted      Boolean   @default(false)
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+
+  staff          Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  taskDefinition TaskDefinition? @relation(fields: [taskDefinitionId], references: [id], onDelete: SetNull)
+
+  @@index([staffId, date])
+  @@index([taskDefinitionId])
+  @@map("staff_tasks")
+}
+
+// ===== DEĞERLENDİRMELER =====
+model Review {
+  id            String   @id @default(cuid())
+  reservationId String   @unique
+  userId        String
+  rating        Int
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([rating])
+  @@map("reviews")
+}
+

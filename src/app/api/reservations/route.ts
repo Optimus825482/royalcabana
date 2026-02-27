@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema, parseBody } from "@/lib/validators";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 export const GET = withAuth(
   [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
@@ -130,6 +131,14 @@ export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
       },
       { isolationLevel: "Serializable", timeout: 10000 },
     );
+
+    logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "Reservation",
+      entityId: reservation.id,
+      newValue: { cabanaId, guestName, startDate, endDate, notes },
+    });
 
     return NextResponse.json(reservation, { status: 201 });
   } catch (err) {

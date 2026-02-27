@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { cancellationRequestSchema, parseBody } from "@/lib/validators";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 export const POST = withAuth(
   [Role.CASINO_USER],
@@ -79,6 +80,15 @@ export const POST = withAuth(
           })),
         });
       }
+    });
+
+    logAudit({
+      userId: session.user.id,
+      action: "CANCEL_REQUEST",
+      entity: "Reservation",
+      entityId: id,
+      oldValue: { status: reservation.status },
+      newValue: { status: "MODIFICATION_PENDING", reason },
     });
 
     return NextResponse.json(cancelRequest, { status: 201 });

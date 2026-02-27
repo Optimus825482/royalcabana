@@ -4,10 +4,9 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { Role, ReportType } from "@/types";
 import { Field, inputCls } from "@/components/shared/FormComponents";
+import { FileText, BarChart3, Presentation } from "lucide-react";
 
-const PresentationCanvas = lazy(
-  () => import("@/components/reports/PresentationCanvas"),
-);
+const SlidevEditor = lazy(() => import("@/components/reports/SlidevEditor"));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,12 +85,12 @@ export default function ReportsPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
 
-  const [exportLoading, setExportLoading] = useState<
-    "pdf" | "excel" | "presentation" | "html-presentation" | null
-  >(null);
+  const [exportLoading, setExportLoading] = useState<"pdf" | "excel" | null>(
+    null,
+  );
   const [exportError, setExportError] = useState("");
   const [exportSuccess, setExportSuccess] = useState("");
-  const [showCanvas, setShowCanvas] = useState(false);
+  const [showSlidev, setShowSlidev] = useState(false);
 
   // ── Fetch meta ──────────────────────────────────────────────────────────────
 
@@ -125,7 +124,11 @@ export default function ReportsPage() {
     );
   }
 
-  if (!session?.user || session.user.role !== Role.SYSTEM_ADMIN) {
+  if (
+    !session?.user ||
+    (session.user.role !== Role.SYSTEM_ADMIN &&
+      session.user.role !== Role.CASINO_USER)
+  ) {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl px-8 py-10 text-center max-w-sm">
@@ -199,52 +202,12 @@ export default function ReportsPage() {
     }
   }
 
-  async function handlePresentation() {
-    setExportLoading("presentation");
-    setExportError("");
-    try {
-      const res = await fetch("/api/reports/presentation", { method: "POST" });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Sunum oluşturulamadı.");
-      }
-      const blob = await res.blob();
-      await downloadBlob(blob, "royal-cabana-sunum.pptx");
-      showSuccess("Sunum başarıyla indirildi.");
-    } catch (e: unknown) {
-      setExportError(e instanceof Error ? e.message : "Bir hata oluştu.");
-    } finally {
-      setExportLoading(null);
-    }
-  }
-
-  async function handleHtmlPresentation() {
-    setExportLoading("html-presentation");
-    setExportError("");
-    try {
-      const res = await fetch("/api/reports/presentation?format=html", {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "HTML sunum oluşturulamadı.");
-      }
-      const blob = await res.blob();
-      await downloadBlob(blob, "royal-cabana-sunum.html");
-      showSuccess("HTML sunum başarıyla indirildi.");
-    } catch (e: unknown) {
-      setExportError(e instanceof Error ? e.message : "Bir hata oluştu.");
-    } finally {
-      setExportLoading(null);
-    }
-  }
-
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
-      {/* Presentation Canvas (fullscreen modal) */}
-      {showCanvas && (
+      {/* Slidev Editor (fullscreen modal) */}
+      {showSlidev && (
         <Suspense
           fallback={
             <div className="fixed inset-0 z-50 bg-neutral-950/95 flex items-center justify-center">
@@ -252,7 +215,7 @@ export default function ReportsPage() {
             </div>
           }
         >
-          <PresentationCanvas onClose={() => setShowCanvas(false)} />
+          <SlidevEditor onClose={() => setShowSlidev(false)} />
         </Suspense>
       )}
       {/* Header */}
@@ -380,7 +343,8 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <ActionButton
                 label="PDF İndir"
-                icon="📄"
+                Icon={FileText}
+                iconColor="text-red-400"
                 loading={exportLoading === "pdf"}
                 onClick={() => handleExport("pdf")}
                 disabled={exportLoading !== null}
@@ -388,33 +352,19 @@ export default function ReportsPage() {
               />
               <ActionButton
                 label="Excel İndir"
-                icon="📊"
+                Icon={BarChart3}
+                iconColor="text-green-400"
                 loading={exportLoading === "excel"}
                 onClick={() => handleExport("excel")}
                 disabled={exportLoading !== null}
                 variant="primary"
               />
               <ActionButton
-                label="PPTX Sunum"
-                icon="🎯"
-                loading={exportLoading === "presentation"}
-                onClick={handlePresentation}
-                disabled={exportLoading !== null}
-                variant="secondary"
-              />
-              <ActionButton
-                label="HTML Sunum"
-                icon="🌐"
-                loading={exportLoading === "html-presentation"}
-                onClick={handleHtmlPresentation}
-                disabled={exportLoading !== null}
-                variant="secondary"
-              />
-              <ActionButton
-                label="Sunum Düzenle"
-                icon="🎨"
+                label="Sunum Oluştur"
+                Icon={Presentation}
+                iconColor="text-amber-400"
                 loading={false}
-                onClick={() => setShowCanvas(true)}
+                onClick={() => setShowSlidev(true)}
                 disabled={exportLoading !== null}
                 variant="secondary"
                 className="sm:col-span-2"
@@ -465,7 +415,8 @@ export default function ReportsPage() {
 
 function ActionButton({
   label,
-  icon,
+  Icon,
+  iconColor,
   loading,
   onClick,
   disabled,
@@ -473,7 +424,8 @@ function ActionButton({
   className = "",
 }: {
   label: string;
-  icon: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  iconColor: string;
   loading: boolean;
   onClick: () => void;
   disabled: boolean;
@@ -493,7 +445,7 @@ function ActionButton({
       disabled={disabled}
       className={`${base} ${styles} ${className}`}
     >
-      <span>{icon}</span>
+      <Icon className={`w-4 h-4 ${iconColor}`} />
       <span>{loading ? "İşleniyor..." : label}</span>
     </button>
   );

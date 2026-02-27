@@ -1,8 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { PricingEngine } from "@/lib/pricing";
-import { Role } from "@/types";
+import { Role, NotificationType } from "@/types";
+import { logAudit } from "@/lib/audit";
+import { sseManager } from "@/lib/sse";
+import { SSE_EVENTS } from "@/lib/sse-events";
+import { notificationService } from "@/services/notification.service";
+import { emailService } from "@/lib/email";
 
 export const POST = withAuth([Role.ADMIN], async (req, { session, params }) => {
   const id = params!.id;
@@ -81,6 +86,53 @@ export const POST = withAuth([Role.ADMIN], async (req, { session, params }) => {
       data: { status: "RESERVED" },
     }),
   ]);
+
+  logAudit({
+    userId: session.user.id,
+    action: "APPROVE",
+    entity: "Reservation",
+    entityId: id,
+    oldValue: { status: "PENDING" },
+    newValue: {
+      status: "APPROVED",
+      totalPrice: finalPrice,
+      priceSource: manualPrice ? "MANUAL" : "AUTO",
+    },
+  });
+
+  // SSE + Email + Bildirim — non-blocking
+  after(async () => {
+    const cabanaName = updated.cabana?.name ?? "";
+
+    sseManager.broadcast(SSE_EVENTS.RESERVATION_APPROVED, {
+      reservationId: id,
+      cabanaName,
+      guestName: updated.guestName,
+      totalPrice: finalPrice,
+    });
+
+    await notificationService.send({
+      userId: reservation.userId,
+      type: NotificationType.APPROVED,
+      title: "Rezervasyon Onaylandı",
+      message: `${updated.guestName} için ${cabanaName} kabana rezervasyonu onaylandı. Toplam: ${finalPrice.toFixed(2)}`,
+      metadata: { reservationId: id, cabanaName, totalPrice: finalPrice },
+    });
+
+    // Kullanıcının e-postasını al ve bildirim gönder
+    const user = await prisma.user.findUnique({
+      where: { id: reservation.userId },
+      select: { email: true, username: true },
+    });
+    if (user?.email) {
+      emailService.sendReservationApproved(user.email, {
+        guestName: updated.guestName,
+        cabanaName,
+        startDate: reservation.startDate,
+        endDate: reservation.endDate,
+      });
+    }
+  });
 
   return NextResponse.json({
     ...updated,

@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { modificationRequestSchema, parseBody } from "@/lib/validators";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 export const POST = withAuth(
   [Role.CASINO_USER],
@@ -84,6 +85,21 @@ export const POST = withAuth(
           })),
         });
       }
+    });
+
+    logAudit({
+      userId: session.user.id,
+      action: "MODIFY_REQUEST",
+      entity: "Reservation",
+      entityId: id,
+      oldValue: { status: "APPROVED" },
+      newValue: {
+        status: "MODIFICATION_PENDING",
+        newCabanaId,
+        newStartDate,
+        newEndDate,
+        newGuestName,
+      },
     });
 
     return NextResponse.json(modRequest, { status: 201 });

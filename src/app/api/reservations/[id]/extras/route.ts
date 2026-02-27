@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 const addExtrasSchema = z.object({
   items: z
@@ -136,6 +137,14 @@ export const POST = withAuth(
           metadata: { reservationId: id },
         },
       });
+    });
+
+    logAudit({
+      userId: session.user.id,
+      action: "EXTRA_ADD",
+      entity: "ExtraItem",
+      entityId: id,
+      newValue: { items },
     });
 
     return NextResponse.json(created, { status: 201 });

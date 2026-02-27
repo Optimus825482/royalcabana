@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { extraConceptRequestSchema, parseBody } from "@/lib/validators";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 export const POST = withAuth(
   [Role.CASINO_USER],
@@ -81,6 +82,15 @@ export const POST = withAuth(
           })),
         });
       }
+    });
+
+    logAudit({
+      userId: session.user.id,
+      action: "EXTRA_REQUEST",
+      entity: "Reservation",
+      entityId: id,
+      oldValue: { status: "APPROVED" },
+      newValue: { status: "EXTRA_PENDING", items },
     });
 
     return NextResponse.json(extraRequest, { status: 201 });

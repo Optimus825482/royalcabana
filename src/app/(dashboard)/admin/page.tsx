@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import WeatherWidget from "@/components/shared/WeatherWidget";
 
 interface AdminStats {
   totalCabanas: number;
@@ -12,20 +12,6 @@ interface AdminStats {
   pendingRequests: number;
   approvedThisMonth: number;
   rejectedThisMonth: number;
-  totalRevenue: number;
-  revenueThisMonth: number;
-}
-
-// Module-scope formatter — avoid re-creation per render (Rule 7.9)
-const currencyFormatter = new Intl.NumberFormat("tr-TR", {
-  style: "currency",
-  currency: "TRY",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
-
-function formatCurrency(value: number): string {
-  return currencyFormatter.format(value);
 }
 
 function SkeletonCard() {
@@ -56,9 +42,12 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
-      <h1 className="text-2xl font-bold text-amber-400 mb-8">
-        Admin Dashboard
-      </h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-bold text-amber-400">Admin Dashboard</h1>
+        <div className="hidden sm:block">
+          <WeatherWidget />
+        </div>
+      </div>
 
       {error && (
         <div className="bg-red-900/30 border border-red-700 text-red-300 rounded-lg px-4 py-3 mb-6 text-sm">
@@ -113,17 +102,15 @@ export default function AdminDashboardPage() {
               <p className="text-xs text-neutral-500">Rezervasyon onaylandı</p>
             </div>
 
-            {/* Toplam Gelir */}
+            {/* Bu Ay Reddedilen */}
             <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
               <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">
-                Toplam Gelir
+                Bu Ay Reddedilen
               </p>
-              <p className="text-3xl font-bold text-amber-300 mb-1">
-                {formatCurrency(stats.totalRevenue)}
+              <p className="text-4xl font-bold text-red-400 mb-1">
+                {stats.rejectedThisMonth}
               </p>
-              <p className="text-xs text-neutral-500">
-                Bu ay: {formatCurrency(stats.revenueThisMonth)}
-              </p>
+              <p className="text-xs text-neutral-500">Reddedilen rezervasyon</p>
             </div>
           </>
         ) : null}

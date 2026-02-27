@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Optimization Check on Agent Stop",
+  "description": "Agent bir görevi tamamladığında, yapılan değişikliklerde belirgin optimizasyon fırsatları varsa bildirir.",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Bu sohbette yapılan değişiklikleri gözden geçir. Sadece BELIRGIN ve YÜKSEK ETKİLİ optimizasyon fırsatları varsa bildir:\n\n1. N+1 query pattern var mı?\n2. Sequential await olması gereken yerde parallel fetch yapılabilir mi?\n3. Gereksiz re-render tetikleyen pattern var mı?\n4. Missing index veya unbounded query var mı?\n5. Bundle size'ı gereksiz şişiren import var mı?\n\nEğer ciddi bir sorun YOKSA sessizce geç, hiçbir şey söyleme.\nEğer sorun VARSA en fazla 3 madde ile kısa bildir: dosya, sorun, önerilen fix.\n\nNOT: Micro-optimization önerme. Sadece gerçek bottleneck veya belirgin anti-pattern varsa bildir."
+  }
+}

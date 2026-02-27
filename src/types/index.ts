@@ -16,6 +16,8 @@ export enum ReservationStatus {
   APPROVED = "APPROVED",
   REJECTED = "REJECTED",
   CANCELLED = "CANCELLED",
+  CHECKED_IN = "CHECKED_IN",
+  CHECKED_OUT = "CHECKED_OUT",
   MODIFICATION_PENDING = "MODIFICATION_PENDING",
   EXTRA_PENDING = "EXTRA_PENDING",
 }
@@ -35,6 +37,29 @@ export enum NotificationType {
   EXTRA_CONCEPT_REQUEST = "EXTRA_CONCEPT_REQUEST",
   EXTRA_ADDED = "EXTRA_ADDED",
   STATUS_CHANGED = "STATUS_CHANGED",
+  CHECK_IN = "CHECK_IN",
+  CHECK_OUT = "CHECK_OUT",
+  FNB_ORDER = "FNB_ORDER",
+}
+
+export enum VipLevel {
+  STANDARD = "STANDARD",
+  SILVER = "SILVER",
+  GOLD = "GOLD",
+  PLATINUM = "PLATINUM",
+}
+
+export enum RecurringPattern {
+  WEEKLY = "WEEKLY",
+  BIWEEKLY = "BIWEEKLY",
+  MONTHLY = "MONTHLY",
+}
+
+export enum FnbOrderStatus {
+  PREPARING = "PREPARING",
+  READY = "READY",
+  DELIVERED = "DELIVERED",
+  CANCELLED = "CANCELLED",
 }
 
 export enum ReportType {
@@ -72,6 +97,7 @@ export interface CabanaWithStatus {
   name: string;
   coordX: number;
   coordY: number;
+  rotation: number;
   status: CabanaStatus;
   isOpenForReservation: boolean;
   classId: string;
@@ -126,6 +152,6 @@ export interface ReportFilters {
 export const MODULE_ACCESS: Record<Role, string[]> = {
   [Role.SYSTEM_ADMIN]: ["/system-admin", "/reports"],
   [Role.ADMIN]: ["/admin"],
-  [Role.CASINO_USER]: ["/casino"],
+  [Role.CASINO_USER]: ["/casino", "/reports"],
   [Role.FNB_USER]: ["/fnb"],
 };

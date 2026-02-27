@@ -29,10 +29,24 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: https://royalcabana.erkanerdem.net
       NEXT_PUBLIC_APP_URL: https://royalcabana.erkanerdem.net
+      NEXT_PUBLIC_SOCKET_URL: https://royalcabana.erkanerdem.net:3007
       NODE_ENV: production
       PORT: 3006
     ports:
       - "3006:3006"
+
+  socket:
+    build:
+      context: .
+      dockerfile: Dockerfile.socket
+    restart: unless-stopped
+    environment:
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXT_PUBLIC_APP_URL: https://royalcabana.erkanerdem.net
+      SOCKET_PORT: 3007
+      NODE_ENV: production
+    ports:
+      - "3007:3007"
 
 volumes:
   postgres_data:

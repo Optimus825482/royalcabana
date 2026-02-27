@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Prisma Migration Reminder",
+  "description": "Prisma schema dosyası düzenlendiğinde migration oluşturmayı hatırlatır. Schema değişikliği yapıp migration unutmak yaygın bir hata.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.prisma"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Prisma schema dosyası düzenlendi. Kullanıcıya kısa hatırlat:\n\n\"Schema değişikliği yaptın. Migration oluşturmayı unutma: `npx prisma migrate dev --name <migration_name>`\"\n\nSadece bu tek cümle yeterli, uzun açıklama yapma."
+  }
+}

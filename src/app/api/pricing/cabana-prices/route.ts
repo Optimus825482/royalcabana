@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
+import { logAudit } from "@/lib/audit";
 
 const adminRoles = [Role.ADMIN, Role.SYSTEM_ADMIN];
 
@@ -33,7 +34,7 @@ export const GET = withAuth(adminRoles, async (req) => {
   return NextResponse.json({ prices });
 });
 
-export const POST = withAuth(adminRoles, async (req) => {
+export const POST = withAuth(adminRoles, async (req, { session }) => {
   const body = await req.json();
   const parsed = upsertSchema.safeParse(body);
   if (!parsed.success) {
@@ -46,10 +47,24 @@ export const POST = withAuth(adminRoles, async (req) => {
   const { cabanaId, date, dailyPrice } = parsed.data;
   const dateObj = new Date(date + "T00:00:00.000Z");
 
+  const existing = await prisma.cabanaPrice.findUnique({
+    where: { cabanaId_date: { cabanaId, date: dateObj } },
+  });
+
   const price = await prisma.cabanaPrice.upsert({
     where: { cabanaId_date: { cabanaId, date: dateObj } },
     update: { dailyPrice },
     create: { cabanaId, date: dateObj, dailyPrice },
   });
+
+  logAudit({
+    userId: session.user.id,
+    action: "PRICE_UPDATE",
+    entity: "CabanaPrice",
+    entityId: price.id,
+    oldValue: existing ? { dailyPrice: Number(existing.dailyPrice) } : null,
+    newValue: { cabanaId, date, dailyPrice },
+  });
+
   return NextResponse.json(price);
 });

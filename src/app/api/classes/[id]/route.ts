@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { Role, CabanaStatus } from "@/types";
 import { withAuth } from "@/lib/api-middleware";
+import { logAudit } from "@/lib/audit";
 
 const updateClassSchema = z.object({
   name: z.string().min(2).optional(),
@@ -30,20 +31,26 @@ export const GET = withAuth(
   },
 );
 
-export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
-  const id = params?.id;
+export const PATCH = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session, params }) => {
+    const id = params?.id;
 
-  const body = await req.json();
-  const parsed = updateClassSchema.safeParse(body);
+    const existing = await prisma.cabanaClass.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Sınıf bulunamadı." }, { status: 404 });
+    }
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+    const body = await req.json();
+    const parsed = updateClassSchema.safeParse(body);
 
-  try {
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
     const updated = await prisma.cabanaClass.update({
       where: { id },
       data: parsed.data,
@@ -52,15 +59,23 @@ export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
         _count: { select: { cabanas: true } },
       },
     });
+
+    logAudit({
+      userId: session.user.id,
+      action: "UPDATE",
+      entity: "CabanaClass",
+      entityId: id!,
+      oldValue: { name: existing.name, description: existing.description },
+      newValue: parsed.data,
+    });
+
     return NextResponse.json(updated);
-  } catch {
-    return NextResponse.json({ error: "Sınıf bulunamadı." }, { status: 404 });
-  }
-});
+  },
+);
 
 export const DELETE = withAuth(
   [Role.SYSTEM_ADMIN],
-  async (_req, { params }) => {
+  async (_req, { session, params }) => {
     const id = params?.id;
 
     const cabanaClass = await prisma.cabanaClass.findUnique({
@@ -82,6 +97,17 @@ export const DELETE = withAuth(
     }
 
     await prisma.cabanaClass.delete({ where: { id } });
+
+    logAudit({
+      userId: session.user.id,
+      action: "DELETE",
+      entity: "CabanaClass",
+      entityId: id!,
+      oldValue: {
+        name: cabanaClass.name,
+        description: cabanaClass.description,
+      },
+    });
 
     return NextResponse.json({ message: "Sınıf silindi." });
   },

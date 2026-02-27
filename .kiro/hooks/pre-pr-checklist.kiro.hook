@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Pre-PR Validation Checklist",
+  "description": "PR öncesi tam doğrulama checklist'i. Lint, type check, build ve test komutlarını çalıştırır.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "echo \"=== PRE-PR CHECKLIST ===\" && echo \"1. Type Check...\" && npx tsc --noEmit && echo \"✓ Types OK\" && echo \"2. Lint...\" && npx next lint && echo \"✓ Lint OK\" && echo \"3. Build...\" && npx next build && echo \"✓ Build OK\" && echo \"=== ALL CHECKS PASSED ===\""
+  }
+}
