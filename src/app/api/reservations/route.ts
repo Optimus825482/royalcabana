@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema, parseBody } from "@/lib/validators";
 import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { sseManager } from "@/lib/sse";
+import { SSE_EVENTS } from "@/lib/sse-events";
 
 export const GET = withAuth(
   [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
@@ -18,9 +20,18 @@ export const GET = withAuth(
     );
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { deletedAt: null };
     if (status) where.status = status;
     if (cabanaId) where.cabanaId = cabanaId;
+
+    // Arama desteği — misafir adı veya kabana adı ile arama
+    const search = searchParams.get("search");
+    if (search) {
+      where.OR = [
+        { guestName: { contains: search, mode: "insensitive" } },
+        { cabana: { name: { contains: search, mode: "insensitive" } } },
+      ];
+    }
 
     // CASINO_USER sadece kendi rezervasyonlarını görebilir
     if (session.user.role === Role.CASINO_USER) {
@@ -64,7 +75,22 @@ export const GET = withAuth(
       prisma.reservation.count({ where }),
     ]);
 
-    return NextResponse.json({ reservations, total });
+    // Misafir gizliliği: isGuestPrivate=true ise sadece CASINO_USER (sahibi) görebilir
+    // Diğer roller için misafir bilgileri maskelenir
+    const isCasino = session.user.role === Role.CASINO_USER;
+    const sanitized = reservations.map((r: Record<string, unknown>) => {
+      if ((r as { isGuestPrivate?: boolean }).isGuestPrivate && !isCasino) {
+        return {
+          ...r,
+          guestName: "Gizli Misafir",
+          guestId: null,
+          notes: null,
+        };
+      }
+      return r;
+    });
+
+    return NextResponse.json({ reservations: sanitized, total });
   },
 );
 
@@ -118,6 +144,7 @@ export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
             cabanaId,
             userId: session.user.id,
             guestName,
+            isGuestPrivate: parsed.data.isGuestPrivate ?? false,
             startDate: start,
             endDate: end,
             notes: notes ?? null,
@@ -138,6 +165,17 @@ export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
       entity: "Reservation",
       entityId: reservation.id,
       newValue: { cabanaId, guestName, startDate, endDate, notes },
+    });
+
+    // SSE broadcast — non-blocking
+    after(() => {
+      sseManager.broadcast(SSE_EVENTS.RESERVATION_CREATED, {
+        reservationId: reservation.id,
+        cabanaName: reservation.cabana?.name ?? "",
+        guestName,
+        startDate,
+        endDate,
+      });
     });
 
     return NextResponse.json(reservation, { status: 201 });

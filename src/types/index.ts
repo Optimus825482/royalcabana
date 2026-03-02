@@ -70,6 +70,7 @@ export enum ReportType {
 }
 
 export interface PriceBreakdown {
+  days: number;
   cabanaDaily: number;
   conceptTotal: number;
   extrasTotal: number;

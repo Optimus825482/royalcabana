@@ -285,6 +285,7 @@ model Reservation {
   userId          String
   guestId         String?
   guestName       String
+  isGuestPrivate  Boolean           @default(false)
   startDate       DateTime          @db.Date
   endDate         DateTime          @db.Date
   notes           String?

@@ -276,8 +276,13 @@ export default function ReservationTimelineInner({
 
     const getBarGeometry = useCallback(
         (r: TimelineReservation) => {
+            if (!r.startDate || !r.endDate) return null;
+
             const rStart = new Date(r.startDate + "T00:00:00");
             const rEnd = new Date(r.endDate + "T00:00:00");
+
+            // Guard against invalid dates producing NaN
+            if (isNaN(rStart.getTime()) || isNaN(rEnd.getTime())) return null;
 
             const startOffset = daysBetween(startDate, rStart);
             const endOffset = daysBetween(startDate, rEnd);

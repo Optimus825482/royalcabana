@@ -159,6 +159,12 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
     color: "text-teal-400",
   },
   {
+    href: "/system-admin/reservations",
+    label: "Rezervasyonlar",
+    icon: BookOpen,
+    color: "text-amber-400",
+  },
+  {
     label: "Sistem",
     icon: Settings,
     color: "text-slate-400",
@@ -211,22 +217,35 @@ export const ADMIN_NAV: NavItem[] = [
     color: "text-sky-400",
   },
   {
-    href: "/admin/calendar",
-    label: "Takvim",
-    icon: CalendarDays,
-    color: "text-amber-400",
-  },
-  {
     label: "Operasyon",
     icon: ClipboardList,
     color: "text-orange-400",
     children: [
+      {
+        href: "/admin/calendar",
+        label: "Takvim",
+        icon: CalendarDays,
+        color: "text-amber-400",
+      },
       {
         href: "/admin/requests",
         label: "Talepler",
         icon: ClipboardList,
         color: "text-orange-400",
       },
+      {
+        href: "/admin/reservations",
+        label: "Rezervasyonlar",
+        icon: BookOpen,
+        color: "text-amber-400",
+      },
+    ],
+  },
+  {
+    label: "Tanımlar",
+    icon: Layers,
+    color: "text-violet-400",
+    children: [
       {
         href: "/admin/users",
         label: "Kullanıcılar",

@@ -18,7 +18,7 @@ const addExtrasSchema = z.object({
 });
 
 export const GET = withAuth(
-  [Role.FNB_USER, Role.ADMIN],
+  [Role.FNB_USER, Role.ADMIN, Role.SYSTEM_ADMIN],
   async (_req, { params }) => {
     const id = params!.id;
 
@@ -35,7 +35,7 @@ export const GET = withAuth(
 );
 
 export const POST = withAuth(
-  [Role.FNB_USER],
+  [Role.FNB_USER, Role.ADMIN],
   async (req, { session, params }) => {
     const id = params!.id;
     const reservation = await prisma.reservation.findUnique({ where: { id } });

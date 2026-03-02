@@ -100,6 +100,7 @@ export const GET = withAuth(
           userId: true,
           guestName: true,
           guestId: true,
+          isGuestPrivate: true,
           startDate: true,
           endDate: true,
           status: true,
@@ -168,10 +169,28 @@ export const GET = withAuth(
       success: true,
       data: {
         cabanas,
-        reservations: reservations.map((r) => ({
-          ...r,
-          totalPrice: r.totalPrice ? parseFloat(r.totalPrice.toString()) : null,
-        })),
+        reservations: reservations.map((r) => {
+          const base = {
+            ...r,
+            totalPrice: r.totalPrice
+              ? parseFloat(r.totalPrice.toString())
+              : null,
+          };
+          // Misafir gizliliği: isGuestPrivate ise Casino dışı roller misafir bilgilerini göremez
+          if (
+            (r as unknown as { isGuestPrivate?: boolean }).isGuestPrivate &&
+            session.user.role !== Role.CASINO_USER
+          ) {
+            return {
+              ...base,
+              guestName: "Gizli Misafir",
+              guestId: null,
+              guest: null,
+              notes: null,
+            };
+          }
+          return base;
+        }),
         blackoutDates,
         stats: {
           totalCabanas,

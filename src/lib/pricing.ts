@@ -162,12 +162,15 @@ export class PricingEngine {
           source = "GENERAL";
         }
 
-        const total = unitPrice * cp.quantity;
+        // Konsept ürünleri günlüktür — toplam kullanım gün sayısıyla çarpılır
+        const stayDays = Math.max(days, 1);
+        const totalQty = cp.quantity * stayDays;
+        const total = unitPrice * totalQty;
         conceptTotal += total;
 
         items.push({
           name: cp.product.name,
-          quantity: cp.quantity,
+          quantity: totalQty,
           unitPrice,
           total,
           source,
@@ -210,6 +213,7 @@ export class PricingEngine {
     const grandTotal = cabanaDaily + conceptTotal + extrasTotal;
 
     return {
+      days,
       cabanaDaily,
       conceptTotal,
       extrasTotal,

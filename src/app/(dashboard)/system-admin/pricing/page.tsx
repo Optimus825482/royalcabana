@@ -423,6 +423,16 @@ function PricePreviewTab({
 
             {breakdown && (
                 <div className="space-y-4">
+                    {breakdown.days > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="bg-amber-900/50 text-amber-300 px-3 py-1 rounded-full font-medium">
+                                {breakdown.days} gün
+                            </span>
+                            <span className="text-neutral-500">
+                                ({form.startDate} → {form.endDate})
+                            </span>
+                        </div>
+                    )}
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-left text-neutral-400 border-b border-neutral-700">
@@ -465,11 +475,16 @@ function PricePreviewTab({
 
                     <div className="flex justify-end">
                         <div className="bg-neutral-800 rounded-lg px-6 py-4 text-right space-y-1">
+                            {breakdown.days > 0 && (
+                                <div className="text-xs text-neutral-500 mb-1">
+                                    Kullanım: {breakdown.days} gün
+                                </div>
+                            )}
                             <div className="text-xs text-neutral-400">
-                                Kabana: {breakdown.cabanaDaily.toFixed(2)} {sym}
+                                Kabana ({breakdown.days} gün): {breakdown.cabanaDaily.toFixed(2)} {sym}
                             </div>
                             <div className="text-xs text-neutral-400">
-                                Konsept: {breakdown.conceptTotal.toFixed(2)} {sym}
+                                Konsept ({breakdown.days} gün): {breakdown.conceptTotal.toFixed(2)} {sym}
                             </div>
                             <div className="text-xs text-neutral-400">
                                 Ekstralar: {breakdown.extrasTotal.toFixed(2)} {sym}

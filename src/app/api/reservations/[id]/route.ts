@@ -44,6 +44,16 @@ export const GET = withAuth(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Misafir gizliliği: isGuestPrivate ise Casino dışındaki roller göremez
+    if (reservation.isGuestPrivate && session.user.role !== Role.CASINO_USER) {
+      return NextResponse.json({
+        ...reservation,
+        guestName: "Gizli Misafir",
+        guestId: null,
+        notes: null,
+      });
+    }
+
     return NextResponse.json(reservation);
-  },
+  };,
 );

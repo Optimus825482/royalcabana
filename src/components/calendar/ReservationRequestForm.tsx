@@ -23,6 +23,7 @@ export default function ReservationRequestForm({
   const [startDate, setStartDate] = useState(initialDate ?? today);
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [isGuestPrivate, setIsGuestPrivate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -58,6 +59,7 @@ export default function ReservationRequestForm({
           startDate,
           endDate,
           notes: notes || undefined,
+          isGuestPrivate,
         }),
       });
 
@@ -127,6 +129,22 @@ export default function ReservationRequestForm({
           className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-yellow-500 resize-none"
         />
       </div>
+
+      <label className="flex items-start gap-2 cursor-pointer group">
+        <input
+          type="checkbox"
+          checked={isGuestPrivate}
+          onChange={(e) => setIsGuestPrivate(e.target.checked)}
+          className="mt-0.5 w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-yellow-500 focus:ring-yellow-500 focus:ring-offset-0"
+        />
+        <span className="text-xs text-neutral-400 group-hover:text-neutral-300 transition-colors leading-relaxed">
+          Misafir bilgileri paylaşılmasın
+          <br />
+          <span className="text-neutral-600 text-[10px]">
+            İşaretlenirse misafir bilgileri yalnızca Casino kullanıcıları tarafından görüntülenebilir.
+          </span>
+        </span>
+      </label>
 
       {error && (
         <div className="px-3 py-2 bg-red-950/50 border border-red-800/40 text-red-400 text-xs rounded-lg">
