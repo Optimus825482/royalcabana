@@ -25,9 +25,9 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/royal_cabana
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: ${SERVICE_URL_APP:-https://royalcabana.erkanerdem.net}
-      NEXT_PUBLIC_APP_URL: ${SERVICE_URL_APP:-https://royalcabana.erkanerdem.net}
-      NEXT_PUBLIC_SOCKET_URL: ${SERVICE_URL_SOCKET:-http://jowk8oogog8sg40cc4gwk4g8.77.42.68.4.sslip.io}
+      NEXTAUTH_URL: https://${SERVICE_FQDN_APP:-royalcabana.erkanerdem.net}
+      NEXT_PUBLIC_APP_URL: https://${SERVICE_FQDN_APP:-royalcabana.erkanerdem.net}
+      NEXT_PUBLIC_SOCKET_URL: http://${SERVICE_FQDN_SOCKET:-jowk8oogog8sg40cc4gwk4g8.77.42.68.4.sslip.io}
       SOCKET_INTERNAL_URL: http://socket:3007
       NODE_ENV: production
       PORT: 3006
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
     environment:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXT_PUBLIC_APP_URL: ${SERVICE_URL_APP:-https://royalcabana.erkanerdem.net}
+      NEXT_PUBLIC_APP_URL: https://${SERVICE_FQDN_APP:-royalcabana.erkanerdem.net}
       SOCKET_PORT: 3007
       NODE_ENV: production
     ports:
