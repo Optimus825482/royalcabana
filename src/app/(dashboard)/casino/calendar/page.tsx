@@ -114,6 +114,9 @@ export default function CasinoCalendarPage() {
     cabanaName: string;
     date?: string;
   } | null>(null);
+  const [selectedCabana, setSelectedCabana] = useState<CabanaWithStatus | null>(
+    null,
+  );
   const [selectedReservation, setSelectedReservation] =
     useState<ReservationDetail | null>(null);
 
@@ -264,6 +267,10 @@ export default function CasinoCalendarPage() {
         {viewType === "timeline" ? (
           <ReservationTimeline
             classFilter={classFilter || undefined}
+            onCabanaClick={(cabana) => {
+              const selected = cabanas.find((c) => c.id === cabana.id);
+              if (selected) setSelectedCabana(selected);
+            }}
             onCellClick={(cabanaId, date) => {
               if (!systemOpen) return;
               const cabana = cabanas.find((c) => c.id === cabanaId);
@@ -302,6 +309,27 @@ export default function CasinoCalendarPage() {
           reservation={selectedReservation}
           onClose={() => setSelectedReservation(null)}
           currency={currency}
+        />
+      )}
+
+      {/* Cabana Detail Modal */}
+      {selectedCabana && (
+        <CabanaDetailModal
+          cabana={selectedCabana}
+          reservationCount={
+            reservationData?.reservations.filter(
+              (reservation) => reservation.cabanaId === selectedCabana.id,
+            ).length ?? 0
+          }
+          systemOpen={systemOpen}
+          onClose={() => setSelectedCabana(null)}
+          onCreateRequest={() => {
+            setRequestModal({
+              cabanaId: selectedCabana.id,
+              cabanaName: selectedCabana.name,
+            });
+            setSelectedCabana(null);
+          }}
         />
       )}
 
@@ -435,6 +463,81 @@ function DetailRow({
     <div className="flex justify-between py-2 border-b border-neutral-800">
       <span className="text-neutral-400">{label}</span>
       <span className={valueClass}>{value}</span>
+    </div>
+  );
+}
+
+function CabanaDetailModal({
+  cabana,
+  reservationCount,
+  systemOpen,
+  onClose,
+  onCreateRequest,
+}: {
+  cabana: CabanaWithStatus;
+  reservationCount: number;
+  systemOpen: boolean;
+  onClose: () => void;
+  onCreateRequest: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
+          <h2 className="text-base font-semibold text-amber-400">{cabana.name}</h2>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+            aria-label="Kapat"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 overscroll-contain">
+          <DetailRow label="Kabana" value={cabana.name} />
+          <DetailRow
+            label="Durum"
+            value={cabana.isOpenForReservation ? "Rezervasyona Açık" : "Rezervasyona Kapalı"}
+            valueClass={
+              cabana.isOpenForReservation ? "text-emerald-400" : "text-red-400"
+            }
+          />
+          {cabana.cabanaClass?.name && (
+            <DetailRow label="Sınıf" value={cabana.cabanaClass.name} />
+          )}
+          {cabana.concept?.name && (
+            <DetailRow label="Konsept" value={cabana.concept.name} />
+          )}
+          <DetailRow label="Toplam Rezervasyon" value={String(reservationCount)} />
+        </div>
+
+        <div className="p-5 border-t border-neutral-800 shrink-0">
+          <button
+            onClick={onCreateRequest}
+            disabled={!systemOpen || !cabana.isOpenForReservation}
+            className="w-full h-11 rounded-lg bg-amber-600 text-white font-medium hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Rezervasyon Talebi Oluştur
+          </button>
+          {!systemOpen && (
+            <p className="text-[11px] text-amber-400 mt-2">
+              Sistem rezervasyona kapalı olduğu için talep oluşturulamaz.
+            </p>
+          )}
+          {systemOpen && !cabana.isOpenForReservation && (
+            <p className="text-[11px] text-red-400 mt-2">
+              Bu kabana şu anda rezervasyona kapalı.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -323,6 +323,95 @@ function buildSunbedPair(cabana: CabanaWithStatus): THREE.Group {
   tableLeg.position.set(0, -frontOffset, tableLegH / 2);
   group.add(tableLeg);
 
+  // === BEACH UMBRELLA (between sunbeds) ===
+  const umbrellaPoleMat = new THREE.MeshStandardMaterial({
+    color: 0xdec8a0,
+    roughness: 0.5,
+    metalness: 0.1,
+  });
+  const umbrellaPoleH = 12;
+  const umbrellaPole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.2, 0.25, umbrellaPoleH, 8),
+    umbrellaPoleMat,
+  );
+  umbrellaPole.rotation.x = Math.PI / 2;
+  umbrellaPole.position.set(0, -frontOffset, umbrellaPoleH / 2);
+  umbrellaPole.castShadow = true;
+  group.add(umbrellaPole);
+
+  // Umbrella canopy (cone)
+  const umbrellaCanopyMat = new THREE.MeshStandardMaterial({
+    color: 0xe8d5b7,
+    roughness: 0.8,
+    metalness: 0,
+    side: THREE.DoubleSide,
+  });
+  const canopyR = 7;
+  const canopyH = 3;
+  const canopy = new THREE.Mesh(
+    new THREE.ConeGeometry(canopyR, canopyH, 16, 1, true),
+    umbrellaCanopyMat,
+  );
+  canopy.position.set(0, -frontOffset, umbrellaPoleH + 0.5);
+  // ConeGeometry is Y-up; scene is Z-up — rotate so canopy opens downward like umbrella
+  canopy.rotation.set(0, 0, 0);
+  canopy.rotation.x = Math.PI / 2;
+  canopy.castShadow = true;
+  group.add(canopy);
+
+  // Umbrella finial (top knob)
+  const finial = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 8, 8),
+    umbrellaPoleMat,
+  );
+  finial.position.set(0, -frontOffset, umbrellaPoleH + 0.8);
+  group.add(finial);
+
+  // === COCKTAIL GLASS on table ===
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0xaaddff,
+    roughness: 0.1,
+    metalness: 0.3,
+    transparent: true,
+    opacity: 0.6,
+  });
+  // Glass stem
+  const glassStem = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.08, 1.2, 6),
+    frameMat,
+  );
+  glassStem.rotation.x = Math.PI / 2;
+  glassStem.position.set(0.5, -frontOffset + 0.3, tableLegH + tableH + 0.6);
+  group.add(glassStem);
+  // Glass cup
+  const glassCup = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.6, 0.2, 1, 8),
+    glassMat,
+  );
+  glassCup.rotation.x = Math.PI / 2;
+  glassCup.position.set(0.5, -frontOffset + 0.3, tableLegH + tableH + 1.4);
+  group.add(glassCup);
+
+  // === FLIP FLOPS (near sunbed) ===
+  const flipFlopMat = new THREE.MeshStandardMaterial({
+    color: 0xff6b6b,
+    roughness: 0.9,
+    metalness: 0,
+  });
+  [-1, 1].forEach((side) => {
+    const flipFlop = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 2.2, 0.3),
+      flipFlopMat,
+    );
+    flipFlop.position.set(
+      -(bedW / 2 + gap / 2) + side * 1.5 - 3,
+      -frontOffset - bedD * 0.3,
+      0.15,
+    );
+    flipFlop.rotation.z = 0.1 * side;
+    group.add(flipFlop);
+  });
+
   // Position & rotation (same as cabana)
   const worldPos = pixelToWorld(cabana.coordX, cabana.coordY);
   group.position.copy(worldPos);
@@ -641,6 +730,192 @@ function buildCabanaMesh(
     group.add(leg);
   });
 
+  // === PALM TREE (decorative, beside cabana) ===
+  const palmTrunkMat = new THREE.MeshStandardMaterial({
+    color: 0x8b6914,
+    roughness: 0.9,
+    metalness: 0,
+  });
+  const palmLeafMat = new THREE.MeshStandardMaterial({
+    color: 0x2d8a4e,
+    roughness: 0.8,
+    metalness: 0,
+    side: THREE.DoubleSide,
+  });
+  // Trunk (slightly curved via segments)
+  const trunkH = postH * 1.1;
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 0.8, trunkH, 8),
+    palmTrunkMat,
+  );
+  trunk.rotation.x = Math.PI / 2;
+  trunk.position.set(w / 2 + 5, d / 2 + 3, trunkH / 2);
+  trunk.castShadow = true;
+  group.add(trunk);
+
+  // Trunk rings (texture detail)
+  for (let ri = 0; ri < 5; ri++) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.65 - ri * 0.03, 0.08, 6, 12),
+      new THREE.MeshStandardMaterial({ color: 0x6b5010, roughness: 1 }),
+    );
+    ring.position.set(w / 2 + 5, d / 2 + 3, 2 + ri * (trunkH / 5));
+    group.add(ring);
+  }
+
+  // Palm leaves (6 fronds radiating out)
+  const leafCount = 6;
+  for (let li = 0; li < leafCount; li++) {
+    const angle = (li / leafCount) * Math.PI * 2 + 0.3;
+    const leafLen = 8;
+    const leaf = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.5, leafLen),
+      palmLeafMat,
+    );
+    leaf.position.set(
+      w / 2 + 5 + Math.cos(angle) * leafLen * 0.4,
+      d / 2 + 3 + Math.sin(angle) * leafLen * 0.4,
+      trunkH + 1,
+    );
+    // Droop the leaf downward
+    leaf.rotation.z = angle;
+    leaf.rotation.x = -0.5;
+    leaf.castShadow = true;
+    group.add(leaf);
+  }
+
+  // Coconuts (3 small spheres at top)
+  const coconutMat = new THREE.MeshStandardMaterial({
+    color: 0x5c3a1e,
+    roughness: 0.8,
+    metalness: 0,
+  });
+  for (let ci = 0; ci < 3; ci++) {
+    const ca = (ci / 3) * Math.PI * 2;
+    const coconut = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 6, 6),
+      coconutMat,
+    );
+    coconut.position.set(
+      w / 2 + 5 + Math.cos(ca) * 0.7,
+      d / 2 + 3 + Math.sin(ca) * 0.7,
+      trunkH - 0.5,
+    );
+    coconut.castShadow = true;
+    group.add(coconut);
+  }
+
+  // === TOWEL RACK (wooden stand with hanging towel) ===
+  const rackMat = new THREE.MeshStandardMaterial({
+    color: 0xa0784c,
+    roughness: 0.7,
+    metalness: 0.05,
+  });
+  const rackH = 8;
+  const rackX = -w / 2 - 4;
+  const rackY = 0;
+  // Two vertical posts
+  [-1, 1].forEach((side) => {
+    const rackPost = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.2, rackH, 6),
+      rackMat,
+    );
+    rackPost.rotation.x = Math.PI / 2;
+    rackPost.position.set(rackX + side * 2, rackY, rackH / 2);
+    rackPost.castShadow = true;
+    group.add(rackPost);
+  });
+  // Horizontal bar
+  const rackBar = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.15, 0.15, 4.5, 6),
+    rackMat,
+  );
+  rackBar.position.set(rackX, rackY, rackH);
+  rackBar.rotation.z = Math.PI / 2;
+  rackBar.rotation.x = Math.PI / 2;
+  group.add(rackBar);
+  // Hanging towel (draped fabric)
+  const towelColors = [0x4fc3f7, 0xfff176, 0xef5350];
+  const towelColor =
+    towelColors[Math.abs(cabana.name.charCodeAt(0)) % towelColors.length];
+  const towelMat = new THREE.MeshStandardMaterial({
+    color: towelColor,
+    roughness: 0.9,
+    metalness: 0,
+    side: THREE.DoubleSide,
+  });
+  const towel = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 5), towelMat);
+  towel.position.set(rackX, rackY + 0.3, rackH - 2.8);
+  towel.rotation.x = 0.15; // slight drape angle
+  group.add(towel);
+
+  // === TIKI TORCHES / LANTERNS (2 at front corners) ===
+  const torchMat = new THREE.MeshStandardMaterial({
+    color: 0x5c3a1e,
+    roughness: 0.8,
+    metalness: 0.05,
+  });
+  const flameMat = new THREE.MeshStandardMaterial({
+    color: 0xff8c00,
+    emissive: 0xff6600,
+    emissiveIntensity: 0.8,
+    roughness: 0.3,
+    metalness: 0,
+  });
+  [-1, 1].forEach((side) => {
+    const torchH = 10;
+    // Torch pole
+    const torchPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.3, torchH, 6),
+      torchMat,
+    );
+    torchPole.rotation.x = Math.PI / 2;
+    torchPole.position.set(side * (w / 2 + 4), -d / 2 - 3, torchH / 2);
+    torchPole.castShadow = true;
+    group.add(torchPole);
+
+    // Torch head (basket)
+    const torchHead = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.6, 0.4, 1.5, 8),
+      torchMat,
+    );
+    torchHead.rotation.x = Math.PI / 2;
+    torchHead.position.set(side * (w / 2 + 4), -d / 2 - 3, torchH + 0.5);
+    group.add(torchHead);
+
+    // Flame (glowing sphere)
+    const flame = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), flameMat);
+    flame.position.set(side * (w / 2 + 4), -d / 2 - 3, torchH + 1.8);
+    group.add(flame);
+  });
+
+  // === DECORATIVE ROPE LIGHTS (string between front posts) ===
+  const ropeLightMat = new THREE.MeshStandardMaterial({
+    color: 0xfff4c1,
+    emissive: 0xffe082,
+    emissiveIntensity: 0.4,
+    roughness: 0.5,
+    metalness: 0,
+  });
+  const ropeSegments = 8;
+  const ropeStartX = -postOffsetX;
+  const ropeEndX = postOffsetX;
+  const ropeY = -postOffsetY;
+  const ropeBaseZ = 2.25 + postH * 0.75;
+  for (let si = 0; si <= ropeSegments; si++) {
+    const t = si / ropeSegments;
+    const rx = ropeStartX + (ropeEndX - ropeStartX) * t;
+    // Catenary sag
+    const sag = -2 * Math.sin(t * Math.PI);
+    const rz = ropeBaseZ + sag;
+    const bulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.3, 6, 6),
+      ropeLightMat,
+    );
+    bulb.position.set(rx, ropeY, rz);
+    group.add(bulb);
+  }
+
   // === STATUS INDICATOR ===
   const statusSphere = new THREE.Mesh(
     new THREE.SphereGeometry(1.8, 12, 12),
@@ -939,6 +1214,236 @@ function buildSunsetBarMesh(
     );
     bulb.position.set(-w / 2 + 5 + i * lightSpacing, -d / 2 + 5, 2 + wallH - 2);
     group.add(bulb);
+  }
+
+  // === LEFT SIDE TERRACE — Pier deck with parasols & seating ===
+  const deckMat = new THREE.MeshStandardMaterial({
+    color: 0x8b6f47,
+    roughness: 0.75,
+    metalness: 0.05,
+  });
+  const parasolFabricMat = new THREE.MeshStandardMaterial({
+    color: 0xf5f0e0,
+    roughness: 0.85,
+    metalness: 0,
+    side: THREE.DoubleSide,
+  });
+  const parasolPoleMat = new THREE.MeshStandardMaterial({
+    color: 0xc0c0c0,
+    roughness: 0.4,
+    metalness: 0.5,
+  });
+  const seatCushionMat = new THREE.MeshStandardMaterial({
+    color: 0xf0ebe0,
+    roughness: 0.9,
+    metalness: 0,
+  });
+  const seatFrameMat = new THREE.MeshStandardMaterial({
+    color: 0x6b5b3e,
+    roughness: 0.7,
+    metalness: 0.1,
+  });
+
+  // Wooden deck platform extending to the left
+  const deckW = 90;
+  const deckD = d + 4;
+  const deckH = 2;
+  const deckX = -w / 2 - deckW / 2 - 2;
+  const deck = new THREE.Mesh(
+    new THREE.BoxGeometry(deckW, deckD, deckH),
+    deckMat,
+  );
+  deck.position.set(deckX, 0, 1);
+  deck.receiveShadow = true;
+  deck.castShadow = true;
+  group.add(deck);
+
+  // Deck planks (visual detail — thin lines)
+  const plankCount = 12;
+  const plankMat = new THREE.MeshStandardMaterial({
+    color: 0x7a6040,
+    roughness: 0.8,
+    metalness: 0,
+  });
+  for (let pi = 0; pi < plankCount; pi++) {
+    const plank = new THREE.Mesh(
+      new THREE.BoxGeometry(deckW, 0.3, 0.2),
+      plankMat,
+    );
+    plank.position.set(
+      deckX,
+      -deckD / 2 + (pi + 0.5) * (deckD / plankCount),
+      deckH + 0.1,
+    );
+    plank.receiveShadow = true;
+    group.add(plank);
+  }
+
+  // Parasol + seating groups (3 rows x 2 columns = 6 sets)
+  const parasols: { px: number; py: number }[] = [];
+  const colCount = 3;
+  const rowCount = 2;
+  const colSpacing = deckW / (colCount + 1);
+  const rowSpacing = deckD / (rowCount + 1);
+
+  for (let col = 0; col < colCount; col++) {
+    for (let row = 0; row < rowCount; row++) {
+      const px = deckX - deckW / 2 + (col + 1) * colSpacing;
+      const py = -deckD / 2 + (row + 1) * rowSpacing;
+      parasols.push({ px, py });
+    }
+  }
+
+  parasols.forEach(({ px, py }) => {
+    // Parasol pole
+    const poleH = 14;
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.25, 0.3, poleH, 8),
+      parasolPoleMat,
+    );
+    pole.rotation.x = Math.PI / 2;
+    pole.position.set(px, py, deckH + poleH / 2);
+    pole.castShadow = true;
+    group.add(pole);
+
+    // Parasol canopy (octagonal cone — like the white round ones in the image)
+    const canopyR = 8;
+    const canopyH = 3;
+    const parasolCanopy = new THREE.Mesh(
+      new THREE.ConeGeometry(canopyR, canopyH, 8, 1, true),
+      parasolFabricMat,
+    );
+    parasolCanopy.position.set(px, py, deckH + poleH + 0.5);
+    // ConeGeometry is Y-up by default; scene is Z-up
+    // First rotate to Z-up (tip pointing up), then flip so it opens downward like umbrella
+    parasolCanopy.rotation.set(0, 0, 0);
+    parasolCanopy.rotation.x = Math.PI / 2; // Y-up → Z-up (tip points +Z)
+    // No additional flip needed — open cone faces down naturally with open:true
+    parasolCanopy.castShadow = true;
+    group.add(parasolCanopy);
+
+    // Parasol top finial
+    const pFinial = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 8, 8),
+      parasolPoleMat,
+    );
+    pFinial.position.set(px, py, deckH + poleH + 1);
+    group.add(pFinial);
+
+    // Seating — 2 lounge chairs per parasol (left & right)
+    [-1, 1].forEach((side) => {
+      const chairX = px + side * 4;
+      const chairY = py;
+
+      // Chair frame
+      const chairBase = new THREE.Mesh(
+        new THREE.BoxGeometry(3.5, 7, 0.5),
+        seatFrameMat,
+      );
+      chairBase.position.set(chairX, chairY, deckH + 1.5);
+      chairBase.receiveShadow = true;
+      chairBase.castShadow = true;
+      group.add(chairBase);
+
+      // Chair legs (4)
+      const cLegH = 1.2;
+      const cLegR = 0.15;
+      [
+        [-1, -1],
+        [-1, 1],
+        [1, -1],
+        [1, 1],
+      ].forEach(([lx, ly]) => {
+        const cLeg = new THREE.Mesh(
+          new THREE.CylinderGeometry(cLegR, cLegR, cLegH, 6),
+          seatFrameMat,
+        );
+        cLeg.rotation.x = Math.PI / 2;
+        cLeg.position.set(
+          chairX + lx * 1.4,
+          chairY + ly * 2.8,
+          deckH + cLegH / 2,
+        );
+        group.add(cLeg);
+      });
+
+      // Cushion
+      const cushion = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 6.5, 0.6),
+        seatCushionMat,
+      );
+      cushion.position.set(chairX, chairY, deckH + 2.1);
+      cushion.receiveShadow = true;
+      group.add(cushion);
+    });
+
+    // Small round table between chairs
+    const tblR = 1.2;
+    const tblH = 0.3;
+    const tblLegH = 2;
+    const tblTop = new THREE.Mesh(
+      new THREE.CylinderGeometry(tblR, tblR, tblH, 10),
+      seatFrameMat,
+    );
+    tblTop.rotation.x = Math.PI / 2;
+    tblTop.position.set(px, py, deckH + tblLegH + tblH / 2);
+    tblTop.castShadow = true;
+    group.add(tblTop);
+
+    const tblLeg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.2, tblLegH, 6),
+      parasolPoleMat,
+    );
+    tblLeg.rotation.x = Math.PI / 2;
+    tblLeg.position.set(px, py, deckH + tblLegH / 2);
+    group.add(tblLeg);
+  });
+
+  // Deck railing (rope/bollard style along the edge)
+  const bollardMat = new THREE.MeshStandardMaterial({
+    color: 0x5a4a30,
+    roughness: 0.8,
+    metalness: 0.05,
+  });
+  const ropeMat = new THREE.MeshStandardMaterial({
+    color: 0xd4c5a0,
+    roughness: 0.9,
+    metalness: 0,
+  });
+  const bollardCount = 10;
+  const bollardSpacing = deckW / (bollardCount - 1);
+  for (let bi = 0; bi < bollardCount; bi++) {
+    const bx = deckX - deckW / 2 + bi * bollardSpacing;
+    // Front edge bollard
+    const bollard = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.4, 0.5, 4, 8),
+      bollardMat,
+    );
+    bollard.rotation.x = Math.PI / 2;
+    bollard.position.set(bx, -deckD / 2 - 0.5, deckH + 2);
+    bollard.castShadow = true;
+    group.add(bollard);
+
+    // Bollard cap
+    const bCap = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 8, 8),
+      bollardMat,
+    );
+    bCap.position.set(bx, -deckD / 2 - 0.5, deckH + 4.2);
+    group.add(bCap);
+
+    // Rope between bollards
+    if (bi < bollardCount - 1) {
+      const ropeLen = bollardSpacing;
+      const rope = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, ropeLen, 6),
+        ropeMat,
+      );
+      rope.position.set(bx + bollardSpacing / 2, -deckD / 2 - 0.5, deckH + 3.2);
+      rope.rotation.z = Math.PI / 2;
+      rope.rotation.x = Math.PI / 2;
+      group.add(rope);
+    }
   }
 
   // === "SUNSET BAR" TEXT LABEL ===
@@ -1328,6 +1833,10 @@ export default function CabanaMapInner({
     () => ({ x: 680, y: 420, scale: 1, rotation: 0, isLocked: false }),
     [],
   );
+  const COMMON_PARASOL_DEFAULT = useMemo(
+    () => ({ x: 620, y: 400, scale: 1, rotation: 0, isLocked: false }),
+    [],
+  );
 
   // ─── Sunset Bar state (persisted to DB via SystemConfig) ──────────────────
   const SUNSET_BAR_CONFIG_KEY = "sunset_bar_transform";
@@ -1345,6 +1854,12 @@ export default function CabanaMapInner({
   const BLUE_SEA_BAR_CONFIG_KEY = "blue_sea_bar_transform";
   const [blueSeaBarTransform, setBlueSeaBarTransform] = useState(() => ({
     ...BLUE_SEA_DEFAULT,
+  }));
+
+  // ─── Common Parasol state (persisted to DB via SystemConfig) ──────────────
+  const COMMON_PARASOL_CONFIG_KEY = "common_parasol_transform";
+  const [commonParasolTransform, setCommonParasolTransform] = useState(() => ({
+    ...COMMON_PARASOL_DEFAULT,
   }));
 
   // ─── Flag: DB'den yükleme tamamlandı mı? Bu flag true olana kadar save tetiklenmez ─
@@ -1397,6 +1912,11 @@ export default function CabanaMapInner({
         setBlueSeaBarTransform,
         BLUE_SEA_DEFAULT,
       ),
+      fetchBarConfig(
+        COMMON_PARASOL_CONFIG_KEY,
+        setCommonParasolTransform,
+        COMMON_PARASOL_DEFAULT,
+      ),
     ]).finally(() => {
       // Yükleme bitti — artık save effect'leri aktif
       barDbLoadedRef.current = true;
@@ -1434,6 +1954,9 @@ export default function CabanaMapInner({
   useEffect(() => {
     saveBarConfig(BLUE_SEA_BAR_CONFIG_KEY, blueSeaBarTransform);
   }, [blueSeaBarTransform, saveBarConfig]);
+  useEffect(() => {
+    saveBarConfig(COMMON_PARASOL_CONFIG_KEY, commonParasolTransform);
+  }, [commonParasolTransform, saveBarConfig]);
 
   // Building drag state ref
   const buildingDragRef = useRef<{
@@ -1490,6 +2013,7 @@ export default function CabanaMapInner({
   const setDetailCabanaRef = useRef(setDetailCabana);
   const sunsetBarTransformRef = useRef(sunsetBarTransform);
   const blueSeaBarTransformRef = useRef(blueSeaBarTransform);
+  const commonParasolTransformRef = useRef(commonParasolTransform);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are intentionally synced every render for imperative three.js handlers
   useEffect(() => {
@@ -1506,6 +2030,7 @@ export default function CabanaMapInner({
     setDetailCabanaRef.current = setDetailCabana;
     sunsetBarTransformRef.current = sunsetBarTransform;
     blueSeaBarTransformRef.current = blueSeaBarTransform;
+    commonParasolTransformRef.current = commonParasolTransform;
   });
 
   // ─── Three.js scene setup (EXACT GiroCanvas engine) ─────────────────────────
@@ -1974,6 +2499,120 @@ export default function CabanaMapInner({
     };
   }, [blueSeaBarTransform]);
 
+  // ─── Common Parasols (draggable building, persisted to DB) ────────────────
+
+  const commonParasolRef = useRef<THREE.Group | null>(null);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    // Remove existing parasols
+    if (commonParasolRef.current) {
+      scene.remove(commonParasolRef.current);
+      commonParasolRef.current.traverse((child) => {
+        if ((child as THREE.Mesh).geometry)
+          (child as THREE.Mesh).geometry.dispose();
+        if ((child as THREE.Mesh).material) {
+          const mat = (child as THREE.Mesh).material;
+          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+          else (mat as THREE.Material).dispose();
+        }
+      });
+      commonParasolRef.current = null;
+    }
+
+    const worldPos = pixelToWorld(
+      commonParasolTransform.x,
+      commonParasolTransform.y,
+    );
+    const wrapper = new THREE.Group();
+    wrapper.position.set(worldPos.x, worldPos.y, 0);
+    wrapper.rotation.z =
+      ((commonParasolTransform.rotation ?? 0) * Math.PI) / 180;
+    wrapper.scale.setScalar(commonParasolTransform.scale);
+
+    const canopyMat = new THREE.MeshStandardMaterial({
+      color: 0xf8f4ec,
+      roughness: 0.8,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    });
+    const poleMat = new THREE.MeshStandardMaterial({
+      color: 0xb0b0b0,
+      roughness: 0.4,
+      metalness: 0.5,
+    });
+    const baseMat = new THREE.MeshStandardMaterial({
+      color: 0x555555,
+      roughness: 0.8,
+      metalness: 0.2,
+    });
+
+    // Two parasols offset from center
+    [
+      { ox: -15, oy: 0 },
+      { ox: 15, oy: 0 },
+    ].forEach(({ ox, oy }) => {
+      const pGroup = new THREE.Group();
+
+      // Pole
+      const poleH = 16;
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.3, 0.35, poleH, 8),
+        poleMat,
+      );
+      pole.rotation.x = Math.PI / 2;
+      pole.position.set(0, 0, poleH / 2);
+      pole.castShadow = true;
+      pGroup.add(pole);
+
+      // Canopy
+      const cR = 10;
+      const cH = 3.5;
+      const canopyMesh = new THREE.Mesh(
+        new THREE.ConeGeometry(cR, cH, 12, 1, true),
+        canopyMat,
+      );
+      canopyMesh.position.set(0, 0, poleH + 0.5);
+      canopyMesh.rotation.x = Math.PI / 2;
+      canopyMesh.castShadow = true;
+      pGroup.add(canopyMesh);
+
+      // Finial
+      const fin = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), poleMat);
+      fin.position.set(0, 0, poleH + 1);
+      pGroup.add(fin);
+
+      // Base disc
+      const baseDisc = new THREE.Mesh(
+        new THREE.CylinderGeometry(2, 2, 0.5, 12),
+        baseMat,
+      );
+      baseDisc.rotation.x = Math.PI / 2;
+      baseDisc.position.set(0, 0, 0.25);
+      pGroup.add(baseDisc);
+
+      pGroup.position.set(ox, oy, 0);
+      wrapper.add(pGroup);
+    });
+
+    // Mark as building for drag system
+    wrapper.userData = { isBuilding: true, buildingType: "common-parasol" };
+    wrapper.traverse((child) => {
+      child.userData = { isBuilding: true, buildingType: "common-parasol" };
+    });
+
+    scene.add(wrapper);
+    commonParasolRef.current = wrapper;
+
+    return () => {
+      if (commonParasolRef.current && scene) {
+        scene.remove(commonParasolRef.current);
+      }
+    };
+  }, [commonParasolTransform]);
+
   // ─── Placement preview ────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -2062,6 +2701,7 @@ export default function CabanaMapInner({
       const buildings: { ref: THREE.Group | null; type: string }[] = [
         { ref: sunsetBarRef.current, type: "sunset-bar" },
         { ref: blueSeaBarRef.current, type: "blue-sea-bar" },
+        { ref: commonParasolRef.current, type: "common-parasol" },
       ];
 
       const allMeshes: THREE.Object3D[] = [];
@@ -2112,7 +2752,9 @@ export default function CabanaMapInner({
             (buildingHit.buildingType === "sunset-bar" &&
               sunsetBarTransformRef.current.isLocked) ||
             (buildingHit.buildingType === "blue-sea-bar" &&
-              blueSeaBarTransformRef.current.isLocked);
+              blueSeaBarTransformRef.current.isLocked) ||
+            (buildingHit.buildingType === "common-parasol" &&
+              commonParasolTransformRef.current.isLocked);
           if (isLocked) {
             // Building is locked, just select it but don't allow drag
             setSelectedBuilding(buildingHit.buildingType);
@@ -2242,6 +2884,22 @@ export default function CabanaMapInner({
         // Update Blue Sea Bar transform state
         if (bd.buildingType === "blue-sea-bar") {
           setBlueSeaBarTransform(
+            (prev: {
+              x: number;
+              y: number;
+              scale: number;
+              rotation: number;
+              isLocked: boolean;
+            }) => ({
+              ...prev,
+              x: coordX,
+              y: coordY,
+            }),
+          );
+        }
+        // Update Common Parasol transform state
+        if (bd.buildingType === "common-parasol") {
+          setCommonParasolTransform(
             (prev: {
               x: number;
               y: number;
@@ -2982,6 +3640,20 @@ export default function CabanaMapInner({
                   }),
                 );
               }
+              if (buildingContextMenu.buildingType === "common-parasol") {
+                setCommonParasolTransform(
+                  (prev: {
+                    x: number;
+                    y: number;
+                    scale: number;
+                    rotation: number;
+                    isLocked: boolean;
+                  }) => ({
+                    ...prev,
+                    isLocked: !prev.isLocked,
+                  }),
+                );
+              }
               setBuildingContextMenu(null);
             }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors text-left ${buildingContextMenu.buildingType === "blue-sea-bar" ? "hover:bg-blue-600/20 hover:text-blue-400" : "hover:bg-orange-600/20 hover:text-orange-400"}`}
@@ -2989,7 +3661,9 @@ export default function CabanaMapInner({
             {(buildingContextMenu.buildingType === "sunset-bar" &&
               sunsetBarTransform.isLocked) ||
             (buildingContextMenu.buildingType === "blue-sea-bar" &&
-              blueSeaBarTransform.isLocked)
+              blueSeaBarTransform.isLocked) ||
+            (buildingContextMenu.buildingType === "common-parasol" &&
+              commonParasolTransform.isLocked)
               ? "🔓 Kilidi Aç"
               : "🔒 Sabitle"}
           </button>
@@ -3016,6 +3690,13 @@ export default function CabanaMapInner({
                 X: {Math.round(blueSeaBarTransform.x)} · Y:{" "}
                 {Math.round(blueSeaBarTransform.y)}
                 {blueSeaBarTransform.isLocked && " · 🔒"}
+              </>
+            )}
+            {buildingContextMenu.buildingType === "common-parasol" && (
+              <>
+                X: {Math.round(commonParasolTransform.x)} · Y:{" "}
+                {Math.round(commonParasolTransform.y)}
+                {commonParasolTransform.isLocked && " · 🔒"}
               </>
             )}
           </div>

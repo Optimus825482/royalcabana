@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Role } from "@/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -21,7 +22,21 @@ interface UserRow {
   createdAt: string;
 }
 
-const ROLE_LABELS: Record<Role, string> = {
+interface RoleDefinitionRow {
+  id: string;
+  role: Role;
+  displayName: string;
+  isActive: boolean;
+  isDeleted?: boolean;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error: string | null;
+}
+
+const FALLBACK_ROLE_LABELS: Record<Role, string> = {
   [Role.SYSTEM_ADMIN]: "Sistem Yöneticisi",
   [Role.ADMIN]: "Admin",
   [Role.CASINO_USER]: "Casino Kullanıcısı",
@@ -52,7 +67,10 @@ const defaultCreateForm: CreateForm = {
   role: Role.CASINO_USER,
 };
 
+const ADMIN_ALLOWED_ROLES = [Role.CASINO_USER, Role.FNB_USER];
+
 export default function UsersPage() {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
 
   const {
@@ -65,6 +83,18 @@ export default function UsersPage() {
       const res = await fetch("/api/users");
       if (!res.ok) throw new Error("Kullanıcılar yüklenemedi.");
       return res.json();
+    },
+  });
+
+  const { data: roleDefinitions = [] } = useQuery<RoleDefinitionRow[]>({
+    queryKey: ["role-definitions", "for-users"],
+    queryFn: async () => {
+      const res = await fetch("/api/system-admin/role-definitions");
+      const payload: ApiResponse<RoleDefinitionRow[]> = await res.json();
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.error || "Rol tanımları yüklenemedi.");
+      }
+      return payload.data;
     },
   });
 
@@ -87,6 +117,46 @@ export default function UsersPage() {
   const [deactivateUser, setDeactivateUser] = useState<UserRow | null>(null);
   const [deactivateLoading, setDeactivateLoading] = useState(false);
 
+  const [roleDrafts, setRoleDrafts] = useState<Record<string, Role>>({});
+  const [roleSavingUserId, setRoleSavingUserId] = useState<string | null>(null);
+
+  const currentUserRole = session?.user?.role as Role | undefined;
+
+  const roleLabelMap = useMemo(() => {
+    const map = { ...FALLBACK_ROLE_LABELS };
+    for (const roleDefinition of roleDefinitions) {
+      map[roleDefinition.role] = roleDefinition.displayName;
+    }
+    return map;
+  }, [roleDefinitions]);
+
+  const activeRoles = useMemo(() => {
+    const rolesFromDefinitions = roleDefinitions
+      .filter((roleDefinition) => roleDefinition.isActive && !roleDefinition.isDeleted)
+      .map((roleDefinition) => roleDefinition.role);
+
+    return rolesFromDefinitions.length > 0
+      ? Array.from(new Set(rolesFromDefinitions))
+      : ROLES;
+  }, [roleDefinitions]);
+
+  const editableRoles = useMemo(
+    () =>
+      currentUserRole === Role.ADMIN
+        ? activeRoles.filter((role) => ADMIN_ALLOWED_ROLES.includes(role))
+        : activeRoles,
+    [activeRoles, currentUserRole],
+  );
+
+  const canEditRoleOfUser = (user: UserRow) => {
+    if (currentUserRole === Role.ADMIN) {
+      return ADMIN_ALLOWED_ROLES.includes(user.role);
+    }
+    return true;
+  };
+
+  const getDraftRole = (user: UserRow) => roleDrafts[user.id] ?? user.role;
+
   function showSuccess(msg: string) {
     setSuccess(msg);
     setTimeout(() => setSuccess(""), 3000);
@@ -105,7 +175,7 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Kullanıcı oluşturulamadı.");
+        throw new Error(data.error || data.message || "Kullanıcı oluşturulamadı.");
       }
       setShowCreate(false);
       setCreateForm(defaultCreateForm);
@@ -147,7 +217,7 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Kullanıcı güncellenemedi.");
+        throw new Error(data.error || data.message || "Kullanıcı güncellenemedi.");
       }
       setEditUser(null);
       setEditForm(null);
@@ -170,7 +240,7 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Kullanıcı devre dışı bırakılamadı.");
+        throw new Error(data.error || data.message || "Kullanıcı devre dışı bırakılamadı.");
       }
       setDeactivateUser(null);
       showSuccess("Kullanıcı devre dışı bırakıldı.");
@@ -180,6 +250,33 @@ export default function UsersPage() {
       setDeactivateUser(null);
     } finally {
       setDeactivateLoading(false);
+    }
+  }
+
+  async function handleQuickRoleUpdate(user: UserRow) {
+    const nextRole = getDraftRole(user);
+    if (nextRole === user.role) return;
+
+    setRoleSavingUserId(user.id);
+    setError("");
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: nextRole }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || data.message || "Yetki güncellenemedi.");
+      }
+
+      showSuccess("Kullanıcı yetkisi güncellendi.");
+      queryClient.invalidateQueries({ queryKey: ["system-admin-users"] });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
+    } finally {
+      setRoleSavingUserId(null);
     }
   }
 
@@ -237,7 +334,7 @@ export default function UsersPage() {
                   <tr className="border-b border-neutral-800 text-neutral-400 text-left">
                     <th className="px-4 py-3 font-medium">Kullanıcı Adı</th>
                     <th className="px-4 py-3 font-medium">E-posta</th>
-                    <th className="px-4 py-3 font-medium">Rol</th>
+                        <th className="px-4 py-3 font-medium">Yetki (Rol)</th>
                     <th className="px-4 py-3 font-medium">Durum</th>
                     <th className="px-4 py-3 font-medium text-right">
                       İşlemler
@@ -257,7 +354,37 @@ export default function UsersPage() {
                         {user.email}
                       </td>
                       <td className="px-4 py-3 text-neutral-300">
-                        {ROLE_LABELS[user.role]}
+                        <div className="flex items-center gap-2 justify-start">
+                          <select
+                            value={getDraftRole(user)}
+                            onChange={(e) =>
+                              setRoleDrafts((prev) => ({
+                                ...prev,
+                                [user.id]: e.target.value as Role,
+                              }))
+                            }
+                            disabled={!canEditRoleOfUser(user) || roleSavingUserId === user.id}
+                            title="Kullanıcı rolü"
+                            className="bg-neutral-800 border border-neutral-700 rounded-md px-2 py-1 text-xs text-neutral-100 disabled:opacity-50"
+                          >
+                            {editableRoles.map((r) => (
+                              <option key={r} value={r}>
+                                {roleLabelMap[r]}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleQuickRoleUpdate(user)}
+                            disabled={
+                              !canEditRoleOfUser(user) ||
+                              roleSavingUserId === user.id ||
+                              getDraftRole(user) === user.role
+                            }
+                            className="text-xs px-2.5 min-h-[30px] rounded-md bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-700/30 text-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {roleSavingUserId === user.id ? "Kaydediliyor..." : "Kaydet"}
+                          </button>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         {user.isActive ? (
@@ -320,9 +447,40 @@ export default function UsersPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-neutral-500">
-                    {ROLE_LABELS[user.role]}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-neutral-500">Yetki (Rol)</p>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={getDraftRole(user)}
+                        onChange={(e) =>
+                          setRoleDrafts((prev) => ({
+                            ...prev,
+                            [user.id]: e.target.value as Role,
+                          }))
+                        }
+                        disabled={!canEditRoleOfUser(user) || roleSavingUserId === user.id}
+                        title="Kullanıcı rolü"
+                        className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-100 disabled:opacity-50"
+                      >
+                        {editableRoles.map((r) => (
+                          <option key={r} value={r}>
+                            {roleLabelMap[r]}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleQuickRoleUpdate(user)}
+                        disabled={
+                          !canEditRoleOfUser(user) ||
+                          roleSavingUserId === user.id ||
+                          getDraftRole(user) === user.role
+                        }
+                        className="px-3 min-h-[40px] rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-700/30 text-yellow-300 text-sm disabled:opacity-50"
+                      >
+                        {roleSavingUserId === user.id ? "..." : "Kaydet"}
+                      </button>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEdit(user)}
@@ -394,11 +552,12 @@ export default function UsersPage() {
                 onChange={(e) =>
                   setCreateForm((f) => ({ ...f, role: e.target.value as Role }))
                 }
+                title="Yeni kullanıcı rolü"
                 className={inputCls}
               >
-                {ROLES.map((r) => (
+                {editableRoles.map((r) => (
                   <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
+                    {roleLabelMap[r]}
                   </option>
                 ))}
               </select>
@@ -445,6 +604,7 @@ export default function UsersPage() {
                     f ? { ...f, username: e.target.value } : f,
                   )
                 }
+                title="Kullanıcı adı"
                 className={inputCls}
               />
             </Field>
@@ -456,6 +616,7 @@ export default function UsersPage() {
                 onChange={(e) =>
                   setEditForm((f) => (f ? { ...f, email: e.target.value } : f))
                 }
+                title="E-posta"
                 className={inputCls}
               />
             </Field>
@@ -467,11 +628,12 @@ export default function UsersPage() {
                     f ? { ...f, role: e.target.value as Role } : f,
                   )
                 }
+                title="Kullanıcı rolü"
                 className={inputCls}
               >
-                {ROLES.map((r) => (
+                {editableRoles.map((r) => (
                   <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
+                    {roleLabelMap[r]}
                   </option>
                 ))}
               </select>
@@ -484,6 +646,7 @@ export default function UsersPage() {
                     f ? { ...f, isActive: e.target.value === "true" } : f,
                   )
                 }
+                title="Kullanıcı durumu"
                 className={inputCls}
               >
                 <option value="true">Aktif</option>
@@ -500,6 +663,7 @@ export default function UsersPage() {
                     f ? { ...f, newPassword: e.target.value } : f,
                   )
                 }
+                title="Yeni şifre"
                 className={inputCls}
                 placeholder="Boş bırakılırsa değişmez"
               />

@@ -31,6 +31,7 @@ import { ReservationStatus } from "@/types";
 import {
     useReservationCalendar,
     type TimelineReservation,
+    type TimelineCabana,
 } from "@/hooks/useReservationCalendar";
 
 // ─── Constants ────────────────────────────────────────────────────────────
@@ -161,6 +162,7 @@ function clamp(v: number, min: number, max: number): number {
 interface ReservationTimelineProps {
     classFilter?: string;
     onReservationClick?: (reservation: TimelineReservation) => void;
+    onCabanaClick?: (cabana: TimelineCabana) => void;
     onCellClick?: (cabanaId: string, date: string) => void;
     onQuickAction?: (
         action: string,
@@ -175,6 +177,7 @@ interface ReservationTimelineProps {
 export default function ReservationTimelineInner({
     classFilter,
     onReservationClick,
+    onCabanaClick,
     onCellClick,
     onQuickAction,
     isAdmin = false,
@@ -656,10 +659,13 @@ export default function ReservationTimelineInner({
                                     style={{ minHeight: rowHeight }}
                                 >
                                     {/* Cabana Name Column (sticky) */}
-                                    <div
-                                        className={`sticky left-0 z-10 flex items-center gap-2 px-3 border-r border-neutral-800/40 backdrop-blur-sm shrink-0
+                                    <button
+                                        type="button"
+                                        onClick={() => onCabanaClick?.(cabana)}
+                                        className={`sticky left-0 z-10 flex items-center gap-2 px-3 border-r border-neutral-800/40 backdrop-blur-sm shrink-0 text-left
                       ${rowIdx % 2 === 0 ? "bg-neutral-950/90" : "bg-neutral-900/90"}`}
                                         style={{ minWidth: 160, width: 160 }}
+                                        title={onCabanaClick ? `${cabana.name} detayını görüntüle` : undefined}
                                     >
                                         {/* Status dot */}
                                         <div
@@ -678,7 +684,7 @@ export default function ReservationTimelineInner({
                                                 </span>
                                             )}
                                         </div>
-                                    </div>
+                                    </button>
 
                                     {/* Timeline cells area */}
                                     <div

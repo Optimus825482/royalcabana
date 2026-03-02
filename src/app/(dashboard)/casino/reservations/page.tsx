@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReservationStatus } from "@/types";
 import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 import {
@@ -117,9 +117,19 @@ function daysBetween(start: string, end: string) {
 
 export default function CasinoReservationsPage() {
   useSession({ required: true });
+  const queryClient = useQueryClient();
 
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "">("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingReservation, setEditingReservation] = useState<ReservationItem | null>(null);
+  const [editForm, setEditForm] = useState({
+    guestName: "",
+    startDate: "",
+    endDate: "",
+    notes: "",
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState("");
   const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
     queryKey: ["system-currency"],
     queryFn: fetchSystemCurrency,
@@ -143,6 +153,56 @@ export default function CasinoReservationsPage() {
     }
     return counts;
   }, [reservations]);
+
+  function openEditModal(reservation: ReservationItem) {
+    setEditingReservation(reservation);
+    setEditForm({
+      guestName: reservation.guestName,
+      startDate: reservation.startDate.split("T")[0],
+      endDate: reservation.endDate.split("T")[0],
+      notes: reservation.notes ?? "",
+    });
+    setEditError("");
+  }
+
+  async function handlePendingUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingReservation) return;
+
+    setEditLoading(true);
+    setEditError("");
+    try {
+      const res = await fetch(
+        `/api/reservations/${editingReservation.id}/pending-update`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guestName: editForm.guestName,
+            startDate: editForm.startDate,
+            endDate: editForm.endDate,
+            notes: editForm.notes.trim() ? editForm.notes : null,
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Rezervasyon talebi güncellenemedi.");
+      }
+
+      setEditingReservation(null);
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+    } catch (error) {
+      setEditError(
+        error instanceof Error
+          ? error.message
+          : "Rezervasyon talebi güncellenemedi.",
+      );
+    } finally {
+      setEditLoading(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -320,6 +380,17 @@ export default function CasinoReservationsPage() {
                           <span className="text-neutral-300">{r.notes}</span>
                         </div>
                       )}
+                      {r.status === ReservationStatus.PENDING && (
+                        <div className="mt-3 pt-3 border-t border-neutral-800">
+                          <button
+                            onClick={() => openEditModal(r)}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600/20 border border-amber-700/30 text-amber-300 text-xs hover:bg-amber-600/30 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Talebi Güncelle
+                          </button>
+                        </div>
+                      )}
                       {r.statusHistory.length > 0 && (
                         <div className="mt-3">
                           <span className="text-xs text-neutral-500 block mb-2">
@@ -350,6 +421,113 @@ export default function CasinoReservationsPage() {
           </div>
         )}
       </div>
+
+      {editingReservation && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setEditingReservation(null)}
+        >
+          <div
+            className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
+              <h2 className="text-base font-semibold text-amber-400">
+                Bekleyen Talebi Güncelle
+              </h2>
+              <button
+                onClick={() => setEditingReservation(null)}
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+                aria-label="Kapat"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePendingUpdate} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs text-neutral-400 mb-1.5">Misafir Adı</label>
+                <input
+                  type="text"
+                  minLength={2}
+                  required
+                  value={editForm.guestName}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, guestName: e.target.value }))
+                  }
+                  title="Misafir adı"
+                  className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1.5">Başlangıç</label>
+                  <input
+                    type="date"
+                    required
+                    value={editForm.startDate}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({ ...prev, startDate: e.target.value }))
+                    }
+                    title="Başlangıç tarihi"
+                    className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1.5">Bitiş</label>
+                  <input
+                    type="date"
+                    required
+                    value={editForm.endDate}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({ ...prev, endDate: e.target.value }))
+                    }
+                    title="Bitiş tarihi"
+                    className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-neutral-400 mb-1.5">Notlar</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  title="Rezervasyon notları"
+                  placeholder="Opsiyonel not"
+                  className="w-full min-h-24 px-3 py-2.5 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 resize-none focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {editError && (
+                <div className="text-sm text-red-400 bg-red-950/40 border border-red-800/40 rounded-lg px-3 py-2">
+                  {editError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setEditingReservation(null)}
+                  className="px-4 h-10 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-4 h-10 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-neutral-950 font-semibold text-sm"
+                >
+                  {editLoading ? "Kaydediliyor..." : "Güncelle"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

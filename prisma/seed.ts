@@ -8,6 +8,196 @@ config({ path: ".env.local" });
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
+type PermissionTemplate = {
+  key: string;
+  name: string;
+  module: string;
+  action: "view" | "create" | "update" | "delete";
+};
+
+const PERMISSION_TEMPLATES: PermissionTemplate[] = [
+  {
+    key: "cabana.class.view",
+    name: "Kabana sınıflarını görüntüle",
+    module: "Kabana Sınıfları",
+    action: "view",
+  },
+  {
+    key: "cabana.class.create",
+    name: "Kabana sınıfı oluştur",
+    module: "Kabana Sınıfları",
+    action: "create",
+  },
+  {
+    key: "cabana.class.update",
+    name: "Kabana sınıfı güncelle",
+    module: "Kabana Sınıfları",
+    action: "update",
+  },
+  {
+    key: "cabana.class.delete",
+    name: "Kabana sınıfı sil",
+    module: "Kabana Sınıfları",
+    action: "delete",
+  },
+  {
+    key: "concept.view",
+    name: "Konseptleri görüntüle",
+    module: "Konseptler",
+    action: "view",
+  },
+  {
+    key: "concept.create",
+    name: "Konsept oluştur",
+    module: "Konseptler",
+    action: "create",
+  },
+  {
+    key: "concept.update",
+    name: "Konsept güncelle",
+    module: "Konseptler",
+    action: "update",
+  },
+  {
+    key: "concept.delete",
+    name: "Konsept sil",
+    module: "Konseptler",
+    action: "delete",
+  },
+  {
+    key: "product.view",
+    name: "Ürünleri görüntüle",
+    module: "Ürünler",
+    action: "view",
+  },
+  {
+    key: "product.create",
+    name: "Ürün oluştur",
+    module: "Ürünler",
+    action: "create",
+  },
+  {
+    key: "product.update",
+    name: "Ürün güncelle",
+    module: "Ürünler",
+    action: "update",
+  },
+  {
+    key: "product.delete",
+    name: "Ürün sil",
+    module: "Ürünler",
+    action: "delete",
+  },
+  {
+    key: "task.definition.view",
+    name: "Görev tanımlarını görüntüle",
+    module: "Görev Tanımları",
+    action: "view",
+  },
+  {
+    key: "task.definition.create",
+    name: "Görev tanımı oluştur",
+    module: "Görev Tanımları",
+    action: "create",
+  },
+  {
+    key: "task.definition.update",
+    name: "Görev tanımı güncelle",
+    module: "Görev Tanımları",
+    action: "update",
+  },
+  {
+    key: "task.definition.delete",
+    name: "Görev tanımı sil",
+    module: "Görev Tanımları",
+    action: "delete",
+  },
+  {
+    key: "user.view",
+    name: "Kullanıcıları görüntüle",
+    module: "Kullanıcı Yönetimi",
+    action: "view",
+  },
+  {
+    key: "user.create",
+    name: "Kullanıcı oluştur",
+    module: "Kullanıcı Yönetimi",
+    action: "create",
+  },
+  {
+    key: "user.update",
+    name: "Kullanıcı güncelle",
+    module: "Kullanıcı Yönetimi",
+    action: "update",
+  },
+  {
+    key: "user.delete",
+    name: "Kullanıcıyı devre dışı bırak",
+    module: "Kullanıcı Yönetimi",
+    action: "delete",
+  },
+  {
+    key: "role.definition.view",
+    name: "Rol tanımlarını görüntüle",
+    module: "Rol Tanımları",
+    action: "view",
+  },
+  {
+    key: "role.definition.create",
+    name: "Rol tanımı oluştur",
+    module: "Rol Tanımları",
+    action: "create",
+  },
+  {
+    key: "role.definition.update",
+    name: "Rol tanımı güncelle",
+    module: "Rol Tanımları",
+    action: "update",
+  },
+  {
+    key: "role.definition.delete",
+    name: "Rol tanımını sil",
+    module: "Rol Tanımları",
+    action: "delete",
+  },
+];
+
+const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
+  [Role.SYSTEM_ADMIN]: PERMISSION_TEMPLATES.map((permission) => permission.key),
+  [Role.ADMIN]: [
+    "cabana.class.view",
+    "cabana.class.create",
+    "cabana.class.update",
+    "concept.view",
+    "concept.create",
+    "concept.update",
+    "product.view",
+    "product.create",
+    "product.update",
+    "task.definition.view",
+    "task.definition.create",
+    "task.definition.update",
+    "user.view",
+    "user.create",
+    "user.update",
+    "role.definition.view",
+  ],
+  [Role.CASINO_USER]: [
+    "cabana.class.view",
+    "concept.view",
+    "product.view",
+    "task.definition.view",
+  ],
+  [Role.FNB_USER]: ["concept.view", "product.view", "task.definition.view"],
+};
+
+const ROLE_DISPLAY_DEFAULTS: Record<Role, string> = {
+  [Role.SYSTEM_ADMIN]: "Sistem Yöneticisi",
+  [Role.ADMIN]: "Admin",
+  [Role.CASINO_USER]: "Casino Kullanıcısı",
+  [Role.FNB_USER]: "F&B Kullanıcısı",
+};
+
 async function main() {
   console.log("Seeding database...");
 
@@ -61,6 +251,93 @@ async function main() {
       isActive: true,
     },
   });
+
+  // ===== ROL TANIMLARI ve YETKİLER =====
+  for (const permission of PERMISSION_TEMPLATES) {
+    await (prisma as any).permission.upsert({
+      where: { key: permission.key },
+      update: {
+        name: permission.name,
+        module: permission.module,
+        action: permission.action,
+        isSystem: true,
+        isActive: true,
+        isDeleted: false,
+        deletedAt: null,
+      },
+      create: {
+        key: permission.key,
+        name: permission.name,
+        module: permission.module,
+        action: permission.action,
+        isSystem: true,
+        isActive: true,
+      },
+    });
+  }
+
+  const permissions = await (prisma as any).permission.findMany({
+    where: { isDeleted: false },
+    select: { id: true, key: true },
+  });
+  const permissionMap = new Map<string, string>(
+    permissions.map((permission: { id: string; key: string }) => [
+      permission.key,
+      permission.id,
+    ]),
+  );
+
+  for (const role of Object.values(Role)) {
+    const roleDefinition = await (prisma as any).roleDefinition.upsert({
+      where: { role },
+      update: {
+        displayName: ROLE_DISPLAY_DEFAULTS[role],
+        isSystem: true,
+        isActive: true,
+        isDeleted: false,
+        deletedAt: null,
+      },
+      create: {
+        role,
+        displayName: ROLE_DISPLAY_DEFAULTS[role],
+        description: `${ROLE_DISPLAY_DEFAULTS[role]} için varsayılan rol tanımı`,
+        isSystem: true,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    const defaults = DEFAULT_ROLE_PERMISSION_KEYS[role] ?? [];
+    for (const key of defaults) {
+      const permissionId = permissionMap.get(key);
+      if (!permissionId) continue;
+
+      const existing = await (prisma as any).rolePermission.findFirst({
+        where: {
+          roleDefinitionId: roleDefinition.id,
+          permissionId,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (existing) {
+        if (existing.isDeleted) {
+          await (prisma as any).rolePermission.update({
+            where: { id: existing.id },
+            data: { isDeleted: false, deletedAt: null },
+          });
+        }
+        continue;
+      }
+
+      await (prisma as any).rolePermission.create({
+        data: {
+          roleDefinitionId: roleDefinition.id,
+          permissionId,
+        },
+      });
+    }
+  }
 
   // Örnek Kabana Sınıfları
   const standardClass = await prisma.cabanaClass.upsert({
@@ -531,60 +808,84 @@ async function main() {
       name: "Kabana-01",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 100,
-      coordY: 340,
+      coordX: 454.05,
+      coordY: 282.76,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-02",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 100,
-      coordY: 385,
+      coordX: 412.69,
+      coordY: 263.75,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     // Üst sağ çift
     {
       name: "Kabana-07",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 168,
-      coordY: 340,
+      coordX: 376.98,
+      coordY: 442.07,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-08",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 168,
-      coordY: 385,
+      coordX: 359.14,
+      coordY: 473.1,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     // Alt sol çift (platformun alt kolu)
     {
       name: "Kabana-03",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 78,
-      coordY: 455,
+      coordX: 372.5,
+      coordY: 242.27,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-04",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 78,
-      coordY: 500,
+      coordX: 470.66,
+      coordY: 371.33,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     // Alt sağ çift (platformun alt kolu)
     {
       name: "Kabana-05",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 192,
-      coordY: 455,
+      coordX: 455.83,
+      coordY: 400.83,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-06",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 192,
-      coordY: 500,
+      coordX: 438.52,
+      coordY: 430.5,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
 
     // ─── KIYI BOYUNCA — 4 standart kabana, kıyı hattında sıralı ───────
@@ -592,29 +893,73 @@ async function main() {
       name: "Kabana-09",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 285,
-      coordY: 255,
+      coordX: 343.4,
+      coordY: 502.22,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-10",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 323,
-      coordY: 255,
+      coordX: 510.31,
+      coordY: 582.25,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-11",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 361,
-      coordY: 255,
+      coordX: 525.7,
+      coordY: 551.66,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-12",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 399,
-      coordY: 255,
+      coordX: 541.24,
+      coordY: 520.28,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
+    },
+
+    // ─── ORTA KISIM — 13, 14, 15 ──────────────────────────────────────
+    {
+      name: "Kabana-13",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 538.98,
+      coordY: 403.17,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
+    },
+    {
+      name: "Kabana-14",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 523.16,
+      coordY: 433.39,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
+    },
+    {
+      name: "Kabana-15",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 505.28,
+      coordY: 463.61,
+      rotation: 150,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
 
     // ─── ANA DENİZ PLATFORMU (artı/+ şekli) — 10 kabana ──────────────
@@ -623,74 +968,104 @@ async function main() {
       name: "Kabana-16",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 548,
-      coordY: 325,
+      coordX: 846.99,
+      coordY: 432.73,
+      rotation: 0,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-17",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 548,
-      coordY: 372,
+      coordX: 845.93,
+      coordY: 468.42,
+      rotation: 0,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-18",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 548,
-      coordY: 419,
+      coordX: 846.08,
+      coordY: 501.7,
+      rotation: 0,
+      scaleX: 1.7,
+      scaleY: 1.3,
     },
     // Sağ kol (yukarıdan aşağı): 25 → 24 → 23
     {
       name: "Kabana-25",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 692,
-      coordY: 325,
+      coordX: 933.57,
+      coordY: 432.06,
+      rotation: 0,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-24",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 692,
-      coordY: 372,
+      coordX: 935.03,
+      coordY: 466.71,
+      rotation: 0,
+      scaleX: 1.8,
+      scaleY: 1.5,
     },
     {
       name: "Kabana-23",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 692,
-      coordY: 419,
+      coordX: 935.36,
+      coordY: 502.03,
+      rotation: 0,
+      scaleX: 1.7,
+      scaleY: 1.5,
     },
     // Alt sol köşe: 19 (üst), 20 (alt)
     {
       name: "Kabana-19",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 563,
-      coordY: 488,
+      coordX: 787.79,
+      coordY: 546.09,
+      rotation: 0,
+      scaleX: 1.7,
+      scaleY: 2.4,
     },
     {
       name: "Kabana-20",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 563,
-      coordY: 535,
+      coordX: 787.72,
+      coordY: 597.08,
+      rotation: 0,
+      scaleX: 1.8,
+      scaleY: 2.3,
     },
     // Alt sağ köşe: 22 (üst), 21 (alt)
     {
       name: "Kabana-22",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 677,
-      coordY: 488,
+      coordX: 991.57,
+      coordY: 600.5,
+      rotation: 0,
+      scaleX: 1.7,
+      scaleY: 2.3,
     },
     {
       name: "Kabana-21",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 677,
-      coordY: 535,
+      coordX: 992.26,
+      coordY: 548.04,
+      rotation: 0,
+      scaleX: 1.9,
+      scaleY: 2.2,
     },
 
     // ─── VIP KABANALAR — Kıyıda, merkez iskele yakını, büyük ─────────
@@ -698,15 +1073,21 @@ async function main() {
       name: "VIP Kabana-26",
       classId: vipClass.id,
       conceptId: premiumConcept.id,
-      coordX: 462,
-      coordY: 268,
+      coordX: 539.08,
+      coordY: 202.39,
+      rotation: 0,
+      scaleX: 1.3,
+      scaleY: 1.5,
     },
     {
       name: "VIP Kabana-27",
       classId: vipClass.id,
       conceptId: premiumConcept.id,
-      coordX: 522,
-      coordY: 268,
+      coordX: 578.53,
+      coordY: 204.1,
+      rotation: 0,
+      scaleX: 1.4,
+      scaleY: 1.5,
     },
   ];
 
@@ -716,6 +1097,9 @@ async function main() {
       update: {
         coordX: cabana.coordX,
         coordY: cabana.coordY,
+        rotation: cabana.rotation ?? 0,
+        scaleX: cabana.scaleX ?? 1,
+        scaleY: cabana.scaleY ?? 1,
         classId: cabana.classId,
         conceptId: cabana.conceptId,
       },
@@ -746,26 +1130,66 @@ async function main() {
   // Bar positions (map buildings)
   await prisma.systemConfig.upsert({
     where: { key: "sunset_bar_transform" },
-    update: {},
+    update: {
+      value: JSON.stringify({
+        x: 873.24,
+        y: 326.52,
+        scale: 1,
+        rotation: 0,
+        isLocked: true,
+      }),
+    },
     create: {
       key: "sunset_bar_transform",
       value: JSON.stringify({
-        x: 540,
-        y: 280,
+        x: 873.24,
+        y: 326.52,
         scale: 1,
         rotation: 0,
-        isLocked: false,
+        isLocked: true,
       }),
     },
   });
 
   await prisma.systemConfig.upsert({
     where: { key: "blue_sea_bar_transform" },
-    update: {},
+    update: {
+      value: JSON.stringify({
+        x: 320.35,
+        y: 191.05,
+        scale: 1,
+        rotation: 10,
+        isLocked: true,
+      }),
+    },
     create: {
       key: "blue_sea_bar_transform",
       value: JSON.stringify({
-        x: 680,
+        x: 320.35,
+        y: 191.05,
+        scale: 1,
+        rotation: 10,
+        isLocked: true,
+      }),
+    },
+  });
+
+  // Common parasol position (draggable building)
+  await prisma.systemConfig.upsert({
+    where: { key: "common_parasol_transform" },
+    update: {
+      value: JSON.stringify({
+        x: 620,
+        y: 420,
+        scale: 1,
+        rotation: 0,
+        isLocked: false,
+      }),
+    },
+    create: {
+      key: "common_parasol_transform",
+      value: JSON.stringify({
+        x: 620,
         y: 420,
         scale: 1,
         rotation: 0,

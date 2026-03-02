@@ -78,6 +78,66 @@ model User {
   @@map("users")
 }
 
+model RoleDefinition {
+  id          String   @id @default(cuid())
+  role        Role     @unique
+  displayName String
+  description String?
+  isSystem    Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+
+  @@index([isDeleted])
+  @@index([isActive])
+  @@map("role_definitions")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  module      String
+  action      String
+  description String?
+  isSystem    Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles RolePermission[]
+
+  @@index([module])
+  @@index([action])
+  @@index([isDeleted])
+  @@index([isActive])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id               String   @id @default(cuid())
+  roleDefinitionId String
+  permissionId     String
+  isDeleted        Boolean  @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  roleDefinition RoleDefinition @relation(fields: [roleDefinitionId], references: [id])
+  permission     Permission     @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleDefinitionId, permissionId, isDeleted])
+  @@index([roleDefinitionId, isDeleted])
+  @@index([permissionId, isDeleted])
+  @@map("role_permissions")
+}
+
 // ===== KABANA VE SINIFLANDIRMA =====
 
 model CabanaClass {

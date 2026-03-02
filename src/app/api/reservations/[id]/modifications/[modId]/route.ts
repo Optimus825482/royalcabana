@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { PricingEngine } from "@/lib/pricing";
@@ -71,6 +71,19 @@ export const POST = withAuth([Role.ADMIN], async (req, { session, params }) => {
         },
       }),
     ]);
+
+    after(async () => {
+      await prisma.notification.create({
+        data: {
+          userId: modRequest.reservation.userId,
+          type: "STATUS_CHANGED",
+          title: "Değişiklik Talebi Reddedildi",
+          message:
+            "Değişiklik talebiniz reddedildi. Rezervasyonunuz onaylı durumda devam ediyor.",
+          metadata: { reservationId },
+        },
+      });
+    });
 
     return NextResponse.json(updated);
   }
@@ -165,6 +178,19 @@ export const POST = withAuth([Role.ADMIN], async (req, { session, params }) => {
       },
       { isolationLevel: "Serializable", timeout: 15000 },
     );
+
+    after(async () => {
+      await prisma.notification.create({
+        data: {
+          userId: modRequest.reservation.userId,
+          type: "STATUS_CHANGED",
+          title: "Değişiklik Talebi Onaylandı",
+          message:
+            "Değişiklik talebiniz onaylandı ve rezervasyon bilgileriniz güncellendi.",
+          metadata: { reservationId },
+        },
+      });
+    });
 
     return NextResponse.json(result);
   } catch (err) {

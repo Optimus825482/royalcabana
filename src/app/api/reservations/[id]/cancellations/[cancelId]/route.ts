@@ -67,6 +67,19 @@ export const POST = withAuth([Role.ADMIN], async (req, { session, params }) => {
       }),
     ]);
 
+    after(async () => {
+      await prisma.notification.create({
+        data: {
+          userId: cancelRequest.reservation.userId,
+          type: "STATUS_CHANGED",
+          title: "İptal Talebi Reddedildi",
+          message:
+            "İptal talebiniz reddedildi. Rezervasyonunuz onaylı durumda devam ediyor.",
+          metadata: { reservationId },
+        },
+      });
+    });
+
     return NextResponse.json(updated);
   }
 

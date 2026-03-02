@@ -42,7 +42,10 @@ export type AuditEntity =
   | "Staff"
   | "StaffAssignment"
   | "StaffTask"
-  | "TaskDefinition";
+  | "TaskDefinition"
+  | "RoleDefinition"
+  | "Permission"
+  | "RolePermission";
 
 interface AuditParams {
   userId: string;

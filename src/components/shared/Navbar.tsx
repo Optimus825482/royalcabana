@@ -94,6 +94,12 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         icon: ClipboardList,
         color: "text-pink-400",
       },
+      {
+        href: "/system-admin/role-definitions",
+        label: "Rol Tanımları",
+        icon: Shield,
+        color: "text-indigo-400",
+      },
     ],
   },
   {

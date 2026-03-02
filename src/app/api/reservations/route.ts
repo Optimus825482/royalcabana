@@ -6,6 +6,8 @@ import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
 import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
+import { notificationService } from "@/services/notification.service";
+import { NotificationType } from "@/types";
 
 export const GET = withAuth(
   [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
@@ -169,7 +171,7 @@ export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
     });
 
     // SSE broadcast — non-blocking
-    after(() => {
+    after(async () => {
       sseManager.broadcast(SSE_EVENTS.RESERVATION_CREATED, {
         reservationId: reservation.id,
         cabanaName: reservation.cabana?.name ?? "",
@@ -177,6 +179,31 @@ export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
         startDate,
         endDate,
       });
+
+      const admins = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN] },
+        },
+        select: { id: true },
+      });
+
+      if (admins.length === 0) return;
+
+      await notificationService.sendMany(
+        admins.map((admin) => ({
+          userId: admin.id,
+          type: NotificationType.NEW_REQUEST,
+          title: "Yeni Rezervasyon Talebi",
+          message: `${guestName} için yeni rezervasyon talebi oluşturuldu.`,
+          metadata: {
+            reservationId: reservation.id,
+            cabanaName: reservation.cabana?.name ?? "",
+            startDate,
+            endDate,
+          },
+        })),
+      );
     });
 
     return NextResponse.json(reservation, { status: 201 });
