@@ -23,7 +23,10 @@ async function fetchSystemConfig(): Promise<SystemConfig> {
   const res = await fetch("/api/system/config");
   if (!res.ok) throw new Error("Sistem konfigürasyonu yüklenemedi.");
   const data = await res.json();
-  // API returns array of {key, value} or object
+  // API returns { isOpen: boolean }
+  if (typeof data.isOpen !== "undefined") {
+    return { system_open_for_reservation: data.isOpen === true || data.isOpen === "true" };
+  }
   if (Array.isArray(data)) {
     const entry = data.find(
       (d: { key: string; value: string }) =>

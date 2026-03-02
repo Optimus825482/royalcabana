@@ -86,6 +86,10 @@ async function fetchSystemConfig(): Promise<{
   const res = await fetch("/api/system/config");
   if (!res.ok) return { system_open_for_reservation: true };
   const data = await res.json();
+  // API returns { isOpen: boolean }
+  if (typeof data.isOpen !== "undefined") {
+    return { system_open_for_reservation: data.isOpen === true || data.isOpen === "true" };
+  }
   if (Array.isArray(data)) {
     const entry = data.find(
       (d: { key: string }) => d.key === "system_open_for_reservation",
