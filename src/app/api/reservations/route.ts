@@ -40,7 +40,11 @@ export const GET = withAuth(
       where.userId = session.user.id;
     }
 
-    const isFnB = session.user.role === Role.FNB_USER;
+    const includeSubRequests = [
+      Role.FNB_USER,
+      Role.ADMIN,
+      Role.SYSTEM_ADMIN,
+    ].includes(session.user.role as Role);
 
     const [reservations, total] = await Promise.all([
       prisma.reservation.findMany({
@@ -49,7 +53,7 @@ export const GET = withAuth(
           cabana: { select: { id: true, name: true } },
           user: { select: { id: true, username: true, email: true } },
           statusHistory: { orderBy: { createdAt: "asc" } },
-          ...(isFnB && {
+          ...(includeSubRequests && {
             modifications: {
               select: {
                 id: true,
@@ -57,13 +61,24 @@ export const GET = withAuth(
                 newStartDate: true,
                 newEndDate: true,
                 newGuestName: true,
+                newCabanaId: true,
+                rejectionReason: true,
               },
             },
             cancellations: {
-              select: { id: true, status: true, reason: true },
+              select: {
+                id: true,
+                status: true,
+                reason: true,
+              },
             },
             extraConcepts: {
-              select: { id: true, status: true, items: true },
+              select: {
+                id: true,
+                status: true,
+                items: true,
+                rejectionReason: true,
+              },
             },
             extraItems: {
               include: { product: { select: { name: true } } },
@@ -107,7 +122,8 @@ export const POST = withAuth(
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
 
-    const { cabanaId, guestName, startDate, endDate, notes } = parsed.data;
+    const { cabanaId, guestName, startDate, endDate, notes, conceptId } =
+      parsed.data;
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -151,6 +167,7 @@ export const POST = withAuth(
             startDate: start,
             endDate: end,
             notes: notes ?? null,
+            conceptId: conceptId ?? null,
             status: "PENDING",
           };
 

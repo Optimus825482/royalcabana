@@ -9,6 +9,7 @@ export const createReservationSchema = z.object({
   endDate: z.string().min(1, "Bitiş tarihi zorunludur."),
   notes: z.string().optional().nullable(),
   isGuestPrivate: z.boolean().optional().default(false),
+  conceptId: z.string().optional().nullable(),
 });
 
 export const approveReservationSchema = z.object({

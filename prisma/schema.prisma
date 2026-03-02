@@ -231,6 +231,7 @@ model Concept {
   cabanas       Cabana[]
   products      ConceptProduct[]
   conceptPrices ConceptPrice[]
+  reservations  Reservation[]
 
   @@map("concepts")
 }
@@ -352,6 +353,7 @@ model Reservation {
   status          ReservationStatus @default(PENDING)
   totalPrice      Decimal?  @db.Decimal(10, 2)
   rejectionReason String?
+  conceptId       String?
   checkInAt       DateTime?
   checkOutAt      DateTime?
   checkedInBy     String?
@@ -363,6 +365,7 @@ model Reservation {
   cabana        Cabana                     @relation(fields: [cabanaId], references: [id])
   user          User                       @relation(fields: [userId], references: [id])
   guest         Guest?                     @relation(fields: [guestId], references: [id])
+  concept       Concept?                   @relation(fields: [conceptId], references: [id])
   statusHistory ReservationStatusHistory[]
   modifications ModificationRequest[]
   cancellations CancellationRequest[]
@@ -375,6 +378,7 @@ model Reservation {
   @@index([userId])
   @@index([guestId])
   @@index([status])
+  @@index([conceptId])
   @@index([startDate, endDate])
   @@index([deletedAt])
   @@map("reservations")

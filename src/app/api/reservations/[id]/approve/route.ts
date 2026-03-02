@@ -18,7 +18,17 @@ export const POST = withAuth(
 
     const reservation = await prisma.reservation.findUnique({
       where: { id },
-      include: { cabana: { select: { conceptId: true } } },
+      select: {
+        id: true,
+        cabanaId: true,
+        userId: true,
+        guestName: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+        conceptId: true,
+        cabana: { select: { conceptId: true } },
+      },
     });
 
     if (!reservation) {
@@ -39,7 +49,7 @@ export const POST = withAuth(
     const engine = new PricingEngine();
     const calculated = await engine.calculatePrice({
       cabanaId: reservation.cabanaId,
-      conceptId: reservation.cabana.conceptId ?? null,
+      conceptId: reservation.conceptId ?? reservation.cabana.conceptId ?? null,
       startDate: reservation.startDate,
       endDate: reservation.endDate,
     });

@@ -22,6 +22,30 @@ interface StatusHistoryEntry {
   createdAt: string;
 }
 
+interface ModificationRequest {
+  id: string;
+  status: string;
+  newStartDate?: string | null;
+  newEndDate?: string | null;
+  newGuestName?: string | null;
+  newCabanaId?: string | null;
+  rejectionReason?: string | null;
+}
+
+interface CancellationRequest {
+  id: string;
+  status: string;
+  reason: string;
+  rejectionReason?: string | null;
+}
+
+interface ExtraConceptRequest {
+  id: string;
+  status: string;
+  items: string; // JSON string
+  rejectionReason?: string | null;
+}
+
 interface Reservation {
   id: string;
   guestName: string;
@@ -35,10 +59,11 @@ interface Reservation {
   cabana: { id: string; name: string };
   user: { id: string; username: string; email: string };
   statusHistory: StatusHistoryEntry[];
-  modifications?: unknown[];
-  cancellations?: unknown[];
-  extraConcepts?: unknown[];
+  modifications?: ModificationRequest[];
+  cancellations?: CancellationRequest[];
+  extraConcepts?: ExtraConceptRequest[];
   extraItems?: unknown[];
+  conceptId?: string | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -157,16 +182,24 @@ function DetailPanel({
   onReject,
   actionLoading,
   currency,
+  onRefresh,
 }: {
   reservation: Reservation;
   onApprove: (id: string, price: number) => void;
   onReject: (id: string) => void;
   actionLoading: boolean;
   currency: CurrencyCode;
+  onRefresh: () => void;
 }) {
   const [totalPrice, setTotalPrice] = useState(
     reservation.totalPrice ? String(reservation.totalPrice) : "",
   );
+  const [subActionLoading, setSubActionLoading] = useState<string | null>(null);
+  const [subRejectTarget, setSubRejectTarget] = useState<{
+    type: "modification" | "cancellation" | "extraConcept";
+    id: string;
+  } | null>(null);
+  const [subRejectReason, setSubRejectReason] = useState("");
 
   useEffect(() => {
     void Promise.resolve().then(() =>
@@ -177,6 +210,61 @@ function DetailPanel({
   }, [reservation.id, reservation.totalPrice]);
 
   const isPending = reservation.status === ReservationStatus.PENDING;
+
+  async function handleSubAction(
+    type: "modifications" | "cancellations" | "extra-concepts",
+    requestId: string,
+    action: "approve" | "reject",
+    rejectionReason?: string,
+  ) {
+    setSubActionLoading(requestId);
+    try {
+      const body: Record<string, string> = { action };
+      if (action === "reject" && rejectionReason) {
+        body.rejectionReason = rejectionReason;
+      }
+      const res = await fetch(
+        `/api/reservations/${reservation.id}/${type}/${requestId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      if (res.ok) {
+        onRefresh();
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setSubActionLoading(null);
+      setSubRejectTarget(null);
+      setSubRejectReason("");
+    }
+  }
+
+  function parseExtraConceptItems(
+    jsonStr: string,
+  ): { name: string; quantity: number; unitPrice: number }[] {
+    try {
+      return JSON.parse(jsonStr);
+    } catch {
+      return [];
+    }
+  }
+
+  const pendingModifications =
+    reservation.modifications?.filter((m) => m.status === "PENDING") ?? [];
+  const otherModifications =
+    reservation.modifications?.filter((m) => m.status !== "PENDING") ?? [];
+  const pendingCancellations =
+    reservation.cancellations?.filter((c) => c.status === "PENDING") ?? [];
+  const otherCancellations =
+    reservation.cancellations?.filter((c) => c.status !== "PENDING") ?? [];
+  const pendingExtraConcepts =
+    reservation.extraConcepts?.filter((e) => e.status === "PENDING") ?? [];
+  const otherExtraConcepts =
+    reservation.extraConcepts?.filter((e) => e.status !== "PENDING") ?? [];
 
   return (
     <div className="flex flex-col h-full overflow-y-auto rc-scrollbar">
@@ -322,35 +410,346 @@ function DetailPanel({
         </div>
       )}
 
-      {/* Alt Talepler */}
+      {/* Değişiklik Talepleri */}
       {(reservation.modifications?.length ?? 0) > 0 && (
         <div className="p-6 border-b border-neutral-800">
-          <h3 className="text-sm font-medium text-neutral-300 mb-2">
+          <h3 className="text-sm font-medium text-neutral-300 mb-3">
             Değişiklik Talepleri ({reservation.modifications?.length})
           </h3>
-          <p className="text-xs text-neutral-500">
-            Değişiklik talepleri mevcut.
-          </p>
+          <div className="space-y-3">
+            {pendingModifications.map((mod) => (
+              <div
+                key={mod.id}
+                className="bg-neutral-800/60 border border-orange-500/20 rounded-lg p-4 space-y-2"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 font-medium">
+                    Bekliyor
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {mod.newStartDate && (
+                    <div>
+                      <span className="text-neutral-500">Yeni Başlangıç</span>
+                      <p className="text-neutral-200">
+                        {formatDate(mod.newStartDate)}
+                      </p>
+                    </div>
+                  )}
+                  {mod.newEndDate && (
+                    <div>
+                      <span className="text-neutral-500">Yeni Bitiş</span>
+                      <p className="text-neutral-200">
+                        {formatDate(mod.newEndDate)}
+                      </p>
+                    </div>
+                  )}
+                  {mod.newGuestName && (
+                    <div className="col-span-2">
+                      <span className="text-neutral-500">Yeni Misafir Adı</span>
+                      <p className="text-neutral-200">{mod.newGuestName}</p>
+                    </div>
+                  )}
+                  {mod.newCabanaId && (
+                    <div className="col-span-2">
+                      <span className="text-neutral-500">Yeni Kabana</span>
+                      <p className="text-neutral-200">{mod.newCabanaId}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() =>
+                      handleSubAction("modifications", mod.id, "approve")
+                    }
+                    disabled={subActionLoading === mod.id}
+                    className="px-3 py-1.5 min-h-[36px] text-xs bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                  >
+                    {subActionLoading === mod.id ? "..." : "Onayla"}
+                  </button>
+                  <button
+                    onClick={() =>
+                      setSubRejectTarget({ type: "modification", id: mod.id })
+                    }
+                    disabled={subActionLoading === mod.id}
+                    className="px-3 py-1.5 min-h-[36px] text-xs bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Reddet
+                  </button>
+                </div>
+              </div>
+            ))}
+            {otherModifications.map((mod) => (
+              <div
+                key={mod.id}
+                className="bg-neutral-800/30 border border-neutral-700/40 rounded-lg p-4 opacity-60"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      mod.status === "APPROVED"
+                        ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                        : "bg-red-500/20 text-red-300 border border-red-500/30"
+                    }`}
+                  >
+                    {mod.status === "APPROVED" ? "Onaylandı" : "Reddedildi"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {mod.newStartDate && (
+                    <div>
+                      <span className="text-neutral-500">Yeni Başlangıç</span>
+                      <p className="text-neutral-400">
+                        {formatDate(mod.newStartDate)}
+                      </p>
+                    </div>
+                  )}
+                  {mod.newEndDate && (
+                    <div>
+                      <span className="text-neutral-500">Yeni Bitiş</span>
+                      <p className="text-neutral-400">
+                        {formatDate(mod.newEndDate)}
+                      </p>
+                    </div>
+                  )}
+                  {mod.newGuestName && (
+                    <div className="col-span-2">
+                      <span className="text-neutral-500">Yeni Misafir Adı</span>
+                      <p className="text-neutral-400">{mod.newGuestName}</p>
+                    </div>
+                  )}
+                </div>
+                {mod.rejectionReason && (
+                  <p className="text-xs text-red-400 mt-2">
+                    Red: {mod.rejectionReason}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* İptal Talepleri */}
       {(reservation.cancellations?.length ?? 0) > 0 && (
         <div className="p-6 border-b border-neutral-800">
-          <h3 className="text-sm font-medium text-neutral-300 mb-2">
+          <h3 className="text-sm font-medium text-neutral-300 mb-3">
             İptal Talepleri ({reservation.cancellations?.length})
           </h3>
-          <p className="text-xs text-neutral-500">İptal talepleri mevcut.</p>
+          <div className="space-y-3">
+            {pendingCancellations.map((canc) => (
+              <div
+                key={canc.id}
+                className="bg-neutral-800/60 border border-red-500/20 rounded-lg p-4 space-y-2"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 font-medium">
+                    Bekliyor
+                  </span>
+                </div>
+                <div className="text-xs">
+                  <span className="text-neutral-500">İptal Nedeni</span>
+                  <p className="text-neutral-200 mt-0.5">{canc.reason}</p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() =>
+                      handleSubAction("cancellations", canc.id, "approve")
+                    }
+                    disabled={subActionLoading === canc.id}
+                    className="px-3 py-1.5 min-h-[36px] text-xs bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                  >
+                    {subActionLoading === canc.id ? "..." : "Onayla"}
+                  </button>
+                  <button
+                    onClick={() =>
+                      setSubRejectTarget({ type: "cancellation", id: canc.id })
+                    }
+                    disabled={subActionLoading === canc.id}
+                    className="px-3 py-1.5 min-h-[36px] text-xs bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Reddet
+                  </button>
+                </div>
+              </div>
+            ))}
+            {otherCancellations.map((canc) => (
+              <div
+                key={canc.id}
+                className="bg-neutral-800/30 border border-neutral-700/40 rounded-lg p-4 opacity-60"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      canc.status === "APPROVED"
+                        ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                        : "bg-red-500/20 text-red-300 border border-red-500/30"
+                    }`}
+                  >
+                    {canc.status === "APPROVED" ? "Onaylandı" : "Reddedildi"}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-400">{canc.reason}</p>
+                {canc.rejectionReason && (
+                  <p className="text-xs text-red-400 mt-1">
+                    Red: {canc.rejectionReason}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* Ek Konsept Talepleri */}
       {(reservation.extraConcepts?.length ?? 0) > 0 && (
         <div className="p-6">
-          <h3 className="text-sm font-medium text-neutral-300 mb-2">
+          <h3 className="text-sm font-medium text-neutral-300 mb-3">
             Ek Konsept Talepleri ({reservation.extraConcepts?.length})
           </h3>
-          <p className="text-xs text-neutral-500">
-            Ek konsept talepleri mevcut.
-          </p>
+          <div className="space-y-3">
+            {pendingExtraConcepts.map((ec) => {
+              const items = parseExtraConceptItems(ec.items);
+              return (
+                <div
+                  key={ec.id}
+                  className="bg-neutral-800/60 border border-blue-500/20 rounded-lg p-4 space-y-2"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-medium">
+                      Bekliyor
+                    </span>
+                  </div>
+                  {items.length > 0 && (
+                    <div className="space-y-1">
+                      {items.map((item, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span className="text-neutral-300">
+                            {item.name}{" "}
+                            <span className="text-neutral-600">
+                              ×{item.quantity}
+                            </span>
+                          </span>
+                          {item.unitPrice != null && (
+                            <span className="text-neutral-400">
+                              {formatPrice(
+                                item.unitPrice * item.quantity,
+                                currency,
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() =>
+                        handleSubAction("extra-concepts", ec.id, "approve")
+                      }
+                      disabled={subActionLoading === ec.id}
+                      className="px-3 py-1.5 min-h-[36px] text-xs bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                    >
+                      {subActionLoading === ec.id ? "..." : "Onayla"}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setSubRejectTarget({ type: "extraConcept", id: ec.id })
+                      }
+                      disabled={subActionLoading === ec.id}
+                      className="px-3 py-1.5 min-h-[36px] text-xs bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Reddet
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {otherExtraConcepts.map((ec) => {
+              const items = parseExtraConceptItems(ec.items);
+              return (
+                <div
+                  key={ec.id}
+                  className="bg-neutral-800/30 border border-neutral-700/40 rounded-lg p-4 opacity-60"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        ec.status === "APPROVED"
+                          ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                          : "bg-red-500/20 text-red-300 border border-red-500/30"
+                      }`}
+                    >
+                      {ec.status === "APPROVED" ? "Onaylandı" : "Reddedildi"}
+                    </span>
+                  </div>
+                  {items.length > 0 && (
+                    <div className="space-y-1">
+                      {items.map((item, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span className="text-neutral-400">
+                            {item.name} ×{item.quantity}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {ec.rejectionReason && (
+                    <p className="text-xs text-red-400 mt-2">
+                      Red: {ec.rejectionReason}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Sub-request Reject Modal */}
+      {subRejectTarget && (
+        <div className="p-6 border-t border-neutral-700 bg-neutral-900/80">
+          <h4 className="text-sm font-medium text-neutral-300 mb-2">
+            Red Nedeni
+          </h4>
+          <textarea
+            value={subRejectReason}
+            onChange={(e) => setSubRejectReason(e.target.value)}
+            placeholder="Red nedenini yazın..."
+            rows={3}
+            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 resize-none focus:outline-none focus:border-amber-500 mb-3"
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                setSubRejectTarget(null);
+                setSubRejectReason("");
+              }}
+              className="px-3 py-1.5 min-h-[36px] text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+            >
+              İptal
+            </button>
+            <button
+              onClick={() => {
+                if (!subRejectReason.trim()) return;
+                const typeMap = {
+                  modification: "modifications",
+                  cancellation: "cancellations",
+                  extraConcept: "extra-concepts",
+                } as const;
+                handleSubAction(
+                  typeMap[subRejectTarget.type],
+                  subRejectTarget.id,
+                  "reject",
+                  subRejectReason.trim(),
+                );
+              }}
+              disabled={!subRejectReason.trim() || subActionLoading !== null}
+              className="px-3 py-1.5 min-h-[36px] text-xs bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+            >
+              Reddet
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -544,6 +943,21 @@ export default function RequestsPage() {
                 onReject={(id) => setRejectTarget(id)}
                 actionLoading={actionLoading}
                 currency={currency}
+                onRefresh={async () => {
+                  await fetchReservations();
+                  // Update selected with fresh data
+                  const params = new URLSearchParams({ limit: "50" });
+                  if (filter) params.set("status", filter);
+                  const res = await fetch(`/api/reservations?${params}`);
+                  if (res.ok) {
+                    const data = await res.json();
+                    const updated = (data.reservations ?? []).find(
+                      (r: Reservation) => r.id === selected?.id,
+                    );
+                    if (updated) setSelected(updated);
+                    else setSelected(null);
+                  }
+                }}
               />
             </>
           ) : (
