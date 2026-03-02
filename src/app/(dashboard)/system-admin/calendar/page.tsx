@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ReservationCalendar from "@/components/calendar/ReservationCalendar";
+import ReservationTimeline from "@/components/calendar/ReservationTimeline";
 import { ReservationStatus } from "@/types";
 import {
     AlertTriangle,
@@ -13,7 +14,10 @@ import {
     LogIn,
     LogOut,
     DollarSign,
+    LayoutList,
+    CalendarDays,
 } from "lucide-react";
+import type { TimelineReservation } from "@/hooks/useReservationCalendar";
 import type {
     ReservationEvent,
     CabanaResource,
@@ -124,6 +128,7 @@ export default function SysAdminCalendarPage() {
     const queryClient = useQueryClient();
 
     const [classFilter, setClassFilter] = useState<string>("");
+    const [viewType, setViewType] = useState<"timeline" | "calendar">("timeline");
     const [selectedReservation, setSelectedReservation] =
         useState<ReservationDetail | null>(null);
 
@@ -232,8 +237,9 @@ export default function SysAdminCalendarPage() {
                             Rezervasyon Takvimi
                         </h1>
                         <p className="text-sm text-neutral-400 mt-0.5">
-                            Tüm rezervasyonları yönetin — onaylayın, reddedin, check-in /
-                            check-out yapın
+                            {viewType === "timeline"
+                                ? "Tüm kabanaların gerçek zamanlı takibi – tam yönetim"
+                                : "Tüm rezervasyonları yönetin — onaylayın, reddedin, check-in / check-out yapın"}
                         </p>
                     </div>
                     {pendingCount > 0 && (
@@ -242,23 +248,65 @@ export default function SysAdminCalendarPage() {
                         </span>
                     )}
                 </div>
-                <select
-                    value={classFilter}
-                    onChange={(e) => setClassFilter(e.target.value)}
-                    className="px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-amber-500 min-h-[44px]"
-                >
-                    <option value="">Tüm Sınıflar</option>
-                    {classes.map(([id, name]) => (
-                        <option key={id} value={id}>
-                            {name}
-                        </option>
-                    ))}
-                </select>
+                <div className="flex items-center gap-3">
+                    <div className="flex bg-neutral-900 rounded-lg p-0.5 border border-neutral-700/40">
+                        <button
+                            onClick={() => setViewType("timeline")}
+                            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all
+                                ${viewType === "timeline" ? "bg-amber-600 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"}`}
+                        >
+                            <LayoutList className="w-3.5 h-3.5" />
+                            Zaman Çizelgesi
+                        </button>
+                        <button
+                            onClick={() => setViewType("calendar")}
+                            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all
+                                ${viewType === "calendar" ? "bg-amber-600 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"}`}
+                        >
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            Takvim
+                        </button>
+                    </div>
+                    <select
+                        value={classFilter}
+                        onChange={(e) => setClassFilter(e.target.value)}
+                        className="px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-amber-500 min-h-[44px]"
+                    >
+                        <option value="">Tüm Sınıflar</option>
+                        {classes.map(([id, name]) => (
+                            <option key={id} value={id}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
-            {/* Calendar */}
+            {/* Content: Timeline or Calendar */}
             <div className="flex-1 p-4 sm:p-6">
-                {isLoading ? (
+                {viewType === "timeline" ? (
+                    <ReservationTimeline
+                        classFilter={classFilter || undefined}
+                        isAdmin
+                        onReservationClick={(r: TimelineReservation) => {
+                            const detail = reservationData?.reservations.find(
+                                (res) => res.id === r.id,
+                            );
+                            if (detail) setSelectedReservation(detail);
+                        }}
+                        onQuickAction={async (reservationId, action) => {
+                            try {
+                                const endpoint = action === "approve" ? "approve" : action === "reject" ? "reject" : action === "check-in" ? "check-in" : "check-out";
+                                const res = await fetch(`/api/reservations/${reservationId}/${endpoint}`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify(action === "reject" ? { reason: "Sistem yöneticisi tarafından reddedildi" } : {}),
+                                });
+                                if (res.ok) refreshData();
+                            } catch { /* error handled in timeline */ }
+                        }}
+                    />
+                ) : isLoading ? (
                     <div className="flex items-center justify-center h-64 text-neutral-400 text-sm">
                         <div className="flex flex-col items-center gap-2">
                             <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
