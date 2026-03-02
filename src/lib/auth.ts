@@ -14,6 +14,8 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
+  // Coolify/Traefik reverse proxy arkasında cookie domain doğrulaması için
+  useSecureCookies: process.env.NEXTAUTH_URL?.startsWith("https://"),
   providers: [
     CredentialsProvider({
       name: "Credentials",

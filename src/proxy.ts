@@ -21,7 +21,18 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  // Reverse proxy (Coolify/Traefik) arkasında HTTPS cookie adı farklı olur.
+  // secureCookie: false → cookie adını "next-auth.session-token" olarak zorla
+  // böylece proxy arkasında HTTP gelen request'lerde de token okunabilir.
+  const isSecure =
+    req.headers.get("x-forwarded-proto") === "https" ||
+    req.nextUrl.protocol === "https:";
+
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+    secureCookie: isSecure,
+  });
 
   // Not authenticated → redirect to login
   if (!token) {
