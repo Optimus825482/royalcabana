@@ -19,6 +19,15 @@ import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import Image from "next/image";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
+import {
+  WaterPlane,
+  ParticleSystem,
+  SkyDome,
+  PostProcessing,
+  CameraAnimator,
+  CabanaLight,
+  type TimeOfDay,
+} from "./effects";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -527,6 +536,9 @@ interface SceneProps {
     rotation: number,
   ) => void;
   onGroundClick?: (wx: number, wz: number) => void;
+  timeOfDay: TimeOfDay;
+  cameraTarget: [number, number, number] | null;
+  effectsEnabled: boolean;
 }
 
 function Scene({
@@ -540,6 +552,9 @@ function Scene({
   onSelect,
   onDragEnd,
   onGroundClick,
+  timeOfDay,
+  cameraTarget,
+  effectsEnabled,
 }: SceneProps) {
   const { gl } = useThree();
   const hoveredRef = useRef<string | null>(null);
@@ -675,13 +690,37 @@ function Scene({
     };
   }, [editable, cameraLocked, gl]);
 
+  // Dynamic lighting based on time of day
+  const sunIntensity =
+    timeOfDay === "night" ? 0.1 : timeOfDay === "sunset" ? 0.7 : 1.3;
+  const ambientIntensity =
+    timeOfDay === "night" ? 0.15 : timeOfDay === "sunset" ? 0.35 : 0.55;
+  const sunColor =
+    timeOfDay === "sunset"
+      ? "#ff8c42"
+      : timeOfDay === "night"
+        ? "#4466aa"
+        : "#ffffff";
+  const fogNear = timeOfDay === "night" ? 12 : 20;
+  const fogFar = timeOfDay === "night" ? 30 : 45;
+  const fogColor =
+    timeOfDay === "night"
+      ? "#0a0a1a"
+      : timeOfDay === "sunset"
+        ? "#1a0a0a"
+        : "#0a0a0a";
+
   return (
     <>
-      <ambientLight intensity={0.55} />
+      {/* Sky dome */}
+      {effectsEnabled && <SkyDome timeOfDay={timeOfDay} />}
+
+      <ambientLight intensity={ambientIntensity} />
       {/* [FIX C3] Shadow map 2048 + frustum bounds matching PLANE_W/PLANE_H */}
       <directionalLight
         position={[12, 16, 8]}
-        intensity={1.3}
+        intensity={sunIntensity}
+        color={sunColor}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-PLANE_W / 2}
@@ -694,13 +733,19 @@ function Scene({
       />
       <directionalLight
         position={[-8, 8, -6]}
-        intensity={0.35}
-        color="#93c5fd"
+        intensity={timeOfDay === "night" ? 0.1 : 0.35}
+        color={timeOfDay === "night" ? "#6688cc" : "#93c5fd"}
       />
       {/* [FIX M11] Hemisphere light for more natural ambient */}
-      <hemisphereLight args={["#b0d4f1", "#8b7355", 0.3]} />
-      {/* [FIX M11] Subtle fog for depth perception */}
-      <fog attach="fog" args={["#0a0a0a", 20, 45]} />
+      <hemisphereLight
+        args={[
+          timeOfDay === "night" ? "#1a1a3e" : "#b0d4f1",
+          "#8b7355",
+          timeOfDay === "night" ? 0.1 : 0.3,
+        ]}
+      />
+      {/* Dynamic fog */}
+      <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
 
       <GroundPlane />
 
@@ -750,6 +795,53 @@ function Scene({
           maxPolarAngle={Math.PI / 2.15}
         />
       )}
+
+      {/* ─── Visual Effects ─────────────────────────────────────── */}
+
+      {/* Animated water along the bottom edge (beach shoreline) */}
+      {effectsEnabled && (
+        <WaterPlane
+          position={[0, -0.01, PLANE_H / 2 - 1.5]}
+          width={PLANE_W + 2}
+          depth={3.5}
+          opacity={timeOfDay === "night" ? 0.6 : 0.75}
+          speed={timeOfDay === "night" ? 0.4 : 0.8}
+        />
+      )}
+
+      {/* Floating sand / sea spray particles */}
+      {effectsEnabled && (
+        <ParticleSystem
+          count={timeOfDay === "night" ? 80 : 150}
+          areaWidth={PLANE_W}
+          areaDepth={PLANE_H}
+          maxHeight={2.5}
+          color={timeOfDay === "night" ? "#aabbdd" : "#fef3c7"}
+          size={timeOfDay === "night" ? 0.02 : 0.03}
+        />
+      )}
+
+      {/* Cabana warm lights for sunset/night */}
+      {effectsEnabled &&
+        cabanas.map((c) => {
+          const pos = positionMap.get(c.id);
+          if (!pos) return null;
+          return (
+            <CabanaLight
+              key={`light-${c.id}`}
+              position={pos}
+              timeOfDay={timeOfDay}
+            />
+          );
+        })}
+
+      {/* Camera fly-to animation */}
+      {cameraTarget && !cameraLocked && (
+        <CameraAnimator target={cameraTarget} zoomDistance={5} speed={0.04} />
+      )}
+
+      {/* Post-processing (bloom, vignette, chromatic aberration) */}
+      {effectsEnabled && <PostProcessing timeOfDay={timeOfDay} />}
     </>
   );
 }
@@ -925,12 +1017,20 @@ export default function CabanaThreeViewInner({
   );
   const [cameraLocked, setCameraLocked] = useState(false);
   const [webglError, setWebglError] = useState(false);
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("day");
+  const [effectsEnabled, setEffectsEnabled] = useState(true);
 
   const activeSelectedId = selectedCabanaId ?? internalSelectedId;
   const selectedCabana = useMemo(
     () => cabanas.find((c) => c.id === activeSelectedId) ?? null,
     [cabanas, activeSelectedId],
   );
+
+  // Camera fly-to target when a cabana is selected (non-edit mode)
+  const cameraTarget = useMemo<[number, number, number] | null>(() => {
+    if (!selectedCabana || editable) return null;
+    return pixelToWorld(selectedCabana.coordX, selectedCabana.coordY);
+  }, [selectedCabana, editable]);
 
   // Sync external selectedCabanaId
   useEffect(() => {
@@ -1057,7 +1157,52 @@ export default function CabanaThreeViewInner({
                 : ""}
             </span>
           </div>
-          <Legend />
+          <div className="flex items-center gap-3">
+            {/* Time of day selector */}
+            <div className="flex items-center gap-1 bg-neutral-800/60 rounded-md p-0.5">
+              {(["morning", "day", "sunset", "night"] as const).map((tod) => {
+                const icons: Record<TimeOfDay, string> = {
+                  morning: "🌅",
+                  day: "☀️",
+                  sunset: "🌇",
+                  night: "🌙",
+                };
+                const labels: Record<TimeOfDay, string> = {
+                  morning: "Sabah",
+                  day: "Gündüz",
+                  sunset: "Gün Batımı",
+                  night: "Gece",
+                };
+                return (
+                  <button
+                    key={tod}
+                    onClick={() => setTimeOfDay(tod)}
+                    title={labels[tod]}
+                    className={`px-2 py-1 text-xs rounded transition-all ${
+                      timeOfDay === tod
+                        ? "bg-amber-600 text-neutral-950 font-semibold shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-700/50"
+                    }`}
+                  >
+                    {icons[tod]}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Effects toggle */}
+            <button
+              onClick={() => setEffectsEnabled((p) => !p)}
+              title={effectsEnabled ? "Efektleri Kapat" : "Efektleri Aç"}
+              className={`px-2 py-1 text-xs rounded-md transition-all ${
+                effectsEnabled
+                  ? "bg-cyan-700/40 text-cyan-300 border border-cyan-700/30"
+                  : "bg-neutral-800 text-neutral-500 hover:text-neutral-300"
+              }`}
+            >
+              ✨
+            </button>
+            <Legend />
+          </div>
         </div>
 
         {/* Canvas */}
@@ -1090,6 +1235,9 @@ export default function CabanaThreeViewInner({
                 onSelect={handleSelect}
                 onDragEnd={editable ? handleDragEnd : undefined}
                 onGroundClick={editable ? handleGroundClick : undefined}
+                timeOfDay={timeOfDay}
+                cameraTarget={cameraTarget}
+                effectsEnabled={effectsEnabled}
               />
             </Suspense>
           </Canvas>

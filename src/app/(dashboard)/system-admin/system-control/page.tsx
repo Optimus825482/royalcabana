@@ -21,6 +21,10 @@ interface ModuleConfig {
   reviews: { enabled: boolean };
 }
 
+interface PublicConfig {
+  demoQuickLoginEnabled: boolean;
+}
+
 const STATUS_LABELS: Record<CabanaStatus, string> = {
   [CabanaStatus.AVAILABLE]: "Müsait",
   [CabanaStatus.RESERVED]: "Rezerve",
@@ -64,6 +68,19 @@ export default function SystemControlPage() {
       },
     });
 
+  const { data: publicConfig, isLoading: publicConfigLoading } =
+    useQuery<PublicConfig>({
+      queryKey: ["system-public-config"],
+      queryFn: async () => {
+        const res = await fetch("/api/system/public-config", {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("Public config yüklenemedi.");
+        const data = await res.json();
+        return data.data as PublicConfig;
+      },
+    });
+
   const { data: currencyCode = DEFAULT_CURRENCY, isLoading: currencyLoading } =
     useQuery<CurrencyCode>({
       queryKey: ["system-currency"],
@@ -80,6 +97,7 @@ export default function SystemControlPage() {
   const [systemToggling, setSystemToggling] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [moduleToggling, setModuleToggling] = useState<string | null>(null);
+  const [demoLoginToggling, setDemoLoginToggling] = useState(false);
   const [currencySaving, setCurrencySaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -197,6 +215,40 @@ export default function SystemControlPage() {
       setError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
       setCurrencySaving(false);
+    }
+  }
+
+  async function handleDemoQuickLoginToggle() {
+    if (!publicConfig) return;
+
+    setDemoLoginToggling(true);
+    setError("");
+
+    try {
+      const nextValue = !publicConfig.demoQuickLoginEnabled;
+      const res = await fetch("/api/system/config/demo_quick_login_enabled", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: String(nextValue) }),
+      });
+
+      const payload = await res.json();
+      if (!res.ok || payload?.success === false) {
+        throw new Error(
+          payload?.error || payload?.message || "Demo hızlı giriş ayarı güncellenemedi.",
+        );
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["system-public-config"] });
+      showSuccess(
+        nextValue
+          ? "Demo hızlı giriş aktif edildi."
+          : "Demo hızlı giriş kapatıldı.",
+      );
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
+    } finally {
+      setDemoLoginToggling(false);
     }
   }
 
@@ -346,6 +398,42 @@ export default function SystemControlPage() {
                   {CURRENCIES[code].symbol} {code}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Demo Hızlı Giriş */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-neutral-300 mb-4">
+          Demo Hızlı Giriş
+        </h2>
+        {publicConfigLoading ? (
+          <div className="text-neutral-500 text-sm">Yükleniyor...</div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-neutral-100 font-medium">Login Demo Hesapları</p>
+              <p className="text-sm text-neutral-500 mt-0.5">
+                Açık olduğunda login ekranında demo kullanıcı butonları görünür.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-sm font-medium ${publicConfig?.demoQuickLoginEnabled ? "text-green-400" : "text-red-400"}`}
+              >
+                {publicConfig?.demoQuickLoginEnabled ? "Açık" : "Kapalı"}
+              </span>
+              <button
+                onClick={handleDemoQuickLoginToggle}
+                disabled={demoLoginToggling}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${publicConfig?.demoQuickLoginEnabled ? "bg-green-600" : "bg-neutral-700"}`}
+                aria-label="Demo hızlı giriş toggle"
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${publicConfig?.demoQuickLoginEnabled ? "translate-x-7" : "translate-x-1"}`}
+                />
+              </button>
             </div>
           </div>
         )}

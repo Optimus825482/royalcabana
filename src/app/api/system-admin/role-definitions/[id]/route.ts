@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { parseBody } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 
+const db = prisma as any;
+
 const updateSchema = z.object({
   displayName: z.string().min(2).max(80).optional(),
   description: z.string().max(400).optional().nullable(),
@@ -23,7 +25,7 @@ export const GET = withAuth(
       );
     }
 
-    const item = await prisma.roleDefinition.findFirst({
+    const item = await db.roleDefinition.findFirst({
       where: { id, isDeleted: false },
       include: {
         permissions: {
@@ -75,7 +77,7 @@ export const PATCH = withAuth(
       );
     }
 
-    const existing = await prisma.roleDefinition.findFirst({
+    const existing = await db.roleDefinition.findFirst({
       where: { id, isDeleted: false },
     });
 
@@ -91,13 +93,13 @@ export const PATCH = withAuth(
         {
           success: false,
           data: null,
-          error: "Sistem rol tanımları silinemez.",
+          error: "Sistem rol tanımları güncellenemez.",
         },
         { status: 400 },
       );
     }
 
-    const updated = await prisma.roleDefinition.update({
+    const updated = await db.roleDefinition.update({
       where: { id },
       data: {
         displayName: parsed.data.displayName,
@@ -134,7 +136,7 @@ export const DELETE = withAuth(
       );
     }
 
-    const existing = await prisma.roleDefinition.findFirst({
+    const existing = await db.roleDefinition.findFirst({
       where: { id, isDeleted: false },
       include: {
         permissions: {
@@ -151,8 +153,19 @@ export const DELETE = withAuth(
       );
     }
 
-    await prisma.$transaction([
-      prisma.roleDefinition.update({
+    if (existing.isSystem) {
+      return NextResponse.json(
+        {
+          success: false,
+          data: null,
+          error: "Sistem rol tanımları silinemez.",
+        },
+        { status: 400 },
+      );
+    }
+
+    await db.$transaction([
+      db.roleDefinition.update({
         where: { id },
         data: {
           isDeleted: true,
@@ -160,7 +173,7 @@ export const DELETE = withAuth(
           isActive: false,
         },
       }),
-      prisma.rolePermission.updateMany({
+      db.rolePermission.updateMany({
         where: {
           roleDefinitionId: id,
           isDeleted: false,

@@ -4,10 +4,12 @@ import { Role } from "@/types";
 import { prisma } from "@/lib/prisma";
 import { ensureRbacBootstrap } from "@/services/rbac.service";
 
+const db = prisma as any;
+
 export const GET = withAuth([Role.SYSTEM_ADMIN, Role.ADMIN], async () => {
   await ensureRbacBootstrap();
 
-  const permissions = await prisma.permission.findMany({
+  const permissions = await db.permission.findMany({
     where: {
       isDeleted: false,
       isActive: true,

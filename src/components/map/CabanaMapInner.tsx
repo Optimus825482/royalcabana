@@ -1879,11 +1879,13 @@ export default function CabanaMapInner({
         const res = await fetch(`/api/system/config/${key}`);
         if (res.ok) {
           const json = await res.json();
-          const parsed = JSON.parse(json.data.value);
-          const merged = { ...def, ...parsed };
-          setter(merged);
-          localStorage.setItem(key, JSON.stringify(merged));
-          return;
+          if (json.data?.value) {
+            const parsed = JSON.parse(json.data.value);
+            const merged = { ...def, ...parsed };
+            setter(merged);
+            localStorage.setItem(key, JSON.stringify(merged));
+            return;
+          }
         }
       } catch {
         /* API hatası */

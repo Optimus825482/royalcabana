@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { parseBody } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 
+const db = prisma as any;
+
 const updatePermissionsSchema = z.object({
   permissionIds: z.array(z.string().min(1)).default([]),
 });
@@ -21,7 +23,7 @@ export const GET = withAuth(
       );
     }
 
-    const roleDef = await prisma.roleDefinition.findFirst({
+    const roleDef = await db.roleDefinition.findFirst({
       where: { id, isDeleted: false },
       select: { id: true },
     });
@@ -33,7 +35,7 @@ export const GET = withAuth(
       );
     }
 
-    const links = await prisma.rolePermission.findMany({
+    const links = await db.rolePermission.findMany({
       where: {
         roleDefinitionId: id,
         isDeleted: false,
@@ -76,7 +78,7 @@ export const PUT = withAuth(
       );
     }
 
-    const roleDef = await prisma.roleDefinition.findFirst({
+    const roleDef = await db.roleDefinition.findFirst({
       where: { id, isDeleted: false },
       select: { id: true, role: true, displayName: true },
     });
@@ -99,7 +101,7 @@ export const PUT = withAuth(
 
     const requestedIds = Array.from(new Set(parsed.data.permissionIds));
 
-    const validPermissions = await prisma.permission.findMany({
+    const validPermissions = await db.permission.findMany({
       where: {
         id: { in: requestedIds },
         isDeleted: false,
@@ -119,7 +121,7 @@ export const PUT = withAuth(
       );
     }
 
-    const existingLinks = await prisma.rolePermission.findMany({
+    const existingLinks = (await db.rolePermission.findMany({
       where: {
         roleDefinitionId: id,
       },
@@ -128,24 +130,26 @@ export const PUT = withAuth(
         permissionId: true,
         isDeleted: true,
       },
-    });
+    })) as Array<{ id: string; permissionId: string; isDeleted: boolean }>;
 
     const byPermissionId = new Map(
-      existingLinks.map((link) => [link.permissionId, link]),
+      existingLinks.map(
+        (link: { id: string; permissionId: string; isDeleted: boolean }) => [
+          link.permissionId,
+          link,
+        ],
+      ),
     );
     const selectedSet = new Set(requestedIds);
     const now = new Date();
 
-    const tx: Array<
-      | ReturnType<typeof prisma.rolePermission.update>
-      | ReturnType<typeof prisma.rolePermission.create>
-    > = [];
+    const tx: Promise<unknown>[] = [];
 
     for (const permissionId of requestedIds) {
       const existing = byPermissionId.get(permissionId);
       if (!existing) {
         tx.push(
-          prisma.rolePermission.create({
+          db.rolePermission.create({
             data: {
               roleDefinitionId: id,
               permissionId,
@@ -156,7 +160,7 @@ export const PUT = withAuth(
         );
       } else if (existing.isDeleted) {
         tx.push(
-          prisma.rolePermission.update({
+          db.rolePermission.update({
             where: { id: existing.id },
             data: {
               isDeleted: false,
@@ -170,7 +174,7 @@ export const PUT = withAuth(
     for (const existing of existingLinks) {
       if (!existing.isDeleted && !selectedSet.has(existing.permissionId)) {
         tx.push(
-          prisma.rolePermission.update({
+          db.rolePermission.update({
             where: { id: existing.id },
             data: {
               isDeleted: true,
@@ -182,7 +186,7 @@ export const PUT = withAuth(
     }
 
     if (tx.length > 0) {
-      await prisma.$transaction(tx);
+      await db.$transaction(tx);
     }
 
     logAudit({
@@ -197,7 +201,7 @@ export const PUT = withAuth(
       },
     });
 
-    const updatedLinks = await prisma.rolePermission.findMany({
+    const updatedLinks = await db.rolePermission.findMany({
       where: {
         roleDefinitionId: id,
         isDeleted: false,

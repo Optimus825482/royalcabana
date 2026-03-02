@@ -1,10 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Role, MODULE_ACCESS } from "@/types";
+
+type DemoAccount = {
+  label: string;
+  username: string;
+  password: string;
+};
+
+const DEMO_ACCOUNTS: DemoAccount[] = [
+  { label: "Sistem Yöneticisi", username: "sysadmin", password: "admin123" },
+  { label: "Admin", username: "admin", password: "123456" },
+  { label: "Casino Kullanıcısı", username: "casino1", password: "admin123" },
+  { label: "F&B Kullanıcısı", username: "fnb1", password: "admin123" },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,12 +26,12 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  const [demoQuickLoginEnabled, setDemoQuickLoginEnabled] = useState(true);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function performLogin(nextUsername: string, nextPassword: string) {
     setError("");
 
-    if (!username.trim() || !password.trim()) {
+    if (!nextUsername.trim() || !nextPassword.trim()) {
       setError("Kullanıcı adı ve şifre zorunludur.");
       return;
     }
@@ -27,8 +40,8 @@ export default function LoginPage() {
 
     try {
       const result = await signIn("credentials", {
-        username,
-        password,
+        username: nextUsername,
+        password: nextPassword,
         redirect: false,
       });
 
@@ -81,6 +94,46 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await performLogin(username, password);
+  }
+
+  async function handleDemoLogin(account: DemoAccount) {
+    if (!demoQuickLoginEnabled) return;
+    setUsername(account.username);
+    setPassword(account.password);
+    await performLogin(account.username, account.password);
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPublicConfig() {
+      try {
+        const res = await fetch("/api/system/public-config", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        if (!mounted) return;
+        if (payload?.success && payload?.data) {
+          setDemoQuickLoginEnabled(
+            payload.data.demoQuickLoginEnabled !== false,
+          );
+        }
+      } catch {
+        if (!mounted) return;
+        setDemoQuickLoginEnabled(true);
+      }
+    }
+
+    loadPublicConfig();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-950 px-4 py-8">
@@ -161,6 +214,26 @@ export default function LoginPage() {
             {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
+
+        {demoQuickLoginEnabled && (
+          <div className="mt-6 border-t border-neutral-800 pt-5">
+            <p className="text-xs text-neutral-400 mb-3">Demo hesaplar (tek tık giriş):</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {DEMO_ACCOUNTS.map((account) => (
+                <button
+                  key={account.username}
+                  type="button"
+                  onClick={() => handleDemoLogin(account)}
+                  disabled={loading}
+                  className="text-left rounded-lg border border-neutral-700 bg-neutral-800/70 hover:bg-neutral-800 px-3 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <p className="text-xs text-yellow-400 font-medium">{account.label}</p>
+                  <p className="text-xs text-neutral-300 mt-0.5">{account.username}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

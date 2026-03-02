@@ -8,6 +8,8 @@ import { parseBody } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { ensureRbacBootstrap } from "@/services/rbac.service";
 
+const db = prisma as any;
+
 const createSchema = z.object({
   role: z.nativeEnum(Role),
   displayName: z.string().min(2).max(80),
@@ -18,7 +20,7 @@ const createSchema = z.object({
 export const GET = withAuth([AppRole.SYSTEM_ADMIN, AppRole.ADMIN], async () => {
   await ensureRbacBootstrap();
 
-  const items = await prisma.roleDefinition.findMany({
+  const items = await db.roleDefinition.findMany({
     where: { isDeleted: false },
     include: {
       permissions: {
@@ -59,7 +61,7 @@ export const POST = withAuth(
       );
     }
 
-    const existing = await prisma.roleDefinition.findFirst({
+    const existing = await db.roleDefinition.findFirst({
       where: {
         role: parsed.data.role,
         isDeleted: false,
@@ -78,7 +80,7 @@ export const POST = withAuth(
       );
     }
 
-    const item = await prisma.roleDefinition.create({
+    const item = await db.roleDefinition.create({
       data: {
         role: parsed.data.role,
         displayName: parsed.data.displayName,

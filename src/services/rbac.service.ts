@@ -6,9 +6,11 @@ import {
 } from "@/lib/rbac";
 import { Role } from "@prisma/client";
 
+const db = prisma as any;
+
 export async function ensureRbacBootstrap() {
   for (const permission of PERMISSION_TEMPLATES) {
-    await prisma.permission.upsert({
+    await db.permission.upsert({
       where: { key: permission.key },
       update: {
         name: permission.name,
@@ -33,7 +35,7 @@ export async function ensureRbacBootstrap() {
   }
 
   const permissionMap = new Map<string, string>();
-  const permissions = await prisma.permission.findMany({
+  const permissions = await db.permission.findMany({
     where: { isDeleted: false },
     select: { id: true, key: true },
   });
@@ -49,7 +51,7 @@ export async function ensureRbacBootstrap() {
     const displayName = ROLE_DISPLAY_DEFAULTS[roleKey];
     const defaultPermissionKeys = DEFAULT_ROLE_PERMISSION_KEYS[roleKey] ?? [];
 
-    const definition = await prisma.roleDefinition.upsert({
+    const definition = await db.roleDefinition.upsert({
       where: { role },
       update: {
         displayName,
@@ -68,7 +70,7 @@ export async function ensureRbacBootstrap() {
       select: { id: true },
     });
 
-    const activeLinks = await prisma.rolePermission.count({
+    const activeLinks = await db.rolePermission.count({
       where: {
         roleDefinitionId: definition.id,
         isDeleted: false,
@@ -83,7 +85,7 @@ export async function ensureRbacBootstrap() {
       const permissionId = permissionMap.get(permissionKey);
       if (!permissionId) continue;
 
-      const existing = await prisma.rolePermission.findFirst({
+      const existing = await db.rolePermission.findFirst({
         where: {
           roleDefinitionId: definition.id,
           permissionId,
@@ -93,7 +95,7 @@ export async function ensureRbacBootstrap() {
 
       if (existing) {
         if (existing.isDeleted) {
-          await prisma.rolePermission.update({
+          await db.rolePermission.update({
             where: { id: existing.id },
             data: { isDeleted: false, deletedAt: null },
           });
@@ -101,7 +103,7 @@ export async function ensureRbacBootstrap() {
         continue;
       }
 
-      await prisma.rolePermission.create({
+      await db.rolePermission.create({
         data: {
           roleDefinitionId: definition.id,
           permissionId,

@@ -202,7 +202,8 @@ async function main() {
   console.log("Seeding database...");
 
   // SystemAdmin kullanıcısı
-  const hashedPassword = await bcrypt.hash("admin123", 12);
+  const defaultHashedPassword = await bcrypt.hash("admin123", 12);
+  const adminHashedPassword = await bcrypt.hash("123456", 12);
 
   const systemAdmin = await prisma.user.upsert({
     where: { username: "sysadmin" },
@@ -210,7 +211,7 @@ async function main() {
     create: {
       username: "sysadmin",
       email: "sysadmin@royalcabana.com",
-      passwordHash: hashedPassword,
+      passwordHash: defaultHashedPassword,
       role: Role.SYSTEM_ADMIN,
       isActive: true,
     },
@@ -218,11 +219,11 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { username: "admin" },
-    update: {},
+    update: { passwordHash: adminHashedPassword },
     create: {
       username: "admin",
       email: "admin@royalcabana.com",
-      passwordHash: hashedPassword,
+      passwordHash: adminHashedPassword,
       role: Role.ADMIN,
       isActive: true,
     },
@@ -234,7 +235,7 @@ async function main() {
     create: {
       username: "casino1",
       email: "casino1@royalcabana.com",
-      passwordHash: hashedPassword,
+      passwordHash: defaultHashedPassword,
       role: Role.CASINO_USER,
       isActive: true,
     },
@@ -246,7 +247,7 @@ async function main() {
     create: {
       username: "fnb1",
       email: "fnb1@royalcabana.com",
-      passwordHash: hashedPassword,
+      passwordHash: defaultHashedPassword,
       role: Role.FNB_USER,
       isActive: true,
     },
