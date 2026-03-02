@@ -78,151 +78,157 @@ function readDistHtml(distDir: string): Buffer | null {
   return null;
 }
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req: NextRequest) => {
-  const { searchParams } = new URL(req.url);
-  const format = searchParams.get("format") ?? "md";
+export const POST = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req: NextRequest) => {
+    const { searchParams } = new URL(req.url);
+    const format = searchParams.get("format") ?? "md";
 
-  try {
-    // Body'den özelleştirme opsiyonlarını al
-    let body: {
-      title?: string;
-      slides?: string[];
-      markdown?: string;
-      theme?: string;
-    } = {};
     try {
-      body = await req.json();
-    } catch {
-      // Body boş olabilir — varsayılanlarla devam
-    }
+      // Body'den özelleştirme opsiyonlarını al
+      let body: {
+        title?: string;
+        slides?: string[];
+        markdown?: string;
+        theme?: string;
+      } = {};
+      try {
+        body = await req.json();
+      } catch {
+        // Body boş olabilir — varsayılanlarla devam
+      }
 
-    // Editörden gelen markdown varsa direkt kullan, yoksa DB'den üret
-    let markdown: string;
-    if (
-      body.markdown &&
-      typeof body.markdown === "string" &&
-      body.markdown.trim().length > 0
-    ) {
-      markdown = body.markdown;
-    } else if (body.title || body.slides) {
-      markdown = await generateSlidevMarkdownCustom({
-        title: body.title,
-        slides: body.slides as SlideType[],
-      });
-    } else {
-      markdown = await generateSlidevMarkdown();
-    }
+      // Editörden gelen markdown varsa direkt kullan, yoksa DB'den üret
+      let markdown: string;
+      if (
+        body.markdown &&
+        typeof body.markdown === "string" &&
+        body.markdown.trim().length > 0
+      ) {
+        markdown = body.markdown;
+      } else if (body.title || body.slides) {
+        markdown = await generateSlidevMarkdownCustom({
+          title: body.title,
+          slides: body.slides as SlideType[],
+        });
+      } else {
+        markdown = await generateSlidevMarkdown();
+      }
 
-    // Tema editörden geldiyse frontmatter'a uygula
-    if (body.theme && typeof body.theme === "string") {
-      markdown = applyThemeToMarkdown(markdown, body.theme);
-    }
+      // Tema editörden geldiyse frontmatter'a uygula
+      if (body.theme && typeof body.theme === "string") {
+        markdown = applyThemeToMarkdown(markdown, body.theme);
+      }
 
-    // Sadece markdown isteniyorsa direkt dön
-    if (format === "md") {
-      return new NextResponse(markdown, {
-        status: 200,
-        headers: {
-          "Content-Type": "text/markdown; charset=utf-8",
-          "Content-Disposition":
-            'attachment; filename="royal-cabana-slides.md"',
-        },
-      });
-    }
-
-    // HTML veya PDF için workspace hazırla
-    prepareSlidevWorkspace(markdown);
-
-    if (format === "html") {
-      // Slidev build → statik SPA
-      const distDir = path.join(WORKSPACE_DIR, "dist");
-
-      execSync(`"${SLIDEV_BIN}" build "${SLIDES_PATH}" --base / --out dist`, {
-        cwd: WORKSPACE_DIR,
-        timeout: 120_000,
-        stdio: "pipe",
-      });
-
-      if (!existsSync(distDir)) {
-        return NextResponse.json(
-          {
-            error: "Slidev build başarısız oldu. dist klasörü oluşturulamadı.",
+      // Sadece markdown isteniyorsa direkt dön
+      if (format === "md") {
+        return new NextResponse(markdown, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/markdown; charset=utf-8",
+            "Content-Disposition":
+              'attachment; filename="royal-cabana-slides.md"',
           },
-          { status: 500 },
-        );
+        });
       }
 
-      // Windows uyumlu: tar yerine index.html döndür
-      const htmlBuffer = readDistHtml(distDir);
-      cleanupWorkspace();
+      // HTML veya PDF için workspace hazırla
+      prepareSlidevWorkspace(markdown);
 
-      if (!htmlBuffer) {
-        return NextResponse.json(
-          { error: "Build çıktısında HTML dosyası bulunamadı." },
-          { status: 500 },
-        );
-      }
+      if (format === "html") {
+        // Slidev build → statik SPA
+        const distDir = path.join(WORKSPACE_DIR, "dist");
 
-      return new NextResponse(htmlBuffer as unknown as BodyInit, {
-        status: 200,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Content-Disposition":
-            'attachment; filename="royal-cabana-slides.html"',
-        },
-      });
-    }
-
-    if (format === "pdf") {
-      // Slidev export → PDF
-      const pdfPath = path.join(WORKSPACE_DIR, "slides-export.pdf");
-
-      execSync(
-        `"${SLIDEV_BIN}" export "${SLIDES_PATH}" --format pdf --output "${pdfPath}"`,
-        {
+        execSync(`"${SLIDEV_BIN}" build "${SLIDES_PATH}" --base / --out dist`, {
           cwd: WORKSPACE_DIR,
           timeout: 120_000,
           stdio: "pipe",
-        },
-      );
+        });
 
-      if (!existsSync(pdfPath)) {
-        return NextResponse.json(
-          { error: "PDF export başarısız oldu." },
-          { status: 500 },
-        );
+        if (!existsSync(distDir)) {
+          return NextResponse.json(
+            {
+              error:
+                "Slidev build başarısız oldu. dist klasörü oluşturulamadı.",
+            },
+            { status: 500 },
+          );
+        }
+
+        // Windows uyumlu: tar yerine index.html döndür
+        const htmlBuffer = readDistHtml(distDir);
+        cleanupWorkspace();
+
+        if (!htmlBuffer) {
+          return NextResponse.json(
+            { error: "Build çıktısında HTML dosyası bulunamadı." },
+            { status: 500 },
+          );
+        }
+
+        return new NextResponse(htmlBuffer as unknown as BodyInit, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Content-Disposition":
+              'attachment; filename="royal-cabana-slides.html"',
+          },
+        });
       }
 
-      const pdfBuffer = readFileSync(pdfPath);
+      if (format === "pdf") {
+        // Slidev export → PDF
+        const pdfPath = path.join(WORKSPACE_DIR, "slides-export.pdf");
+
+        execSync(
+          `"${SLIDEV_BIN}" export "${SLIDES_PATH}" --format pdf --output "${pdfPath}"`,
+          {
+            cwd: WORKSPACE_DIR,
+            timeout: 120_000,
+            stdio: "pipe",
+          },
+        );
+
+        if (!existsSync(pdfPath)) {
+          return NextResponse.json(
+            { error: "PDF export başarısız oldu." },
+            { status: 500 },
+          );
+        }
+
+        const pdfBuffer = readFileSync(pdfPath);
+        cleanupWorkspace();
+
+        return new NextResponse(pdfBuffer, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition":
+              'attachment; filename="royal-cabana-slides.pdf"',
+          },
+        });
+      }
+
+      // Bilinmeyen format
+      return NextResponse.json(
+        { error: `Desteklenmeyen format: ${format}. Geçerli: md, html, pdf` },
+        { status: 400 },
+      );
+    } catch (error) {
       cleanupWorkspace();
+      console.error("[Slidev Presentation] Export hatası:", error);
 
-      return new NextResponse(pdfBuffer, {
-        status: 200,
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition":
-            'attachment; filename="royal-cabana-slides.pdf"',
-        },
-      });
+      const message =
+        error instanceof Error ? error.message : "Bilinmeyen hata";
+
+      return NextResponse.json(
+        { error: `Sunum oluşturulurken hata oluştu: ${message}` },
+        { status: 500 },
+      );
     }
-
-    // Bilinmeyen format
-    return NextResponse.json(
-      { error: `Desteklenmeyen format: ${format}. Geçerli: md, html, pdf` },
-      { status: 400 },
-    );
-  } catch (error) {
-    cleanupWorkspace();
-    console.error("[Slidev Presentation] Export hatası:", error);
-
-    const message = error instanceof Error ? error.message : "Bilinmeyen hata";
-
-    return NextResponse.json(
-      { error: `Sunum oluşturulurken hata oluştu: ${message}` },
-      { status: 500 },
-    );
-  }
-});
+  },
+  { requiredPermissions: ["report.view"] },
+);
 
 /**
  * Markdown'daki ilk frontmatter bloğunda theme değerini güncelle.

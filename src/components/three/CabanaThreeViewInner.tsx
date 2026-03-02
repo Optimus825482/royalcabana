@@ -923,7 +923,7 @@ function PhotoGallery({
           ))}
         </div>
       </div>
-      <div className="px-4 pt-4 space-y-1.5 text-xs overflow-y-auto">
+      <div className="px-4 pt-4 space-y-1.5 text-xs overflow-y-auto rc-scrollbar">
         <InfoRow label="Sınıf" value={cabana.cabanaClass?.name ?? "—"} />
         <InfoRow label="Konsept" value={cabana.concept?.name ?? "—"} />
         <InfoRow
@@ -1263,7 +1263,7 @@ export default function CabanaThreeViewInner({
 
       {/* Detail panel */}
       {selectedCabana && !editable && (
-        <div className="w-72 shrink-0 border-l border-neutral-800 bg-neutral-900 overflow-y-auto">
+        <div className="w-72 shrink-0 border-l border-neutral-800 bg-neutral-900 overflow-y-auto rc-scrollbar">
           <PhotoGallery cabana={selectedCabana} onClose={handleClosePanel} />
         </div>
       )}

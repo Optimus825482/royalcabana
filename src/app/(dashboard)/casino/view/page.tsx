@@ -26,7 +26,10 @@ async function fetchSystemConfig(): Promise<SystemConfig> {
   const data = await res.json();
   // API returns { isOpen: boolean }
   if (typeof data.isOpen !== "undefined") {
-    return { system_open_for_reservation: data.isOpen === true || data.isOpen === "true" };
+    return {
+      system_open_for_reservation:
+        data.isOpen === true || data.isOpen === "true",
+    };
   }
   if (Array.isArray(data)) {
     const entry = data.find(
@@ -209,7 +212,7 @@ export default function CasinoViewPage() {
 
         {/* Right detail panel */}
         <div
-          className={`fixed inset-0 z-40 bg-neutral-900 md:static md:inset-auto md:z-auto md:w-80 shrink-0 md:border-l border-neutral-800 md:bg-neutral-900 flex flex-col overflow-y-auto ${!selectedCabana ? "hidden md:flex" : ""}`}
+          className={`fixed inset-0 z-40 bg-neutral-900 md:static md:inset-auto md:z-auto md:w-80 shrink-0 md:border-l border-neutral-800 md:bg-neutral-900 flex flex-col overflow-y-auto rc-scrollbar ${!selectedCabana ? "hidden md:flex" : ""}`}
         >
           {!selectedCabana ? (
             <div className="flex flex-col items-center justify-center flex-1 text-neutral-500 text-sm px-6 text-center gap-2">

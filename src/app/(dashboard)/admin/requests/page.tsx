@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ReservationStatus } from "@/types";
-import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  currencySymbol,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -111,7 +118,7 @@ function RejectModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50">
-      <div className="bg-neutral-900 border border-neutral-700 rounded-t-xl sm:rounded-xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-neutral-900 border border-neutral-700 rounded-t-xl sm:rounded-xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto rc-scrollbar">
         <h3 className="text-lg font-semibold text-neutral-100 mb-4">
           Red Nedeni
         </h3>
@@ -155,7 +162,7 @@ function DetailPanel({
   onApprove: (id: string, price: number) => void;
   onReject: (id: string) => void;
   actionLoading: boolean;
-    currency: CurrencyCode;
+  currency: CurrencyCode;
 }) {
   const [totalPrice, setTotalPrice] = useState(
     reservation.totalPrice ? String(reservation.totalPrice) : "",
@@ -168,7 +175,7 @@ function DetailPanel({
   const isPending = reservation.status === ReservationStatus.PENDING;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-y-auto rc-scrollbar">
       <div className="p-6 border-b border-neutral-800">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
@@ -232,48 +239,50 @@ function DetailPanel({
 
       {/* Onay/Red Aksiyonları */}
       {isPending && (
-        <div className="p-6 border-b border-neutral-800">
-          <h3 className="text-sm font-medium text-neutral-300 mb-3">
-            Fiyat Belirle ve Onayla
-          </h3>
-          <div className="flex gap-3 items-end">
-            <div className="flex-1">
-              <label className="text-xs text-neutral-500 mb-1 block">
-                Toplam Fiyat ({currencySymbol(currency)})
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={totalPrice}
-                onChange={(e) => setTotalPrice(e.target.value)}
-                placeholder="0.00"
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-base sm:text-sm text-neutral-100 focus:outline-none focus:border-amber-500 min-h-[44px]"
-              />
-            </div>
-            <button
-              onClick={() => {
-                const price = parseFloat(totalPrice);
-                if (!isNaN(price) && price >= 0) {
-                  onApprove(reservation.id, price);
+        <PermissionGate permission="reservation.update">
+          <div className="p-6 border-b border-neutral-800">
+            <h3 className="text-sm font-medium text-neutral-300 mb-3">
+              Fiyat Belirle ve Onayla
+            </h3>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <label className="text-xs text-neutral-500 mb-1 block">
+                  Toplam Fiyat ({currencySymbol(currency)})
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={totalPrice}
+                  onChange={(e) => setTotalPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-base sm:text-sm text-neutral-100 focus:outline-none focus:border-amber-500 min-h-[44px]"
+                />
+              </div>
+              <button
+                onClick={() => {
+                  const price = parseFloat(totalPrice);
+                  if (!isNaN(price) && price >= 0) {
+                    onApprove(reservation.id, price);
+                  }
+                }}
+                disabled={
+                  !totalPrice || isNaN(parseFloat(totalPrice)) || actionLoading
                 }
-              }}
-              disabled={
-                !totalPrice || isNaN(parseFloat(totalPrice)) || actionLoading
-              }
-              className="px-4 py-2 min-h-[44px] bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              {actionLoading ? "..." : "Onayla"}
-            </button>
-            <button
-              onClick={() => onReject(reservation.id)}
-              disabled={actionLoading}
-              className="px-4 py-2 min-h-[44px] bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Reddet
-            </button>
+                className="px-4 py-2 min-h-[44px] bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {actionLoading ? "..." : "Onayla"}
+              </button>
+              <button
+                onClick={() => onReject(reservation.id)}
+                disabled={actionLoading}
+                className="px-4 py-2 min-h-[44px] bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Reddet
+              </button>
+            </div>
           </div>
-        </div>
+        </PermissionGate>
       )}
 
       {/* Durum Geçmişi */}
@@ -361,7 +370,9 @@ export default function RequestsPage() {
   const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
 
   useEffect(() => {
-    fetchSystemCurrency().then(setCurrency).catch(() => { });
+    fetchSystemCurrency()
+      .then(setCurrency)
+      .catch(() => {});
   }, []);
 
   const fetchReservations = useCallback(async () => {
@@ -469,7 +480,7 @@ export default function RequestsPage() {
           </div>
 
           {/* Liste */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto rc-scrollbar">
             {loading ? (
               <div className="flex items-center justify-center h-32 text-neutral-500 text-sm">
                 Yükleniyor...

@@ -12,7 +12,14 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
-import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  currencySymbol,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 interface Product {
   id: string;
@@ -128,12 +135,14 @@ export default function PricingPage() {
             Manuel fiyat güncelleme, toplu içe aktarma ve fiyat geçmişi
           </p>
         </div>
-        <button
-          onClick={() => setShowImport(true)}
-          className="min-h-[44px] bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          ↑ İçe Aktar (Excel/CSV)
-        </button>
+        <PermissionGate permission="pricing.create">
+          <button
+            onClick={() => setShowImport(true)}
+            className="min-h-[44px] bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            ↑ İçe Aktar (Excel/CSV)
+          </button>
+        </PermissionGate>
       </div>
 
       {success && (
@@ -215,12 +224,14 @@ export default function PricingPage() {
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openPriceEdit(p)}
-                          className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/30 transition-colors"
-                        >
-                          Fiyat Güncelle
-                        </button>
+                        <PermissionGate permission="pricing.update">
+                          <button
+                            onClick={() => openPriceEdit(p)}
+                            className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/30 transition-colors"
+                          >
+                            Fiyat Güncelle
+                          </button>
+                        </PermissionGate>
                         <button
                           onClick={() => setPriceHistoryProduct(p)}
                           className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
@@ -280,12 +291,14 @@ export default function PricingPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => openPriceEdit(p)}
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/30 transition-colors"
-                    >
-                      Fiyat Güncelle
-                    </button>
+                    <PermissionGate permission="pricing.update">
+                      <button
+                        onClick={() => openPriceEdit(p)}
+                        className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/30 transition-colors"
+                      >
+                        Fiyat Güncelle
+                      </button>
+                    </PermissionGate>
                     <button
                       onClick={() => setPriceHistoryProduct(p)}
                       className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"

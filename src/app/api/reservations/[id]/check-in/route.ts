@@ -89,4 +89,5 @@ export const POST = withAuth(
 
     return NextResponse.json(updated);
   },
+  { requiredPermissions: ["reservation.update"] },
 );

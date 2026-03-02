@@ -19,24 +19,28 @@ const updateConceptSchema = z.object({
   serviceFee: z.coerce.number().min(0).optional(),
 });
 
-export const GET = withAuth(allRoles, async (_req, { params }) => {
-  const id = params!.id;
-  const concept = await prisma.concept.findUnique({
-    where: { id },
-    include: {
-      products: { include: { product: true } },
-      cabanaClass: { select: { id: true, name: true } },
-      _count: { select: { cabanas: true } },
-    },
-  });
-  if (!concept) {
-    return NextResponse.json(
-      { message: "Konsept bulunamadı." },
-      { status: 404 },
-    );
-  }
-  return NextResponse.json(concept);
-});
+export const GET = withAuth(
+  allRoles,
+  async (_req, { params }) => {
+    const id = params!.id;
+    const concept = await prisma.concept.findUnique({
+      where: { id },
+      include: {
+        products: { include: { product: true } },
+        cabanaClass: { select: { id: true, name: true } },
+        _count: { select: { cabanas: true } },
+      },
+    });
+    if (!concept) {
+      return NextResponse.json(
+        { message: "Konsept bulunamadı." },
+        { status: 404 },
+      );
+    }
+    return NextResponse.json(concept);
+  },
+  { requiredPermissions: ["concept.view"] },
+);
 
 export const PATCH = withAuth(
   [Role.SYSTEM_ADMIN],
@@ -85,6 +89,7 @@ export const PATCH = withAuth(
 
     return NextResponse.json(updated);
   },
+  { requiredPermissions: ["concept.update"] },
 );
 
 export const DELETE = withAuth(
@@ -123,4 +128,5 @@ export const DELETE = withAuth(
 
     return NextResponse.json({ message: "Konsept silindi." });
   },
+  { requiredPermissions: ["concept.delete"] },
 );

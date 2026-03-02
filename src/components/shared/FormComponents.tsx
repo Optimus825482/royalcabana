@@ -4,15 +4,23 @@ export function Modal({
   title,
   onClose,
   children,
+  maxWidth = "max-w-md",
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  maxWidth?: string;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-md sm:mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-neutral-900 flex items-center justify-between px-5 py-4 border-b border-neutral-800">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className={`bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full ${maxWidth} sm:mx-4 max-h-[90vh] flex flex-col`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
           <h2 className="text-sm font-semibold text-yellow-400">{title}</h2>
           <button
             onClick={onClose}
@@ -22,7 +30,9 @@ export function Modal({
             ×
           </button>
         </div>
-        <div className="px-5 py-5">{children}</div>
+        <div className="px-5 py-5 overflow-y-auto flex-1 min-h-0 rc-scrollbar">
+          {children}
+        </div>
       </div>
     </div>
   );

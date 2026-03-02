@@ -209,4 +209,5 @@ export const GET = withAuth(
       },
     });
   },
+  { requiredPermissions: ["reservation.view"] },
 );

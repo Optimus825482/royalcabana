@@ -13,53 +13,61 @@ const upsertSchema = z.object({
   price: z.number().min(0),
 });
 
-export const GET = withAuth(adminRoles, async (req) => {
-  const { searchParams } = new URL(req.url);
-  const conceptId = searchParams.get("conceptId");
+export const GET = withAuth(
+  adminRoles,
+  async (req) => {
+    const { searchParams } = new URL(req.url);
+    const conceptId = searchParams.get("conceptId");
 
-  const prices = await prisma.conceptPrice.findMany({
-    where: conceptId ? { conceptId } : undefined,
-    include: {
-      product: { select: { id: true, name: true, salePrice: true } },
-    },
-    orderBy: { id: "asc" },
-  });
-  return NextResponse.json({ prices });
-});
+    const prices = await prisma.conceptPrice.findMany({
+      where: conceptId ? { conceptId } : undefined,
+      include: {
+        product: { select: { id: true, name: true, salePrice: true } },
+      },
+      orderBy: { id: "asc" },
+    });
+    return NextResponse.json({ prices });
+  },
+  { requiredPermissions: ["pricing.view"] },
+);
 
-export const POST = withAuth(adminRoles, async (req, { session }) => {
-  const body = await req.json();
-  const parsed = upsertSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+export const POST = withAuth(
+  adminRoles,
+  async (req, { session }) => {
+    const body = await req.json();
+    const parsed = upsertSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-  const { conceptId, productId, price } = parsed.data;
+    const { conceptId, productId, price } = parsed.data;
 
-  const existing = await prisma.conceptPrice.findUnique({
-    where: { conceptId_productId: { conceptId, productId } },
-  });
+    const existing = await prisma.conceptPrice.findUnique({
+      where: { conceptId_productId: { conceptId, productId } },
+    });
 
-  const record = await prisma.conceptPrice.upsert({
-    where: { conceptId_productId: { conceptId, productId } },
-    update: { price },
-    create: { conceptId, productId, price },
-    include: {
-      product: { select: { id: true, name: true, salePrice: true } },
-    },
-  });
+    const record = await prisma.conceptPrice.upsert({
+      where: { conceptId_productId: { conceptId, productId } },
+      update: { price },
+      create: { conceptId, productId, price },
+      include: {
+        product: { select: { id: true, name: true, salePrice: true } },
+      },
+    });
 
-  logAudit({
-    userId: session.user.id,
-    action: "PRICE_UPDATE",
-    entity: "ConceptPrice",
-    entityId: record.id,
-    oldValue: existing ? { price: Number(existing.price) } : null,
-    newValue: { conceptId, productId, price },
-  });
+    logAudit({
+      userId: session.user.id,
+      action: "PRICE_UPDATE",
+      entity: "ConceptPrice",
+      entityId: record.id,
+      oldValue: existing ? { price: Number(existing.price) } : null,
+      newValue: { conceptId, productId, price },
+    });
 
-  return NextResponse.json(record);
-});
+    return NextResponse.json(record);
+  },
+  { requiredPermissions: ["pricing.create"] },
+);

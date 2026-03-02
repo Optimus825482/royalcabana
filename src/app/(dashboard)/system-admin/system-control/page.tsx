@@ -8,6 +8,7 @@ import {
   DEFAULT_CURRENCY,
   type CurrencyCode,
 } from "@/lib/currency";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 interface CabanaRow {
   id: string;
@@ -89,7 +90,8 @@ export default function SystemControlPage() {
         if (!res.ok) return DEFAULT_CURRENCY;
         const data = await res.json();
         const val = data?.data?.value ?? data?.value ?? DEFAULT_CURRENCY;
-        if (val === "TRY" || val === "EUR" || val === "USD") return val as CurrencyCode;
+        if (val === "TRY" || val === "EUR" || val === "USD")
+          return val as CurrencyCode;
         return DEFAULT_CURRENCY;
       },
     });
@@ -210,7 +212,9 @@ export default function SystemControlPage() {
         throw new Error(data.error || "Para birimi güncellenemedi.");
       }
       queryClient.invalidateQueries({ queryKey: ["system-currency"] });
-      showSuccess(`Para birimi ${CURRENCIES[newCurrency].label} olarak güncellendi.`);
+      showSuccess(
+        `Para birimi ${CURRENCIES[newCurrency].label} olarak güncellendi.`,
+      );
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Bir hata oluştu.");
     } finally {
@@ -235,7 +239,9 @@ export default function SystemControlPage() {
       const payload = await res.json();
       if (!res.ok || payload?.success === false) {
         throw new Error(
-          payload?.error || payload?.message || "Demo hızlı giriş ayarı güncellenemedi.",
+          payload?.error ||
+          payload?.message ||
+          "Demo hızlı giriş ayarı güncellenemedi.",
         );
       }
 
@@ -297,6 +303,7 @@ export default function SystemControlPage() {
               >
                 {systemOpen ? "Açık" : "Kapalı"}
               </span>
+                <PermissionGate permission="system.config.update">
               <button
                 onClick={handleSystemToggle}
                 disabled={systemToggling}
@@ -311,6 +318,7 @@ export default function SystemControlPage() {
                   }`}
                 />
               </button>
+                </PermissionGate>
             </div>
           </div>
         )}
@@ -343,24 +351,24 @@ export default function SystemControlPage() {
                   >
                     {moduleConfig[mod.key].enabled ? "Aktif" : "Kapalı"}
                   </span>
-                  <button
-                    onClick={() => handleModuleToggle(mod.key)}
-                    disabled={moduleToggling === mod.key}
-                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                      moduleConfig[mod.key].enabled
-                        ? "bg-green-600"
-                        : "bg-neutral-700"
-                    }`}
-                    aria-label={`${mod.label} toggle`}
-                  >
-                    <span
-                      className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${
-                        moduleConfig[mod.key].enabled
-                          ? "translate-x-7"
-                          : "translate-x-1"
-                      }`}
-                    />
-                  </button>
+                  <PermissionGate permission="system.config.update">
+                    <button
+                      onClick={() => handleModuleToggle(mod.key)}
+                      disabled={moduleToggling === mod.key}
+                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${moduleConfig[mod.key].enabled
+                          ? "bg-green-600"
+                          : "bg-neutral-700"
+                        }`}
+                      aria-label={`${mod.label} toggle`}
+                    >
+                      <span
+                        className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${moduleConfig[mod.key].enabled
+                            ? "translate-x-7"
+                            : "translate-x-1"
+                          }`}
+                      />
+                    </button>
+                  </PermissionGate>
                 </div>
               </div>
             ))}
@@ -386,17 +394,18 @@ export default function SystemControlPage() {
             </div>
             <div className="flex items-center gap-3">
               {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
-                <button
-                  key={code}
+                <PermissionGate key={code} permission="system.config.update">
+                  <button
                   onClick={() => handleCurrencyChange(code)}
                   disabled={currencySaving}
-                  className={`px-4 py-2.5 min-h-[44px] rounded-lg text-sm font-medium transition-colors border ${currencyCode === code
+                    className={`px-4 py-2.5 min-h-[44px] rounded-lg text-sm font-medium transition-colors border ${currencyCode === code
                       ? "bg-amber-500/20 border-amber-500 text-amber-400"
                       : "bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {CURRENCIES[code].symbol} {code}
                 </button>
+                </PermissionGate>
               ))}
             </div>
           </div>
@@ -413,7 +422,9 @@ export default function SystemControlPage() {
         ) : (
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-neutral-100 font-medium">Login Demo Hesapları</p>
+                <p className="text-neutral-100 font-medium">
+                  Login Demo Hesapları
+                </p>
               <p className="text-sm text-neutral-500 mt-0.5">
                 Açık olduğunda login ekranında demo kullanıcı butonları görünür.
               </p>
@@ -424,6 +435,7 @@ export default function SystemControlPage() {
               >
                 {publicConfig?.demoQuickLoginEnabled ? "Açık" : "Kapalı"}
               </span>
+                <PermissionGate permission="system.config.update">
               <button
                 onClick={handleDemoQuickLoginToggle}
                 disabled={demoLoginToggling}
@@ -434,6 +446,7 @@ export default function SystemControlPage() {
                   className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${publicConfig?.demoQuickLoginEnabled ? "translate-x-7" : "translate-x-1"}`}
                 />
               </button>
+                </PermissionGate>
             </div>
           </div>
         )}
@@ -491,6 +504,7 @@ export default function SystemControlPage() {
                         >
                           {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
                         </span>
+                        <PermissionGate permission="system.config.update">
                         <button
                           onClick={() => handleCabanaToggle(cabana)}
                           disabled={togglingId === cabana.id}
@@ -509,6 +523,7 @@ export default function SystemControlPage() {
                             }`}
                           />
                         </button>
+                        </PermissionGate>
                       </div>
                     </td>
                   </tr>
@@ -537,6 +552,7 @@ export default function SystemControlPage() {
                     >
                       {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
                     </span>
+                    <PermissionGate permission="system.config.update">
                     <button
                       onClick={() => handleCabanaToggle(cabana)}
                       disabled={togglingId === cabana.id}
@@ -555,6 +571,7 @@ export default function SystemControlPage() {
                         }`}
                       />
                     </button>
+                    </PermissionGate>
                   </div>
                 </div>
               ))}

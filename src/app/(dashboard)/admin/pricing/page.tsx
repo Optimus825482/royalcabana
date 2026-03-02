@@ -3,7 +3,14 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { PriceBreakdown } from "@/types";
-import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  currencySymbol,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,7 +78,13 @@ function TabButton({
 
 // ─── Tab 1: Kabana Fiyatları ──────────────────────────────────────────────────
 
-function CabanaPricesTab({ cabanas, currency }: { cabanas: Cabana[]; currency: CurrencyCode }) {
+function CabanaPricesTab({
+  cabanas,
+  currency,
+}: {
+  cabanas: Cabana[];
+  currency: CurrencyCode;
+}) {
   const [selectedCabana, setSelectedCabana] = useState("");
   const [month, setMonth] = useState(() => {
     const now = new Date();
@@ -198,13 +211,15 @@ function CabanaPricesTab({ cabanas, currency }: { cabanas: Cabana[]; currency: C
             })}
           </div>
           <div className="flex items-center gap-4">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-950 font-semibold px-5 py-2 min-h-[44px] rounded text-sm transition-colors"
-            >
-              {saving ? "Kaydediliyor..." : "Kaydet"}
-            </button>
+            <PermissionGate permission="pricing.update">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-950 font-semibold px-5 py-2 min-h-[44px] rounded text-sm transition-colors"
+              >
+                {saving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </PermissionGate>
             {message && (
               <span
                 className={`text-sm ${message.includes("hata") ? "text-red-400" : "text-green-400"}`}
@@ -221,7 +236,13 @@ function CabanaPricesTab({ cabanas, currency }: { cabanas: Cabana[]; currency: C
 
 // ─── Tab 2: Konsept Fiyatları ─────────────────────────────────────────────────
 
-function ConceptPricesTab({ concepts, currency }: { concepts: Concept[]; currency: CurrencyCode }) {
+function ConceptPricesTab({
+  concepts,
+  currency,
+}: {
+  concepts: Concept[];
+  currency: CurrencyCode;
+}) {
   const [selectedConcept, setSelectedConcept] = useState("");
   const [conceptPrices, setConceptPrices] = useState<Record<string, string>>(
     {},
@@ -333,18 +354,22 @@ function ConceptPricesTab({ concepts, currency }: { concepts: Concept[]; currenc
                   }
                   className="bg-neutral-700 border border-neutral-600 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 w-32 text-right min-h-[44px]"
                 />
-                <span className="text-xs text-neutral-500">{currencySymbol(currency)}</span>
+                <span className="text-xs text-neutral-500">
+                  {currencySymbol(currency)}
+                </span>
               </div>
             ))}
           </div>
           <div className="flex items-center gap-4">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-950 font-semibold px-5 py-2 rounded text-sm transition-colors"
-            >
-              {saving ? "Kaydediliyor..." : "Kaydet"}
-            </button>
+            <PermissionGate permission="pricing.update">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-950 font-semibold px-5 py-2 rounded text-sm transition-colors"
+              >
+                {saving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </PermissionGate>
             {message && (
               <span
                 className={`text-sm ${message.includes("hata") ? "text-red-400" : "text-green-400"}`}
@@ -372,7 +397,7 @@ function PricePreviewTab({
 }: {
   cabanas: Cabana[];
   concepts: Concept[];
-    currency: CurrencyCode;
+  currency: CurrencyCode;
 }) {
   const [form, setForm] = useState({
     cabanaId: "",
@@ -551,16 +576,20 @@ function PricePreviewTab({
                 </div>
               )}
               <div className="text-xs text-neutral-400">
-                Kabana ({breakdown.days} gün): {breakdown.cabanaDaily.toFixed(2)} {currencySymbol(currency)}
+                Kabana ({breakdown.days} gün):{" "}
+                {breakdown.cabanaDaily.toFixed(2)} {currencySymbol(currency)}
               </div>
               <div className="text-xs text-neutral-400">
-                Konsept ({breakdown.days} gün): {breakdown.conceptTotal.toFixed(2)} {currencySymbol(currency)}
+                Konsept ({breakdown.days} gün):{" "}
+                {breakdown.conceptTotal.toFixed(2)} {currencySymbol(currency)}
               </div>
               <div className="text-xs text-neutral-400">
-                Ekstralar: {breakdown.extrasTotal.toFixed(2)} {currencySymbol(currency)}
+                Ekstralar: {breakdown.extrasTotal.toFixed(2)}{" "}
+                {currencySymbol(currency)}
               </div>
               <div className="text-lg font-bold text-amber-400 border-t border-neutral-700 pt-2 mt-2">
-                Toplam: {breakdown.grandTotal.toFixed(2)} {currencySymbol(currency)}
+                Toplam: {breakdown.grandTotal.toFixed(2)}{" "}
+                {currencySymbol(currency)}
               </div>
             </div>
           </div>
@@ -617,10 +646,18 @@ export default function PricingPage() {
       </div>
 
       <div className="bg-neutral-900 rounded-lg p-4 sm:p-6">
-        {tab === "cabana" && <CabanaPricesTab cabanas={cabanas} currency={currency} />}
-        {tab === "concept" && <ConceptPricesTab concepts={concepts} currency={currency} />}
+        {tab === "cabana" && (
+          <CabanaPricesTab cabanas={cabanas} currency={currency} />
+        )}
+        {tab === "concept" && (
+          <ConceptPricesTab concepts={concepts} currency={currency} />
+        )}
         {tab === "preview" && (
-          <PricePreviewTab cabanas={cabanas} concepts={concepts} currency={currency} />
+          <PricePreviewTab
+            cabanas={cabanas}
+            concepts={concepts}
+            currency={currency}
+          />
         )}
       </div>
     </div>

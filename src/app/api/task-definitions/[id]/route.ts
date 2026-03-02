@@ -30,6 +30,7 @@ export const GET = withAuth(
     }
     return NextResponse.json(item);
   },
+  { requiredPermissions: ["task.definition.view"] },
 );
 
 // PATCH — Görev tanımı güncelle
@@ -69,6 +70,7 @@ export const PATCH = withAuth(
 
     return NextResponse.json(item);
   },
+  { requiredPermissions: ["task.definition.update"] },
 );
 
 // DELETE — Soft delete
@@ -101,4 +103,5 @@ export const DELETE = withAuth(
 
     return NextResponse.json({ success: true });
   },
+  { requiredPermissions: ["task.definition.delete"] },
 );

@@ -21,6 +21,7 @@ import {
   Calendar,
   MapPin,
 } from "lucide-react";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 // ── Types ──
 
@@ -237,13 +238,15 @@ export default function GuestsPage() {
             Misafir kayıtlarını görüntüleyin ve yönetin
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
-        >
-          <UserPlus className="w-4 h-4" />
-          Yeni Misafir
-        </button>
+        <PermissionGate permission="guest.create">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            Yeni Misafir
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Toast */}
@@ -323,20 +326,24 @@ export default function GuestsPage() {
                       className="flex items-center justify-end gap-1.5"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button
-                        onClick={() => openEdit(guest)}
-                        title="Düzenle"
-                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(guest)}
-                        title="Sil"
-                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <PermissionGate permission="guest.update">
+                        <button
+                          onClick={() => openEdit(guest)}
+                          title="Düzenle"
+                          className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </PermissionGate>
+                      <PermissionGate permission="guest.delete">
+                        <button
+                          onClick={() => setDeleteTarget(guest)}
+                          title="Sil"
+                          className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </PermissionGate>
                     </div>
                   </td>
                 </tr>
@@ -379,18 +386,22 @@ export default function GuestsPage() {
                 </span>
               </div>
               <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => openEdit(guest)}
-                  className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                >
-                  Düzenle
-                </button>
-                <button
-                  onClick={() => setDeleteTarget(guest)}
-                  className="text-xs px-3 py-2 min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-                >
-                  Sil
-                </button>
+                <PermissionGate permission="guest.update">
+                  <button
+                    onClick={() => openEdit(guest)}
+                    className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                  >
+                    Düzenle
+                  </button>
+                </PermissionGate>
+                <PermissionGate permission="guest.delete">
+                  <button
+                    onClick={() => setDeleteTarget(guest)}
+                    className="text-xs px-3 py-2 min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                  >
+                    Sil
+                  </button>
+                </PermissionGate>
               </div>
             </div>
           ))
@@ -616,7 +627,7 @@ export default function GuestsPage() {
               </p>
               {detailGuest.reservations &&
               detailGuest.reservations.length > 0 ? (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="space-y-2 max-h-48 overflow-y-auto rc-scrollbar">
                   {detailGuest.reservations.map((res) => (
                     <div
                       key={res.id}

@@ -6,26 +6,30 @@ import { logAudit } from "@/lib/audit";
 import { parseBody, createPriceRangeSchema } from "@/lib/validators";
 
 // GET — Fiyat aralıklarını listele
-export const GET = withAuth([Role.ADMIN, Role.SYSTEM_ADMIN], async (req) => {
-  const { searchParams } = req.nextUrl;
-  const cabanaId = searchParams.get("cabanaId");
+export const GET = withAuth(
+  [Role.ADMIN, Role.SYSTEM_ADMIN],
+  async (req) => {
+    const { searchParams } = req.nextUrl;
+    const cabanaId = searchParams.get("cabanaId");
 
-  const where: Record<string, unknown> = {};
-  if (cabanaId) where.cabanaId = cabanaId;
+    const where: Record<string, unknown> = {};
+    if (cabanaId) where.cabanaId = cabanaId;
 
-  const [priceRanges, total] = await Promise.all([
-    (prisma as any).cabanaPriceRange.findMany({
-      where,
-      include: {
-        cabana: { select: { name: true } },
-      },
-      orderBy: { startDate: "asc" },
-    }),
-    (prisma as any).cabanaPriceRange.count({ where }),
-  ]);
+    const [priceRanges, total] = await Promise.all([
+      (prisma as any).cabanaPriceRange.findMany({
+        where,
+        include: {
+          cabana: { select: { name: true } },
+        },
+        orderBy: { startDate: "asc" },
+      }),
+      (prisma as any).cabanaPriceRange.count({ where }),
+    ]);
 
-  return NextResponse.json({ priceRanges, total });
-});
+    return NextResponse.json({ priceRanges, total });
+  },
+  { requiredPermissions: ["pricing.view"] },
+);
 
 // POST — Yeni fiyat aralığı oluştur
 export const POST = withAuth(
@@ -72,4 +76,5 @@ export const POST = withAuth(
 
     return NextResponse.json(priceRange, { status: 201 });
   },
+  { requiredPermissions: ["pricing.create"] },
 );

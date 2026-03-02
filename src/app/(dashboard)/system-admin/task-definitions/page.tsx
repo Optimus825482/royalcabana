@@ -21,6 +21,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 // ── Types ──
 
@@ -246,13 +247,15 @@ export default function TaskDefinitionsPage() {
             Personele atanabilecek görev şablonlarını yönetin
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Yeni Görev Tanımı
-        </button>
+        <PermissionGate permission="task.definition.create">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Yeni Görev Tanımı
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Toast */}
@@ -357,21 +360,25 @@ export default function TaskDefinitionsPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={() => openEdit(def)}
-                  title="Düzenle"
-                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                {def.isActive && (
+                <PermissionGate permission="task.definition.update">
                   <button
-                    onClick={() => setDeleteTarget(def)}
-                    title="Devre dışı bırak"
-                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    onClick={() => openEdit(def)}
+                    title="Düzenle"
+                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
+                </PermissionGate>
+                {def.isActive && (
+                  <PermissionGate permission="task.definition.delete">
+                    <button
+                      onClick={() => setDeleteTarget(def)}
+                      title="Devre dışı bırak"
+                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </PermissionGate>
                 )}
               </div>
             </div>

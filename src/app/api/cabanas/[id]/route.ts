@@ -20,24 +20,31 @@ const allRoles = [
   Role.FNB_USER,
 ];
 
-export const GET = withAuth(allRoles, async (_req, { params }) => {
-  const id = params!.id;
+export const GET = withAuth(
+  allRoles,
+  async (_req, { params }) => {
+    const id = params!.id;
 
-  const cabana = await prisma.cabana.findUnique({
-    where: { id },
-    include: {
-      cabanaClass: true,
-      concept: true,
-      prices: { orderBy: { date: "asc" } },
-    },
-  });
+    const cabana = await prisma.cabana.findUnique({
+      where: { id },
+      include: {
+        cabanaClass: true,
+        concept: true,
+        prices: { orderBy: { date: "asc" } },
+      },
+    });
 
-  if (!cabana) {
-    return NextResponse.json({ error: "Kabana bulunamadı." }, { status: 404 });
-  }
+    if (!cabana) {
+      return NextResponse.json(
+        { error: "Kabana bulunamadı." },
+        { status: 404 },
+      );
+    }
 
-  return NextResponse.json(cabana);
-});
+    return NextResponse.json(cabana);
+  },
+  { requiredPermissions: ["map.view"] },
+);
 
 export const PATCH = withAuth(
   [Role.SYSTEM_ADMIN],
@@ -88,6 +95,7 @@ export const PATCH = withAuth(
 
     return NextResponse.json(updated);
   },
+  { requiredPermissions: ["map.update"] },
 );
 
 export const DELETE = withAuth(
@@ -135,4 +143,5 @@ export const DELETE = withAuth(
 
     return NextResponse.json({ success: true });
   },
+  { requiredPermissions: ["map.update"] },
 );

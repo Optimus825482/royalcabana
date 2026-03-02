@@ -11,7 +11,14 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
-import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import PermissionGate from "@/components/shared/PermissionGate";
+import {
+  formatPrice,
+  currencySymbol,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
 
 interface Product {
   id: string;
@@ -289,16 +296,18 @@ export default function ConceptsPage() {
             Kabana konseptlerini ve ürünlerini yönetin
           </p>
         </div>
-        <button
-          onClick={() => {
-            setShowCreate(true);
-            setCreateError("");
-            setCreateForm(defaultCreateForm);
-          }}
-          className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          + Yeni Konsept
-        </button>
+        <PermissionGate permission="concept.create">
+          <button
+            onClick={() => {
+              setShowCreate(true);
+              setCreateError("");
+              setCreateForm(defaultCreateForm);
+            }}
+            className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            + Yeni Konsept
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Toast messages */}
@@ -371,21 +380,25 @@ export default function ConceptsPage() {
                   >
                     {expandedId === concept.id ? "Kapat" : "Ürünler"}
                   </button>
-                  <button
-                    onClick={() => openEdit(concept)}
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                  >
-                    Düzenle
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDeleteConcept(concept);
-                      setDeleteError("");
-                    }}
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-                  >
-                    Sil
-                  </button>
+                  <PermissionGate permission="concept.update">
+                    <button
+                      onClick={() => openEdit(concept)}
+                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                    >
+                      Düzenle
+                    </button>
+                  </PermissionGate>
+                  <PermissionGate permission="concept.delete">
+                    <button
+                      onClick={() => {
+                        setDeleteConcept(concept);
+                        setDeleteError("");
+                      }}
+                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    >
+                      Sil
+                    </button>
+                  </PermissionGate>
                 </div>
               </div>
 
@@ -418,14 +431,16 @@ export default function ConceptsPage() {
                               {formatPrice(cp.product.salePrice, currency)}
                             </span>
                           </div>
-                          <button
-                            onClick={() =>
-                              handleRemoveProduct(concept.id, cp.productId)
-                            }
-                            className="text-xs text-red-500 hover:text-red-400 transition-colors ml-4"
-                          >
-                            Kaldır
-                          </button>
+                          <PermissionGate permission="concept.update">
+                            <button
+                              onClick={() =>
+                                handleRemoveProduct(concept.id, cp.productId)
+                              }
+                              className="text-xs text-red-500 hover:text-red-400 transition-colors ml-4"
+                            >
+                              Kaldır
+                            </button>
+                          </PermissionGate>
                         </div>
                       ))}
                     </div>
@@ -461,16 +476,18 @@ export default function ConceptsPage() {
                         </option>
                       ))}
                     </select>
-                    <button
-                      onClick={() => handleAddProduct(concept.id)}
-                      disabled={
-                        addProductLoading[concept.id] ||
-                        !addProductForms[concept.id]
-                      }
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-neutral-950 font-semibold transition-colors shrink-0"
-                    >
-                      {addProductLoading[concept.id] ? "..." : "Ekle"}
-                    </button>
+                    <PermissionGate permission="concept.update">
+                      <button
+                        onClick={() => handleAddProduct(concept.id)}
+                        disabled={
+                          addProductLoading[concept.id] ||
+                          !addProductForms[concept.id]
+                        }
+                        className="min-h-[44px] text-xs px-3 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-neutral-950 font-semibold transition-colors shrink-0"
+                      >
+                        {addProductLoading[concept.id] ? "..." : "Ekle"}
+                      </button>
+                    </PermissionGate>
                   </div>
                   {addProductError[concept.id] && (
                     <p className="text-red-400 text-xs mt-2">

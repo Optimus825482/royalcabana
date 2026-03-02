@@ -54,4 +54,5 @@ export const DELETE = withAuth(
 
     return NextResponse.json({ success: true });
   },
+  { requiredPermissions: ["reservation.delete"] },
 );

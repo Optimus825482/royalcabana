@@ -21,7 +21,12 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
-import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -113,10 +118,10 @@ const statusLabel: Record<MatchStatus, string> = {
   UNMATCHED: "Belirsiz",
 };
 
-const fmt = (v: number | null | undefined, cur: CurrencyCode = DEFAULT_CURRENCY) =>
-  v != null
-    ? formatPrice(v, cur)
-    : "—";
+const fmt = (
+  v: number | null | undefined,
+  cur: CurrencyCode = DEFAULT_CURRENCY,
+) => (v != null ? formatPrice(v, cur) : "—");
 
 /* ------------------------------------------------------------------ */
 /*  ActionButtonGroup                                                  */
@@ -433,7 +438,7 @@ export default function ImportModal({
         </div>
 
         {/* ---- Body ---- */}
-        <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0">
+        <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0 rc-scrollbar">
           {error && <ErrorMsg msg={error} />}
 
           {/* ======== STEP 1: File Upload ======== */}

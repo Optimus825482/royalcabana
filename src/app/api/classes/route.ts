@@ -20,56 +20,64 @@ const createClassSchema = z.object({
     .optional(),
 });
 
-export const GET = withAuth(allRoles, async () => {
-  const classes = await prisma.cabanaClass.findMany({
-    include: {
-      attributes: true,
-      _count: { select: { cabanas: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(classes);
-});
+export const GET = withAuth(
+  allRoles,
+  async () => {
+    const classes = await prisma.cabanaClass.findMany({
+      include: {
+        attributes: true,
+        _count: { select: { cabanas: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(classes);
+  },
+  { requiredPermissions: ["cabana.class.view"] },
+);
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
-  const body = await req.json();
-  const parsed = createClassSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { message: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+export const POST = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session }) => {
+    const body = await req.json();
+    const parsed = createClassSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-  const { name, description, attributes } = parsed.data;
+    const { name, description, attributes } = parsed.data;
 
-  const existing = await prisma.cabanaClass.findUnique({ where: { name } });
-  if (existing) {
-    return NextResponse.json(
-      { message: "Bu isimde bir sınıf zaten mevcut." },
-      { status: 409 },
-    );
-  }
+    const existing = await prisma.cabanaClass.findUnique({ where: { name } });
+    if (existing) {
+      return NextResponse.json(
+        { message: "Bu isimde bir sınıf zaten mevcut." },
+        { status: 409 },
+      );
+    }
 
-  const cabanaClass = await prisma.cabanaClass.create({
-    data: {
-      name,
-      description,
-      attributes: attributes?.length ? { create: attributes } : undefined,
-    },
-    include: {
-      attributes: true,
-      _count: { select: { cabanas: true } },
-    },
-  });
+    const cabanaClass = await prisma.cabanaClass.create({
+      data: {
+        name,
+        description,
+        attributes: attributes?.length ? { create: attributes } : undefined,
+      },
+      include: {
+        attributes: true,
+        _count: { select: { cabanas: true } },
+      },
+    });
 
-  logAudit({
-    userId: session.user.id,
-    action: "CREATE",
-    entity: "CabanaClass",
-    entityId: cabanaClass.id,
-    newValue: { name, description },
-  });
+    logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "CabanaClass",
+      entityId: cabanaClass.id,
+      newValue: { name, description },
+    });
 
-  return NextResponse.json(cabanaClass, { status: 201 });
-});
+    return NextResponse.json(cabanaClass, { status: 201 });
+  },
+  { requiredPermissions: ["cabana.class.create"] },
+);

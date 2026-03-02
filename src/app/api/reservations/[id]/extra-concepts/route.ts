@@ -95,4 +95,5 @@ export const POST = withAuth(
 
     return NextResponse.json(extraRequest, { status: 201 });
   },
+  { requiredPermissions: ["reservation.update"] },
 );

@@ -64,4 +64,5 @@ export const PATCH = withAuth(
 
     return NextResponse.json(updated);
   },
+  { requiredPermissions: ["staff.update"] },
 );

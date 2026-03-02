@@ -6,39 +6,43 @@ import { logAudit } from "@/lib/audit";
 import { parseBody, createStaffAssignmentSchema } from "@/lib/validators";
 
 // GET — Personel atamalarını listele
-export const GET = withAuth([Role.SYSTEM_ADMIN, Role.ADMIN], async (req) => {
-  const { searchParams } = req.nextUrl;
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const limit = Math.min(
-    100,
-    Math.max(1, Number(searchParams.get("limit")) || 20),
-  );
-  const skip = (page - 1) * limit;
-  const date = searchParams.get("date");
-  const cabanaId = searchParams.get("cabanaId");
-  const staffId = searchParams.get("staffId");
+export const GET = withAuth(
+  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  async (req) => {
+    const { searchParams } = req.nextUrl;
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("limit")) || 20),
+    );
+    const skip = (page - 1) * limit;
+    const date = searchParams.get("date");
+    const cabanaId = searchParams.get("cabanaId");
+    const staffId = searchParams.get("staffId");
 
-  const where: Record<string, unknown> = {};
-  if (date) where.date = new Date(date);
-  if (cabanaId) where.cabanaId = cabanaId;
-  if (staffId) where.staffId = staffId;
+    const where: Record<string, unknown> = {};
+    if (date) where.date = new Date(date);
+    if (cabanaId) where.cabanaId = cabanaId;
+    if (staffId) where.staffId = staffId;
 
-  const [items, total] = await Promise.all([
-    (prisma as any).staffAssignment.findMany({
-      where,
-      include: {
-        staff: { select: { id: true, name: true, position: true } },
-        cabana: { select: { id: true, name: true } },
-      },
-      orderBy: { date: "desc" },
-      skip,
-      take: limit,
-    }),
-    (prisma as any).staffAssignment.count({ where }),
-  ]);
+    const [items, total] = await Promise.all([
+      (prisma as any).staffAssignment.findMany({
+        where,
+        include: {
+          staff: { select: { id: true, name: true, position: true } },
+          cabana: { select: { id: true, name: true } },
+        },
+        orderBy: { date: "desc" },
+        skip,
+        take: limit,
+      }),
+      (prisma as any).staffAssignment.count({ where }),
+    ]);
 
-  return NextResponse.json({ items, total });
-});
+    return NextResponse.json({ items, total });
+  },
+  { requiredPermissions: ["staff.view"] },
+);
 
 // POST — Personel ataması oluştur
 export const POST = withAuth(
@@ -94,4 +98,5 @@ export const POST = withAuth(
 
     return NextResponse.json(item, { status: 201 });
   },
+  { requiredPermissions: ["staff.create"] },
 );

@@ -18,41 +18,45 @@ const generateSchema = z.object({
     .optional(),
 });
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req) => {
-  const body = await req.json();
-  const parsed = generateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { message: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+export const POST = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req) => {
+    const body = await req.json();
+    const parsed = generateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-  const { type, format, filters } = parsed.data;
-  const result = await reportEngine.generate(type, filters ?? {});
+    const { type, format, filters } = parsed.data;
+    const result = await reportEngine.generate(type, filters ?? {});
 
-  if (format === "pdf") {
-    const buffer = await reportEngine.exportPDF(result);
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="report-${type.toLowerCase()}.pdf"`,
-      },
-    });
-  }
+    if (format === "pdf") {
+      const buffer = await reportEngine.exportPDF(result);
+      return new NextResponse(new Uint8Array(buffer), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="report-${type.toLowerCase()}.pdf"`,
+        },
+      });
+    }
 
-  if (format === "excel") {
-    const buffer = await reportEngine.exportExcel(result);
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="report-${type.toLowerCase()}.xlsx"`,
-      },
-    });
-  }
+    if (format === "excel") {
+      const buffer = await reportEngine.exportExcel(result);
+      return new NextResponse(new Uint8Array(buffer), {
+        status: 200,
+        headers: {
+          "Content-Type":
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="report-${type.toLowerCase()}.xlsx"`,
+        },
+      });
+    }
 
-  return NextResponse.json(result);
-});
+    return NextResponse.json(result);
+  },
+  { requiredPermissions: ["report.view"] },
+);

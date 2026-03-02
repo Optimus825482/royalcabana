@@ -18,26 +18,30 @@ const previewSchema = z.object({
     .optional(),
 });
 
-export const POST = withAuth(adminRoles, async (req) => {
-  const body = await req.json();
-  const parsed = previewSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+export const POST = withAuth(
+  adminRoles,
+  async (req) => {
+    const body = await req.json();
+    const parsed = previewSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-  const { cabanaId, conceptId, startDate, endDate, extraItems } = parsed.data;
+    const { cabanaId, conceptId, startDate, endDate, extraItems } = parsed.data;
 
-  const engine = new PricingEngine();
-  const breakdown = await engine.calculatePrice({
-    cabanaId,
-    conceptId: conceptId ?? null,
-    startDate: new Date(startDate + "T00:00:00.000Z"),
-    endDate: new Date(endDate + "T00:00:00.000Z"),
-    extraItems: extraItems ?? [],
-  });
+    const engine = new PricingEngine();
+    const breakdown = await engine.calculatePrice({
+      cabanaId,
+      conceptId: conceptId ?? null,
+      startDate: new Date(startDate + "T00:00:00.000Z"),
+      endDate: new Date(endDate + "T00:00:00.000Z"),
+      extraItems: extraItems ?? [],
+    });
 
-  return NextResponse.json(breakdown);
-});
+    return NextResponse.json(breakdown);
+  },
+  { requiredPermissions: ["pricing.view"] },
+);

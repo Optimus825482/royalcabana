@@ -163,7 +163,7 @@ export default function NotificationPanel() {
           </div>
 
           {/* List */}
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto rc-scrollbar">
             {!data?.notifications.length ? (
               <div className="flex items-center justify-center h-24 text-neutral-600 text-sm">
                 Bildirim yok

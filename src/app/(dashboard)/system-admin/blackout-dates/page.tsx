@@ -18,6 +18,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 // ── Types ──
 
@@ -187,13 +188,15 @@ export default function BlackoutDatesPage() {
             Kabana bazlı veya genel kapalı tarihleri yönetin
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Yeni Kapalı Tarih
-        </button>
+        <PermissionGate permission="blackout.create">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Yeni Kapalı Tarih
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Toast */}
@@ -274,13 +277,15 @@ export default function BlackoutDatesPage() {
                     {row.reason || "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => setDeleteTarget(row)}
-                      title="Sil"
-                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors ml-auto"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <PermissionGate permission="blackout.delete">
+                      <button
+                        onClick={() => setDeleteTarget(row)}
+                        title="Sil"
+                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors ml-auto"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </PermissionGate>
                   </td>
                 </tr>
               ))}
@@ -324,12 +329,14 @@ export default function BlackoutDatesPage() {
               {row.reason && (
                 <p className="text-xs text-neutral-500">{row.reason}</p>
               )}
-              <button
-                onClick={() => setDeleteTarget(row)}
-                className="w-full text-xs px-3 py-2 min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-              >
-                Sil
-              </button>
+              <PermissionGate permission="blackout.delete">
+                <button
+                  onClick={() => setDeleteTarget(row)}
+                  className="w-full text-xs px-3 py-2 min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                >
+                  Sil
+                </button>
+              </PermissionGate>
             </div>
           ))
         )}

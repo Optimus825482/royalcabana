@@ -20,20 +20,24 @@ const updateProductSchema = z.object({
   groupId: z.string().optional().nullable(),
 });
 
-export const GET = withAuth(allRoles, async (_req, { params }) => {
-  const id = params!.id;
+export const GET = withAuth(
+  allRoles,
+  async (_req, { params }) => {
+    const id = params!.id;
 
-  const product = await prisma.product.findUnique({
-    where: { id },
-    include: { group: true },
-  });
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { group: true },
+    });
 
-  if (!product) {
-    return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
-  }
+    if (!product) {
+      return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
+    }
 
-  return NextResponse.json(product);
-});
+    return NextResponse.json(product);
+  },
+  { requiredPermissions: ["product.view"] },
+);
 
 export const PATCH = withAuth(
   [Role.SYSTEM_ADMIN],
@@ -100,6 +104,7 @@ export const PATCH = withAuth(
 
     return NextResponse.json(updated);
   },
+  { requiredPermissions: ["product.update"] },
 );
 
 export const DELETE = withAuth(
@@ -139,4 +144,5 @@ export const DELETE = withAuth(
 
     return NextResponse.json({ message: "Ürün silindi." });
   },
+  { requiredPermissions: ["product.delete"] },
 );

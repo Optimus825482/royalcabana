@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Prompt Structurer",
+  "description": "Kullanıcının ham prompt'unu analiz edip yapılandırılmış formata çevirir. Dosya, aksiyon, kapsam ve kısıtlamaları çıkarır. Token tasarrufu sağlar.",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Kullanicinin mesajini analiz et. Eger mesaj belirsiz, uzun veya yapilandirilmamissa, asagidaki formata cevir ve bu formati kullanarak gorevi yap. Eger mesaj zaten kisa ve net ise (ornegin \"evet\", \"hayir\", \"devam et\", tek satirlik net talimat), oldugu gibi isle, format degistirme.\n\nFormat:\n- Dosya(lar): [etkilenen dosya yollari veya \"belirsiz\"]\n- Aksiyon: [ne yapilacak - tek cumle]\n- Kapsam: [tek dosya | coklu dosya | arastirma | soru]\n- Kisitlama: [varsa ozel kisitlamalar]\n\nBu formati kullanarak gorevi coz. Formati kullaniciya gosterme, direkt uygulamaya gec."
+  }
+}

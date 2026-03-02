@@ -55,6 +55,7 @@ export const GET = withAuth(
 
     return NextResponse.json({ success: true, data: item, error: null });
   },
+  { requiredPermissions: ["role.definition.view"] },
 );
 
 export const PATCH = withAuth(
@@ -123,6 +124,7 @@ export const PATCH = withAuth(
 
     return NextResponse.json({ success: true, data: updated, error: null });
   },
+  { requiredPermissions: ["role.definition.update"] },
 );
 
 export const DELETE = withAuth(
@@ -203,4 +205,5 @@ export const DELETE = withAuth(
       error: null,
     });
   },
+  { requiredPermissions: ["role.definition.delete"] },
 );

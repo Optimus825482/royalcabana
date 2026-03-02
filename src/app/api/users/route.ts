@@ -50,6 +50,7 @@ export const GET = withAuth(
     });
     return NextResponse.json(users);
   },
+  { requiredPermissions: ["user.view"] },
 );
 
 export const POST = withAuth(
@@ -121,4 +122,5 @@ export const POST = withAuth(
 
     return NextResponse.json(user, { status: 201 });
   },
+  { requiredPermissions: ["user.create"] },
 );

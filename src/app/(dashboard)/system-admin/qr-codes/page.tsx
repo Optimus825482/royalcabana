@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { QrCode, Copy, Check, Printer, Search } from "lucide-react";
 import { Modal } from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 interface Cabana {
   id: string;
@@ -130,12 +131,14 @@ export default function QrCodesPage() {
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => setSelectedCabana(cabana)}
-                  className="min-h-[44px] px-4 py-2 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-500 text-neutral-950 transition-colors shrink-0"
-                >
-                  QR Oluştur
-                </button>
+                <PermissionGate permission="system.config.update">
+                  <button
+                    onClick={() => setSelectedCabana(cabana)}
+                    className="min-h-[44px] px-4 py-2 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-500 text-neutral-950 transition-colors shrink-0"
+                  >
+                    QR Oluştur
+                  </button>
+                </PermissionGate>
               </div>
             ))}
             {filtered.length === 0 && (

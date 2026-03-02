@@ -17,37 +17,41 @@ const createSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export const GET = withAuth([AppRole.SYSTEM_ADMIN, AppRole.ADMIN], async () => {
-  await ensureRbacBootstrap();
+export const GET = withAuth(
+  [AppRole.SYSTEM_ADMIN, AppRole.ADMIN],
+  async () => {
+    await ensureRbacBootstrap();
 
-  const items = await db.roleDefinition.findMany({
-    where: { isDeleted: false },
-    include: {
-      permissions: {
-        where: { isDeleted: false },
-        select: {
-          id: true,
-          permissionId: true,
-          permission: {
-            select: {
-              key: true,
-              name: true,
-              module: true,
-              action: true,
+    const items = await db.roleDefinition.findMany({
+      where: { isDeleted: false },
+      include: {
+        permissions: {
+          where: { isDeleted: false },
+          select: {
+            id: true,
+            permissionId: true,
+            permission: {
+              select: {
+                key: true,
+                name: true,
+                module: true,
+                action: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+      orderBy: { createdAt: "asc" },
+    });
 
-  return NextResponse.json({
-    success: true,
-    data: items,
-    error: null,
-  });
-});
+    return NextResponse.json({
+      success: true,
+      data: items,
+      error: null,
+    });
+  },
+  { requiredPermissions: ["role.definition.view"] },
+);
 
 export const POST = withAuth(
   [AppRole.SYSTEM_ADMIN],
@@ -112,4 +116,5 @@ export const POST = withAuth(
       { status: 201 },
     );
   },
+  { requiredPermissions: ["role.definition.create"] },
 );

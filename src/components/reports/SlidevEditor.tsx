@@ -834,7 +834,7 @@ th{background:#2d2d44}
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2 rc-scrollbar">
           {slides.map((slide, idx) => (
             <div
               key={slide.id}

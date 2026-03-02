@@ -43,34 +43,39 @@ export const GET = withAuth(
     const config = await getModuleConfig();
     return NextResponse.json(config);
   },
+  { requiredPermissions: ["system.config.view"] },
 );
 
 // PUT — only SYSTEM_ADMIN can update
-export const PUT = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
-  const body = await req.json();
-  if (!isValidConfig(body)) {
-    return NextResponse.json(
-      { message: "Geçersiz modül konfigürasyonu" },
-      { status: 400 },
-    );
-  }
+export const PUT = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session }) => {
+    const body = await req.json();
+    if (!isValidConfig(body)) {
+      return NextResponse.json(
+        { message: "Geçersiz modül konfigürasyonu" },
+        { status: 400 },
+      );
+    }
 
-  const oldConfig = await getModuleConfig();
+    const oldConfig = await getModuleConfig();
 
-  const config = await prisma.systemConfig.upsert({
-    where: { key: CONFIG_KEY },
-    update: { value: JSON.stringify(body) },
-    create: { key: CONFIG_KEY, value: JSON.stringify(body) },
-  });
+    const config = await prisma.systemConfig.upsert({
+      where: { key: CONFIG_KEY },
+      update: { value: JSON.stringify(body) },
+      create: { key: CONFIG_KEY, value: JSON.stringify(body) },
+    });
 
-  logAudit({
-    userId: session.user.id,
-    action: "CONFIG_CHANGE",
-    entity: "SystemConfig",
-    entityId: CONFIG_KEY,
-    oldValue: oldConfig as unknown as Record<string, unknown>,
-    newValue: body as unknown as Record<string, unknown>,
-  });
+    logAudit({
+      userId: session.user.id,
+      action: "CONFIG_CHANGE",
+      entity: "SystemConfig",
+      entityId: CONFIG_KEY,
+      oldValue: oldConfig as unknown as Record<string, unknown>,
+      newValue: body as unknown as Record<string, unknown>,
+    });
 
-  return NextResponse.json(JSON.parse(config.value));
-});
+    return NextResponse.json(JSON.parse(config.value));
+  },
+  { requiredPermissions: ["system.config.update"] },
+);

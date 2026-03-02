@@ -7,6 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import NotificationPanel from "./NotificationPanel";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   LayoutDashboard,
   Users,
@@ -41,12 +42,14 @@ export type NavLink = {
   label: string;
   icon?: LucideIcon;
   color?: string;
+  requiredPermission?: string;
 };
 
 export type NavGroup = {
   label: string;
   icon?: LucideIcon;
   color?: string;
+  requiredPermission?: string;
   children: NavLink[];
 };
 
@@ -75,30 +78,35 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         label: "Kabana Sınıfları",
         icon: Layers,
         color: "text-violet-400",
+        requiredPermission: "cabana.class.view",
       },
       {
         href: "/system-admin/concepts",
         label: "Konseptler",
         icon: Lightbulb,
         color: "text-yellow-400",
+        requiredPermission: "concept.view",
       },
       {
         href: "/system-admin/products",
         label: "Ürünler",
         icon: Package,
         color: "text-orange-400",
+        requiredPermission: "product.view",
       },
       {
         href: "/system-admin/task-definitions",
         label: "Görev Tanımları",
         icon: ClipboardList,
         color: "text-pink-400",
+        requiredPermission: "task.definition.view",
       },
       {
         href: "/system-admin/role-definitions",
         label: "Rol Tanımları",
         icon: Shield,
         color: "text-indigo-400",
+        requiredPermission: "role.definition.view",
       },
     ],
   },
@@ -112,18 +120,21 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         label: "Fiyat Görünümü",
         icon: DollarSign,
         color: "text-amber-400",
+        requiredPermission: "pricing.view",
       },
       {
         href: "/system-admin/products/pricing",
         label: "Fiyat İşlemleri",
         icon: DollarSign,
         color: "text-emerald-400",
+        requiredPermission: "pricing.view",
       },
       {
         href: "/system-admin/cancellation-policy",
         label: "İptal Politikası",
         icon: Shield,
         color: "text-red-400",
+        requiredPermission: "system.config.view",
       },
     ],
   },
@@ -137,18 +148,21 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         label: "Kullanıcı Yönetimi",
         icon: Users,
         color: "text-blue-400",
+        requiredPermission: "user.view",
       },
       {
         href: "/system-admin/guests",
         label: "Misafirler",
         icon: UserIcon,
         color: "text-cyan-400",
+        requiredPermission: "guest.view",
       },
       {
         href: "/system-admin/staff",
         label: "Personel",
         icon: UserCog,
         color: "text-indigo-400",
+        requiredPermission: "staff.view",
       },
     ],
   },
@@ -157,18 +171,21 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
     label: "Takvim",
     icon: CalendarDays,
     color: "text-emerald-400",
+    requiredPermission: "reservation.view",
   },
   {
     href: "/system-admin/map",
     label: "Harita",
     icon: Map,
     color: "text-teal-400",
+    requiredPermission: "map.view",
   },
   {
     href: "/system-admin/reservations",
     label: "Rezervasyonlar",
     icon: BookOpen,
     color: "text-amber-400",
+    requiredPermission: "reservation.view",
   },
   {
     label: "Sistem",
@@ -180,24 +197,28 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         label: "Sistem Kontrolü",
         icon: Settings,
         color: "text-slate-400",
+        requiredPermission: "system.config.view",
       },
       {
         href: "/system-admin/blackout-dates",
         label: "Kapalı Tarihler",
         icon: CalendarOff,
         color: "text-rose-400",
+        requiredPermission: "blackout.view",
       },
       {
         href: "/system-admin/qr-codes",
         label: "QR Kodlar",
         icon: QrCode,
         color: "text-fuchsia-400",
+        requiredPermission: "system.config.view",
       },
       {
         href: "/system-admin/audit-trail",
         label: "Audit Log",
         icon: ScrollText,
         color: "text-amber-400",
+        requiredPermission: "audit.view",
       },
       {
         href: "/system-admin/api-docs",
@@ -212,6 +233,7 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
     label: "Raporlar",
     icon: BarChart3,
     color: "text-purple-400",
+    requiredPermission: "report.view",
   },
 ];
 
@@ -232,18 +254,21 @@ export const ADMIN_NAV: NavItem[] = [
         label: "Takvim",
         icon: CalendarDays,
         color: "text-amber-400",
+        requiredPermission: "reservation.view",
       },
       {
         href: "/admin/requests",
         label: "Talepler",
         icon: ClipboardList,
         color: "text-orange-400",
+        requiredPermission: "reservation.view",
       },
       {
         href: "/admin/reservations",
         label: "Rezervasyonlar",
         icon: BookOpen,
         color: "text-amber-400",
+        requiredPermission: "reservation.view",
       },
     ],
   },
@@ -257,6 +282,7 @@ export const ADMIN_NAV: NavItem[] = [
         label: "Kullanıcılar",
         icon: Users,
         color: "text-blue-400",
+        requiredPermission: "user.view",
       },
     ],
   },
@@ -270,12 +296,14 @@ export const ADMIN_NAV: NavItem[] = [
         label: "Fiyat Yönetimi",
         icon: DollarSign,
         color: "text-emerald-400",
+        requiredPermission: "pricing.view",
       },
       {
         href: "/admin/pricing/seasons",
         label: "Sezonluk Fiyatlar",
         icon: CalendarDays,
         color: "text-teal-400",
+        requiredPermission: "pricing.view",
       },
     ],
   },
@@ -298,18 +326,21 @@ export const CASINO_NAV: NavItem[] = [
         label: "Harita",
         icon: Map,
         color: "text-teal-400",
+        requiredPermission: "map.view",
       },
       {
         href: "/casino/view",
         label: "3D Görünüm",
         icon: Cuboid,
         color: "text-violet-400",
+        requiredPermission: "map.view",
       },
       {
         href: "/casino/calendar",
         label: "Takvim",
         icon: CalendarDays,
         color: "text-cyan-400",
+        requiredPermission: "reservation.view",
       },
     ],
   },
@@ -323,18 +354,21 @@ export const CASINO_NAV: NavItem[] = [
         label: "Rezervasyonlarım",
         icon: BookOpen,
         color: "text-amber-400",
+        requiredPermission: "reservation.view",
       },
       {
         href: "/casino/waitlist",
         label: "Bekleme Listesi",
         icon: ListOrdered,
         color: "text-orange-400",
+        requiredPermission: "reservation.view",
       },
       {
         href: "/casino/recurring",
         label: "Tekrarlayan",
         icon: Repeat,
         color: "text-pink-400",
+        requiredPermission: "reservation.view",
       },
     ],
   },
@@ -348,6 +382,7 @@ export const CASINO_NAV: NavItem[] = [
         label: "Değerlendirmeler",
         icon: Star,
         color: "text-yellow-400",
+        requiredPermission: "reservation.view",
       },
     ],
   },
@@ -356,6 +391,7 @@ export const CASINO_NAV: NavItem[] = [
     label: "Raporlar",
     icon: BarChart3,
     color: "text-purple-400",
+    requiredPermission: "report.view",
   },
 ];
 
@@ -559,6 +595,7 @@ export default function Navbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { can, isLoading: permissionsLoading } = usePermissions();
 
   const role = session?.user?.role as string | undefined;
   const homeHref = role ? (ROLE_HOME[role] ?? "/") : "/";
@@ -577,23 +614,49 @@ export default function Navbar() {
     enabled: !!session,
   });
 
-  // Build nav items with module config filtering for casino
+  // Build nav items with module config + permission filtering
   const navItems = useMemo(() => {
     const baseItems = role ? (NAV_CONFIG[role] ?? []) : [];
-    if (role !== "CASINO_USER" || !moduleConfig) return baseItems;
 
-    return baseItems
+    // Apply module config filtering for casino
+    let items = baseItems;
+    if (role === "CASINO_USER" && moduleConfig) {
+      items = baseItems
+        .map((item) => {
+          if (!isGroup(item) || item.label !== "Deneyim") return item;
+          const filtered = item.children.filter((c) => {
+            if (c.href === "/casino/reviews")
+              return moduleConfig.reviews.enabled;
+            return true;
+          });
+          if (filtered.length === 0) return null;
+          return { ...item, children: filtered };
+        })
+        .filter(Boolean) as NavItem[];
+    }
+
+    // Skip permission filtering while loading (prevent flash)
+    if (permissionsLoading) return items;
+
+    // Apply permission-based filtering
+    return items
       .map((item) => {
-        if (!isGroup(item) || item.label !== "Deneyim") return item;
-        const filtered = item.children.filter((c) => {
-          if (c.href === "/casino/reviews") return moduleConfig.reviews.enabled;
-          return true;
-        });
-        if (filtered.length === 0) return null;
-        return { ...item, children: filtered };
+        if (isGroup(item)) {
+          // Filter group children by permission
+          const filteredChildren = item.children.filter(
+            (child) =>
+              !child.requiredPermission || can(child.requiredPermission),
+          );
+          if (filteredChildren.length === 0) return null;
+          return { ...item, children: filteredChildren };
+        }
+        // Filter top-level links by permission
+        if (item.requiredPermission && !can(item.requiredPermission))
+          return null;
+        return item;
       })
       .filter(Boolean) as NavItem[];
-  }, [role, moduleConfig]);
+  }, [role, moduleConfig, permissionsLoading, can]);
 
   return (
     <nav className="bg-neutral-900 border-b border-neutral-800 shrink-0 relative z-40">
@@ -610,7 +673,7 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1 flex-1 flex-wrap overflow-visible">
-          {navItems.map((item, idx) => {
+          {navItems.map((item) => {
             if (isGroup(item)) {
               return (
                 <NavDropdown
@@ -688,7 +751,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-neutral-800 bg-neutral-900 pb-2">
-          {navItems.map((item, idx) => {
+          {navItems.map((item) => {
             if (isGroup(item)) {
               return (
                 <MobileNavGroup

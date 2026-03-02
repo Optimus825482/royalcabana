@@ -62,112 +62,117 @@ export const GET = withAuth(
 
     return NextResponse.json({ orders, total });
   },
+  { requiredPermissions: ["fnb.order.view"] },
 );
 
 // POST — Yeni FnB siparişi oluştur
-export const POST = withAuth([Role.FNB_USER], async (req, { session }) => {
-  const body = await req.json();
-  const parsed = parseBody(createFnbOrderSchema, body);
+export const POST = withAuth(
+  [Role.FNB_USER],
+  async (req, { session }) => {
+    const body = await req.json();
+    const parsed = parseBody(createFnbOrderSchema, body);
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
-  }
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
 
-  const { reservationId, cabanaId, notes, items } = parsed.data;
+    const { reservationId, cabanaId, notes, items } = parsed.data;
 
-  // Rezervasyon varlık kontrolü
-  const reservation = await prisma.reservation.findUnique({
-    where: { id: reservationId },
-    select: {
-      id: true,
-      userId: true,
-      guestName: true,
-      cabana: { select: { name: true } },
-    },
-  });
-
-  if (!reservation) {
-    return NextResponse.json(
-      { error: "Rezervasyon bulunamadı." },
-      { status: 404 },
-    );
-  }
-
-  const totalAmount = items.reduce(
-    (sum: number, item: { quantity: number; unitPrice: number }) =>
-      sum + item.quantity * item.unitPrice,
-    0,
-  );
-
-  const order = await prisma.$transaction(async (tx: any) => {
-    const created = await (tx as any).fnbOrder.create({
-      data: {
-        reservationId,
-        cabanaId,
-        notes: notes ?? null,
-        status: "PREPARING",
-        createdBy: session.user.id,
-        items: {
-          create: items.map(
-            (item: {
-              productId: string;
-              quantity: number;
-              unitPrice: number;
-            }) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-            }),
-          ),
-        },
+    // Rezervasyon varlık kontrolü
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        id: true,
+        userId: true,
+        guestName: true,
+        cabana: { select: { name: true } },
       },
-      include: {
-        items: {
-          include: {
-            product: { select: { name: true } },
+    });
+
+    if (!reservation) {
+      return NextResponse.json(
+        { error: "Rezervasyon bulunamadı." },
+        { status: 404 },
+      );
+    }
+
+    const totalAmount = items.reduce(
+      (sum: number, item: { quantity: number; unitPrice: number }) =>
+        sum + item.quantity * item.unitPrice,
+      0,
+    );
+
+    const order = await prisma.$transaction(async (tx: any) => {
+      const created = await (tx as any).fnbOrder.create({
+        data: {
+          reservationId,
+          cabanaId,
+          notes: notes ?? null,
+          status: "PREPARING",
+          createdBy: session.user.id,
+          items: {
+            create: items.map(
+              (item: {
+                productId: string;
+                quantity: number;
+                unitPrice: number;
+              }) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+              }),
+            ),
           },
         },
-      },
-    });
-    return created;
-  });
-
-  logAudit({
-    userId: session.user.id,
-    action: "CREATE",
-    entity: "FnbOrder",
-    entityId: order.id,
-    newValue: {
-      reservationId,
-      cabanaId,
-      totalAmount,
-      itemCount: items.length,
-    },
-  });
-
-  // SSE + Bildirim — non-blocking (Rule 3.7)
-  after(async () => {
-    sseManager.sendToRole(Role.ADMIN, SSE_EVENTS.FNB_ORDER_CREATED, {
-      orderId: order.id,
-      cabanaId,
-      totalAmount,
-    });
-
-    // Rezervasyon sahibine bildirim
-    if (reservation.userId) {
-      await notificationService.send({
-        userId: reservation.userId,
-        type: NotificationType.FNB_ORDER,
-        title: "Yeni F&B Siparişi",
-        message: `${reservation.guestName} için yeni sipariş oluşturuldu. Tutar: ${totalAmount.toFixed(2)}`,
-        metadata: {
-          orderId: order.id,
-          reservationId,
-          cabanaName: reservation.cabana?.name,
+        include: {
+          items: {
+            include: {
+              product: { select: { name: true } },
+            },
+          },
         },
       });
-    }
-  });
+      return created;
+    });
 
-  return NextResponse.json(order, { status: 201 });
-});
+    logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "FnbOrder",
+      entityId: order.id,
+      newValue: {
+        reservationId,
+        cabanaId,
+        totalAmount,
+        itemCount: items.length,
+      },
+    });
+
+    // SSE + Bildirim — non-blocking (Rule 3.7)
+    after(async () => {
+      sseManager.sendToRole(Role.ADMIN, SSE_EVENTS.FNB_ORDER_CREATED, {
+        orderId: order.id,
+        cabanaId,
+        totalAmount,
+      });
+
+      // Rezervasyon sahibine bildirim
+      if (reservation.userId) {
+        await notificationService.send({
+          userId: reservation.userId,
+          type: NotificationType.FNB_ORDER,
+          title: "Yeni F&B Siparişi",
+          message: `${reservation.guestName} için yeni sipariş oluşturuldu. Tutar: ${totalAmount.toFixed(2)}`,
+          metadata: {
+            orderId: order.id,
+            reservationId,
+            cabanaName: reservation.cabana?.name,
+          },
+        });
+      }
+    });
+
+    return NextResponse.json(order, { status: 201 });
+  },
+  { requiredPermissions: ["fnb.order.create"] },
+);

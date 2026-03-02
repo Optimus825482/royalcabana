@@ -233,246 +233,164 @@ function findNumericColumn(
 
 // --- Main handler ---
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
-  const url = new URL(req.url);
-  const isPreview = url.searchParams.get("preview") === "true";
+export const POST = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session }) => {
+    const url = new URL(req.url);
+    const isPreview = url.searchParams.get("preview") === "true";
 
-  // Parse multipart form data
-  const formData = await req.formData();
-  const file = formData.get("file");
+    // Parse multipart form data
+    const formData = await req.formData();
+    const file = formData.get("file");
 
-  if (!file || !(file instanceof File)) {
-    return NextResponse.json(
-      { error: "Dosya yüklenmedi. 'file' alanı gerekli." },
-      { status: 400 },
-    );
-  }
+    if (!file || !(file instanceof File)) {
+      return NextResponse.json(
+        { error: "Dosya yüklenmedi. 'file' alanı gerekli." },
+        { status: 400 },
+      );
+    }
 
-  const filename = file.name.toLowerCase();
-  if (
-    !filename.endsWith(".xlsx") &&
-    !filename.endsWith(".csv") &&
-    !filename.endsWith(".xls")
-  ) {
-    return NextResponse.json(
-      {
-        error: "Desteklenmeyen dosya formatı. .xlsx, .xls veya .csv yükleyin.",
-      },
-      { status: 400 },
-    );
-  }
+    const filename = file.name.toLowerCase();
+    if (
+      !filename.endsWith(".xlsx") &&
+      !filename.endsWith(".csv") &&
+      !filename.endsWith(".xls")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Desteklenmeyen dosya formatı. .xlsx, .xls veya .csv yükleyin.",
+        },
+        { status: 400 },
+      );
+    }
 
-  let parsedRows: ParsedRow[];
-  try {
-    const buffer = await file.arrayBuffer();
-    parsedRows = parseFile(buffer);
-  } catch (err) {
-    return NextResponse.json(
-      {
-        error: `Dosya okunamadı: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`,
-      },
-      { status: 400 },
-    );
-  }
+    let parsedRows: ParsedRow[];
+    try {
+      const buffer = await file.arrayBuffer();
+      parsedRows = parseFile(buffer);
+    } catch (err) {
+      return NextResponse.json(
+        {
+          error: `Dosya okunamadı: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`,
+        },
+        { status: 400 },
+      );
+    }
 
-  if (parsedRows.length === 0) {
-    return NextResponse.json(
-      { error: "Dosyada geçerli ürün satırı bulunamadı." },
-      { status: 400 },
-    );
-  }
+    if (parsedRows.length === 0) {
+      return NextResponse.json(
+        { error: "Dosyada geçerli ürün satırı bulunamadı." },
+        { status: 400 },
+      );
+    }
 
-  // Parse user decisions for apply mode
-  let decisions: UserDecision[] = [];
-  if (!isPreview) {
-    const decisionsStr = formData.get("decisions") as string | null;
-    if (decisionsStr) {
-      try {
-        decisions = JSON.parse(decisionsStr);
-      } catch {
-        return NextResponse.json(
-          { error: "Geçersiz decisions JSON formatı." },
-          { status: 400 },
-        );
+    // Parse user decisions for apply mode
+    let decisions: UserDecision[] = [];
+    if (!isPreview) {
+      const decisionsStr = formData.get("decisions") as string | null;
+      if (decisionsStr) {
+        try {
+          decisions = JSON.parse(decisionsStr);
+        } catch {
+          return NextResponse.json(
+            { error: "Geçersiz decisions JSON formatı." },
+            { status: 400 },
+          );
+        }
       }
     }
-  }
 
-  // Build decisions lookup by row number
-  const decisionMap = new Map<number, UserDecision>(
-    decisions.map((d) => [d.row, d]),
-  );
+    // Build decisions lookup by row number
+    const decisionMap = new Map<number, UserDecision>(
+      decisions.map((d) => [d.row, d]),
+    );
 
-  // Fetch all existing products for matching
-  const existingProducts = await prisma.product.findMany({
-    select: { id: true, name: true, purchasePrice: true, salePrice: true },
-  });
+    // Fetch all existing products for matching
+    const existingProducts = await prisma.product.findMany({
+      select: { id: true, name: true, purchasePrice: true, salePrice: true },
+    });
 
-  const dbProducts = existingProducts.map((p) => ({
-    id: p.id,
-    name: p.name,
-    purchasePrice: Number(p.purchasePrice),
-    salePrice: Number(p.salePrice),
-  }));
+    const dbProducts = existingProducts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      purchasePrice: Number(p.purchasePrice),
+      salePrice: Number(p.salePrice),
+    }));
 
-  // Analyze each row
-  const items: ImportItem[] = [];
+    // Analyze each row
+    const items: ImportItem[] = [];
 
-  for (let i = 0; i < parsedRows.length; i++) {
-    const row = parsedRows[i];
-    const item: ImportItem = {
-      row: i + 2, // +2 for header row + 0-index
-      name: row.name,
-      purchasePrice: row.purchasePrice,
-      salePrice: row.salePrice,
-      status: "NEW",
+    for (let i = 0; i < parsedRows.length; i++) {
+      const row = parsedRows[i];
+      const item: ImportItem = {
+        row: i + 2, // +2 for header row + 0-index
+        name: row.name,
+        purchasePrice: row.purchasePrice,
+        salePrice: row.salePrice,
+        status: "NEW",
+      };
+
+      if (row.purchasePrice <= 0 && row.salePrice <= 0) {
+        item.status = "NEW";
+        item.error = "Fiyat bilgisi eksik";
+        items.push(item);
+        continue;
+      }
+
+      const match = findBestMatch(row.name, dbProducts);
+
+      if (match) {
+        if (match.score >= 0.7) {
+          // Confident match
+          item.matchedProduct = match.product;
+          item.similarity = Math.round(match.score * 100);
+
+          const priceChanged =
+            row.purchasePrice !== match.product.purchasePrice ||
+            row.salePrice !== match.product.salePrice;
+
+          item.status = priceChanged ? "MATCH" : "NO_CHANGE";
+        } else {
+          // Uncertain match (0.4 <= score < 0.7) — suggest to user
+          item.status = "UNMATCHED";
+          item.suggestedProduct = match.product;
+          item.suggestedSimilarity = Math.round(match.score * 100);
+        }
+      } else {
+        item.status = "NEW";
+      }
+
+      items.push(item);
+    }
+
+    const summary = {
+      total: items.length,
+      matched: items.filter((i) => i.status === "MATCH").length,
+      unchanged: items.filter((i) => i.status === "NO_CHANGE").length,
+      created: items.filter((i) => i.status === "NEW" && !i.error).length,
+      unmatched: items.filter((i) => i.status === "UNMATCHED").length,
+      errors: items.filter((i) => !!i.error).length,
+      updated: 0,
     };
 
-    if (row.purchasePrice <= 0 && row.salePrice <= 0) {
-      item.status = "NEW";
-      item.error = "Fiyat bilgisi eksik";
-      items.push(item);
-      continue;
+    // Preview mode — return analysis only
+    if (isPreview) {
+      return NextResponse.json({ items, summary });
     }
 
-    const match = findBestMatch(row.name, dbProducts);
+    // Apply mode — write to DB
+    let updatedCount = 0;
+    let createdCount = 0;
 
-    if (match) {
-      if (match.score >= 0.7) {
-        // Confident match
-        item.matchedProduct = match.product;
-        item.similarity = Math.round(match.score * 100);
+    for (const item of items) {
+      if (item.error) continue;
 
-        const priceChanged =
-          row.purchasePrice !== match.product.purchasePrice ||
-          row.salePrice !== match.product.salePrice;
-
-        item.status = priceChanged ? "MATCH" : "NO_CHANGE";
-      } else {
-        // Uncertain match (0.4 <= score < 0.7) — suggest to user
-        item.status = "UNMATCHED";
-        item.suggestedProduct = match.product;
-        item.suggestedSimilarity = Math.round(match.score * 100);
-      }
-    } else {
-      item.status = "NEW";
-    }
-
-    items.push(item);
-  }
-
-  const summary = {
-    total: items.length,
-    matched: items.filter((i) => i.status === "MATCH").length,
-    unchanged: items.filter((i) => i.status === "NO_CHANGE").length,
-    created: items.filter((i) => i.status === "NEW" && !i.error).length,
-    unmatched: items.filter((i) => i.status === "UNMATCHED").length,
-    errors: items.filter((i) => !!i.error).length,
-    updated: 0,
-  };
-
-  // Preview mode — return analysis only
-  if (isPreview) {
-    return NextResponse.json({ items, summary });
-  }
-
-  // Apply mode — write to DB
-  let updatedCount = 0;
-  let createdCount = 0;
-
-  for (const item of items) {
-    if (item.error) continue;
-
-    try {
-      if (item.status === "MATCH" && item.matchedProduct) {
-        // Update existing product (confident match)
-        await prisma.product.update({
-          where: { id: item.matchedProduct.id },
-          data: {
-            purchasePrice: item.purchasePrice,
-            salePrice: item.salePrice,
-          },
-        });
-
-        await (prisma as any).productPriceHistory.create({
-          data: {
-            productId: item.matchedProduct.id,
-            purchasePrice: item.purchasePrice,
-            salePrice: item.salePrice,
-            source: "IMPORT",
-            changedBy: session.user.id,
-          },
-        });
-
-        logAudit({
-          userId: session.user.id,
-          action: "PRICE_UPDATE",
-          entity: "Product",
-          entityId: item.matchedProduct.id,
-          oldValue: {
-            purchasePrice: item.matchedProduct.purchasePrice,
-            salePrice: item.matchedProduct.salePrice,
-          },
-          newValue: {
-            purchasePrice: item.purchasePrice,
-            salePrice: item.salePrice,
-            source: "IMPORT",
-          },
-        });
-
-        updatedCount++;
-      } else if (item.status === "NEW") {
-        // Check user decision for NEW items
-        const decision = decisionMap.get(item.row);
-        if (!decision || decision.action === "skip") continue;
-
-        if (decision.action === "create") {
-          const newProduct = await prisma.product.create({
-            data: {
-              name: item.name,
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-            },
-          });
-
-          await (prisma as any).productPriceHistory.create({
-            data: {
-              productId: newProduct.id,
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-              source: "IMPORT",
-              changedBy: session.user.id,
-            },
-          });
-
-          logAudit({
-            userId: session.user.id,
-            action: "CREATE",
-            entity: "Product",
-            entityId: newProduct.id,
-            newValue: {
-              name: item.name,
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-              source: "IMPORT",
-            },
-          });
-
-          createdCount++;
-        }
-      } else if (item.status === "UNMATCHED") {
-        // Check user decision for UNMATCHED items
-        const decision = decisionMap.get(item.row);
-        if (!decision || decision.action === "skip") continue;
-
-        if (decision.action === "link" && decision.linkProductId) {
-          // Link to existing product — update its prices
-          const linkedProduct = dbProducts.find(
-            (p) => p.id === decision.linkProductId,
-          );
-
+      try {
+        if (item.status === "MATCH" && item.matchedProduct) {
+          // Update existing product (confident match)
           await prisma.product.update({
-            where: { id: decision.linkProductId },
+            where: { id: item.matchedProduct.id },
             data: {
               purchasePrice: item.purchasePrice,
               salePrice: item.salePrice,
@@ -481,7 +399,7 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
 
           await (prisma as any).productPriceHistory.create({
             data: {
-              productId: decision.linkProductId,
+              productId: item.matchedProduct.id,
               purchasePrice: item.purchasePrice,
               salePrice: item.salePrice,
               source: "IMPORT",
@@ -493,13 +411,11 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
             userId: session.user.id,
             action: "PRICE_UPDATE",
             entity: "Product",
-            entityId: decision.linkProductId,
-            oldValue: linkedProduct
-              ? {
-                  purchasePrice: linkedProduct.purchasePrice,
-                  salePrice: linkedProduct.salePrice,
-                }
-              : undefined,
+            entityId: item.matchedProduct.id,
+            oldValue: {
+              purchasePrice: item.matchedProduct.purchasePrice,
+              salePrice: item.matchedProduct.salePrice,
+            },
             newValue: {
               purchasePrice: item.purchasePrice,
               salePrice: item.salePrice,
@@ -508,51 +424,140 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
           });
 
           updatedCount++;
-        } else if (decision.action === "create") {
-          // Create new product for unmatched item
-          const newProduct = await prisma.product.create({
-            data: {
-              name: item.name,
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-            },
-          });
+        } else if (item.status === "NEW") {
+          // Check user decision for NEW items
+          const decision = decisionMap.get(item.row);
+          if (!decision || decision.action === "skip") continue;
 
-          await (prisma as any).productPriceHistory.create({
-            data: {
-              productId: newProduct.id,
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-              source: "IMPORT",
-              changedBy: session.user.id,
-            },
-          });
+          if (decision.action === "create") {
+            const newProduct = await prisma.product.create({
+              data: {
+                name: item.name,
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+              },
+            });
 
-          logAudit({
-            userId: session.user.id,
-            action: "CREATE",
-            entity: "Product",
-            entityId: newProduct.id,
-            newValue: {
-              name: item.name,
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-              source: "IMPORT",
-            },
-          });
+            await (prisma as any).productPriceHistory.create({
+              data: {
+                productId: newProduct.id,
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+                source: "IMPORT",
+                changedBy: session.user.id,
+              },
+            });
 
-          createdCount++;
+            logAudit({
+              userId: session.user.id,
+              action: "CREATE",
+              entity: "Product",
+              entityId: newProduct.id,
+              newValue: {
+                name: item.name,
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+                source: "IMPORT",
+              },
+            });
+
+            createdCount++;
+          }
+        } else if (item.status === "UNMATCHED") {
+          // Check user decision for UNMATCHED items
+          const decision = decisionMap.get(item.row);
+          if (!decision || decision.action === "skip") continue;
+
+          if (decision.action === "link" && decision.linkProductId) {
+            // Link to existing product — update its prices
+            const linkedProduct = dbProducts.find(
+              (p) => p.id === decision.linkProductId,
+            );
+
+            await prisma.product.update({
+              where: { id: decision.linkProductId },
+              data: {
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+              },
+            });
+
+            await (prisma as any).productPriceHistory.create({
+              data: {
+                productId: decision.linkProductId,
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+                source: "IMPORT",
+                changedBy: session.user.id,
+              },
+            });
+
+            logAudit({
+              userId: session.user.id,
+              action: "PRICE_UPDATE",
+              entity: "Product",
+              entityId: decision.linkProductId,
+              oldValue: linkedProduct
+                ? {
+                    purchasePrice: linkedProduct.purchasePrice,
+                    salePrice: linkedProduct.salePrice,
+                  }
+                : undefined,
+              newValue: {
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+                source: "IMPORT",
+              },
+            });
+
+            updatedCount++;
+          } else if (decision.action === "create") {
+            // Create new product for unmatched item
+            const newProduct = await prisma.product.create({
+              data: {
+                name: item.name,
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+              },
+            });
+
+            await (prisma as any).productPriceHistory.create({
+              data: {
+                productId: newProduct.id,
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+                source: "IMPORT",
+                changedBy: session.user.id,
+              },
+            });
+
+            logAudit({
+              userId: session.user.id,
+              action: "CREATE",
+              entity: "Product",
+              entityId: newProduct.id,
+              newValue: {
+                name: item.name,
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+                source: "IMPORT",
+              },
+            });
+
+            createdCount++;
+          }
         }
+        // NO_CHANGE items are skipped automatically
+      } catch (err) {
+        item.error = `DB hatası: ${err instanceof Error ? err.message : "Bilinmeyen"}`;
       }
-      // NO_CHANGE items are skipped automatically
-    } catch (err) {
-      item.error = `DB hatası: ${err instanceof Error ? err.message : "Bilinmeyen"}`;
     }
-  }
 
-  summary.updated = updatedCount;
-  summary.created = createdCount;
-  summary.errors = items.filter((i) => !!i.error).length;
+    summary.updated = updatedCount;
+    summary.created = createdCount;
+    summary.errors = items.filter((i) => !!i.error).length;
 
-  return NextResponse.json({ items, summary });
-});
+    return NextResponse.json({ items, summary });
+  },
+  { requiredPermissions: ["product.create"] },
+);

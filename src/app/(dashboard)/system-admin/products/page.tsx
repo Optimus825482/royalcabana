@@ -11,7 +11,14 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
-import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  currencySymbol,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 interface ProductGroup {
   id: string;
@@ -354,28 +361,32 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setShowCreateGroup(true);
-              setGroupForm(defaultGroupForm);
-              setGroupError("");
-            }}
-            className="min-h-[44px] border border-yellow-600/50 hover:border-yellow-500 text-yellow-500 hover:text-yellow-400 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
-          >
-            + Yeni Grup
-          </button>
-          <button
-            onClick={() => {
-              setShowCreate(true);
-              setCreateError("");
-              setCreateForm(defaultProductForm);
-              setCreatePriceWarn(false);
-              setCreatePriceOk(false);
-            }}
-            className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
-          >
-            + Yeni Ürün
-          </button>
+          <PermissionGate permission="product.create">
+            <button
+              onClick={() => {
+                setShowCreateGroup(true);
+                setGroupForm(defaultGroupForm);
+                setGroupError("");
+              }}
+              className="min-h-[44px] border border-yellow-600/50 hover:border-yellow-500 text-yellow-500 hover:text-yellow-400 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            >
+              + Yeni Grup
+            </button>
+          </PermissionGate>
+          <PermissionGate permission="product.create">
+            <button
+              onClick={() => {
+                setShowCreate(true);
+                setCreateError("");
+                setCreateForm(defaultProductForm);
+                setCreatePriceWarn(false);
+                setCreatePriceOk(false);
+              }}
+              className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            >
+              + Yeni Ürün
+            </button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -416,21 +427,25 @@ export default function ProductsPage() {
                   </span>
                 </button>
                 <div className="flex gap-2 ml-4">
-                  <button
-                    onClick={() => openEditGroup(group)}
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                  >
-                    Düzenle
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDeleteGroup(group);
-                      setDeleteGroupError("");
-                    }}
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-                  >
-                    Sil
-                  </button>
+                  <PermissionGate permission="product.update">
+                    <button
+                      onClick={() => openEditGroup(group)}
+                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                    >
+                      Düzenle
+                    </button>
+                  </PermissionGate>
+                  <PermissionGate permission="product.delete">
+                    <button
+                      onClick={() => {
+                        setDeleteGroup(group);
+                        setDeleteGroupError("");
+                      }}
+                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    >
+                      Sil
+                    </button>
+                  </PermissionGate>
                 </div>
               </div>
               {/* Group products */}
@@ -478,7 +493,7 @@ export default function ProductsPage() {
                     setDeleteProduct(p);
                     setDeleteError("");
                   }}
-                    currency={currency}
+                  currency={currency}
                 />
               )}
             </div>
@@ -890,7 +905,7 @@ function ProductTable({
   products: Product[];
   onEdit: (p: Product) => void;
   onDelete: (p: Product) => void;
-    currency: CurrencyCode;
+  currency: CurrencyCode;
 }) {
   return (
     <>
@@ -937,18 +952,22 @@ function ProductTable({
               </td>
               <td className="px-5 py-3.5 text-right">
                 <div className="flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => onEdit(p)}
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                  >
-                    Düzenle
-                  </button>
-                  <button
-                    onClick={() => onDelete(p)}
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-                  >
-                    Sil
-                  </button>
+                  <PermissionGate permission="product.update">
+                    <button
+                      onClick={() => onEdit(p)}
+                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                    >
+                      Düzenle
+                    </button>
+                  </PermissionGate>
+                  <PermissionGate permission="product.delete">
+                    <button
+                      onClick={() => onDelete(p)}
+                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    >
+                      Sil
+                    </button>
+                  </PermissionGate>
                 </div>
               </td>
             </tr>
@@ -989,18 +1008,22 @@ function ProductTable({
               </span>
             </div>
             <div className="flex items-center gap-2 pt-1">
-              <button
-                onClick={() => onEdit(p)}
-                className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-              >
-                Düzenle
-              </button>
-              <button
-                onClick={() => onDelete(p)}
-                className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-              >
-                Sil
-              </button>
+              <PermissionGate permission="product.update">
+                <button
+                  onClick={() => onEdit(p)}
+                  className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                >
+                  Düzenle
+                </button>
+              </PermissionGate>
+              <PermissionGate permission="product.delete">
+                <button
+                  onClick={() => onDelete(p)}
+                  className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                >
+                  Sil
+                </button>
+              </PermissionGate>
             </div>
           </div>
         ))}

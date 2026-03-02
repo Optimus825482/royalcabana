@@ -15,6 +15,7 @@ import {
   type NavGroup,
   type NavLink,
 } from "./Navbar";
+import { usePermissions } from "@/hooks/usePermissions";
 
 /* ── Logo Component with Collapse Toggle ── */
 
@@ -244,6 +245,7 @@ export default function Sidebar({
   const { data: session } = useSession();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { can, isLoading: permissionsLoading } = usePermissions();
 
   const role = session?.user?.role as string | undefined;
 
@@ -263,20 +265,44 @@ export default function Sidebar({
 
   const navItems = useMemo(() => {
     const baseItems = role ? (NAV_CONFIG[role] ?? []) : [];
-    if (role !== "CASINO_USER" || !moduleConfig) return baseItems;
 
-    return baseItems
+    // Apply module config filtering for casino
+    let items = baseItems;
+    if (role === "CASINO_USER" && moduleConfig) {
+      items = baseItems
+        .map((item) => {
+          if (!isGroup(item) || item.label !== "Deneyim") return item;
+          const filtered = item.children.filter((c) => {
+            if (c.href === "/casino/reviews")
+              return moduleConfig.reviews.enabled;
+            return true;
+          });
+          if (filtered.length === 0) return null;
+          return { ...item, children: filtered };
+        })
+        .filter(Boolean) as NavItem[];
+    }
+
+    // Skip permission filtering while loading (prevent flash)
+    if (permissionsLoading) return items;
+
+    // Apply permission-based filtering
+    return items
       .map((item) => {
-        if (!isGroup(item) || item.label !== "Deneyim") return item;
-        const filtered = item.children.filter((c) => {
-          if (c.href === "/casino/reviews") return moduleConfig.reviews.enabled;
-          return true;
-        });
-        if (filtered.length === 0) return null;
-        return { ...item, children: filtered };
+        if (isGroup(item)) {
+          const filteredChildren = item.children.filter(
+            (child) =>
+              !child.requiredPermission || can(child.requiredPermission),
+          );
+          if (filteredChildren.length === 0) return null;
+          return { ...item, children: filteredChildren };
+        }
+        if (item.requiredPermission && !can(item.requiredPermission))
+          return null;
+        return item;
       })
       .filter(Boolean) as NavItem[];
-  }, [role, moduleConfig]);
+  }, [role, moduleConfig, permissionsLoading, can]);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -316,7 +342,7 @@ export default function Sidebar({
         />
 
         {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1 scrollbar-thin">
+        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1 rc-scrollbar">
           {navItems.map((item) => {
             if (isGroup(item)) {
               return (

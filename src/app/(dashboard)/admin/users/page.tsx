@@ -12,6 +12,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 interface UserRow {
   id: string;
@@ -183,14 +184,16 @@ export default function AdminUsersPage() {
             Casino ve F&B kullanıcılarını yönetin
           </p>
         </div>
-        <button
-          onClick={() => {
-            setShowCreate(true);
-          }}
-          className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
-        >
-          + Yeni Kullanıcı
-        </button>
+        <PermissionGate permission="user.create">
+          <button
+            onClick={() => {
+              setShowCreate(true);
+            }}
+            className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
+          >
+            + Yeni Kullanıcı
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Toast */}
@@ -284,19 +287,23 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(user)}
-                        className="text-xs px-3 py-1.5 min-h-[44px] rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                      >
-                        Düzenle
-                      </button>
-                      {user.isActive && (
+                      <PermissionGate permission="user.update">
                         <button
-                          onClick={() => setDeactivateTarget(user)}
-                          className="text-xs px-3 py-1.5 min-h-[44px] rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                          onClick={() => openEdit(user)}
+                          className="text-xs px-3 py-1.5 min-h-[44px] rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                         >
-                          Devre Dışı
+                          Düzenle
                         </button>
+                      </PermissionGate>
+                      {user.isActive && (
+                        <PermissionGate permission="user.delete">
+                          <button
+                            onClick={() => setDeactivateTarget(user)}
+                            className="text-xs px-3 py-1.5 min-h-[44px] rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                          >
+                            Devre Dışı
+                          </button>
+                        </PermissionGate>
                       )}
                     </div>
                   </td>
@@ -356,19 +363,23 @@ export default function AdminUsersPage() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => openEdit(user)}
-                  className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                >
-                  Düzenle
-                </button>
-                {user.isActive && (
+                <PermissionGate permission="user.update">
                   <button
-                    onClick={() => setDeactivateTarget(user)}
-                    className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    onClick={() => openEdit(user)}
+                    className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                   >
-                    Devre Dışı
+                    Düzenle
                   </button>
+                </PermissionGate>
+                {user.isActive && (
+                  <PermissionGate permission="user.delete">
+                    <button
+                      onClick={() => setDeactivateTarget(user)}
+                      className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    >
+                      Devre Dışı
+                    </button>
+                  </PermissionGate>
                 )}
               </div>
             </div>

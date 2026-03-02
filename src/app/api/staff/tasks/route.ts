@@ -6,43 +6,47 @@ import { logAudit } from "@/lib/audit";
 import { parseBody, createStaffTaskSchema } from "@/lib/validators";
 
 // GET — Personel görevlerini listele
-export const GET = withAuth([Role.SYSTEM_ADMIN, Role.ADMIN], async (req) => {
-  const { searchParams } = req.nextUrl;
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const limit = Math.min(
-    100,
-    Math.max(1, Number(searchParams.get("limit")) || 20),
-  );
-  const skip = (page - 1) * limit;
-  const staffId = searchParams.get("staffId");
-  const date = searchParams.get("date");
-  const isCompleted = searchParams.get("isCompleted");
+export const GET = withAuth(
+  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  async (req) => {
+    const { searchParams } = req.nextUrl;
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("limit")) || 20),
+    );
+    const skip = (page - 1) * limit;
+    const staffId = searchParams.get("staffId");
+    const date = searchParams.get("date");
+    const isCompleted = searchParams.get("isCompleted");
 
-  const where: Record<string, unknown> = {};
-  if (staffId) where.staffId = staffId;
-  if (date) where.date = new Date(date);
-  if (isCompleted === "true" || isCompleted === "false") {
-    where.isCompleted = isCompleted === "true";
-  }
+    const where: Record<string, unknown> = {};
+    if (staffId) where.staffId = staffId;
+    if (date) where.date = new Date(date);
+    if (isCompleted === "true" || isCompleted === "false") {
+      where.isCompleted = isCompleted === "true";
+    }
 
-  const [items, total] = await Promise.all([
-    (prisma as any).staffTask.findMany({
-      where,
-      include: {
-        staff: { select: { id: true, name: true } },
-        taskDefinition: {
-          select: { id: true, title: true, category: true, priority: true },
+    const [items, total] = await Promise.all([
+      (prisma as any).staffTask.findMany({
+        where,
+        include: {
+          staff: { select: { id: true, name: true } },
+          taskDefinition: {
+            select: { id: true, title: true, category: true, priority: true },
+          },
         },
-      },
-      orderBy: { date: "desc" },
-      skip,
-      take: limit,
-    }),
-    (prisma as any).staffTask.count({ where }),
-  ]);
+        orderBy: { date: "desc" },
+        skip,
+        take: limit,
+      }),
+      (prisma as any).staffTask.count({ where }),
+    ]);
 
-  return NextResponse.json({ items, total });
-});
+    return NextResponse.json({ items, total });
+  },
+  { requiredPermissions: ["staff.view"] },
+);
 
 // POST — Personel görevi oluştur
 export const POST = withAuth(
@@ -80,4 +84,5 @@ export const POST = withAuth(
 
     return NextResponse.json(item, { status: 201 });
   },
+  { requiredPermissions: ["staff.create"] },
 );

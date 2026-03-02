@@ -94,41 +94,44 @@ export const GET = withAuth(
 
     return NextResponse.json({ reservations: sanitized, total });
   },
+  { requiredPermissions: ["reservation.view"] },
 );
 
-export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
-  const body = await req.json();
-  const parsed = parseBody(createReservationSchema, body);
+export const POST = withAuth(
+  [Role.CASINO_USER],
+  async (req, { session }) => {
+    const body = await req.json();
+    const parsed = parseBody(createReservationSchema, body);
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
-  }
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
 
-  const { cabanaId, guestName, startDate, endDate, notes } = parsed.data;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+    const { cabanaId, guestName, startDate, endDate, notes } = parsed.data;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
-  if (start >= end) {
-    return NextResponse.json(
-      { error: "Başlangıç tarihi bitiş tarihinden önce olmalıdır." },
-      { status: 400 },
-    );
-  }
+    if (start >= end) {
+      return NextResponse.json(
+        { error: "Başlangıç tarihi bitiş tarihinden önce olmalıdır." },
+        { status: 400 },
+      );
+    }
 
-  if (start < new Date()) {
-    return NextResponse.json(
-      { error: "Geçmiş tarihler için talep oluşturulamaz." },
-      { status: 400 },
-    );
-  }
+    if (start < new Date()) {
+      return NextResponse.json(
+        { error: "Geçmiş tarihler için talep oluşturulamaz." },
+        { status: 400 },
+      );
+    }
 
-  // Atomik çakışma kontrolü + kayıt oluşturma (race condition önleme)
-  // Boundary rule: startDate < end AND endDate > start (strict inequality)
-  // Bu sayede aynı gün check-out (endDate) ve check-in (startDate) çakışma sayılmaz
-  try {
-    const reservation = await prisma.$transaction(
-      async (tx) => {
-        const conflicts = await tx.$queryRaw<{ id: string }[]>`
+    // Atomik çakışma kontrolü + kayıt oluşturma (race condition önleme)
+    // Boundary rule: startDate < end AND endDate > start (strict inequality)
+    // Bu sayede aynı gün check-out (endDate) ve check-in (startDate) çakışma sayılmaz
+    try {
+      const reservation = await prisma.$transaction(
+        async (tx) => {
+          const conflicts = await tx.$queryRaw<{ id: string }[]>`
             SELECT id FROM reservations
             WHERE "cabanaId" = ${cabanaId}
               AND status = 'APPROVED'
@@ -137,83 +140,85 @@ export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
             FOR UPDATE
           `;
 
-        if (conflicts.length > 0) {
-          throw new Error("CONFLICT");
-        }
+          if (conflicts.length > 0) {
+            throw new Error("CONFLICT");
+          }
 
-        const reservationData: Record<string, unknown> = {
-          cabanaId,
-          userId: session.user.id,
-          guestName,
-          startDate: start,
-          endDate: end,
-          notes: notes ?? null,
-          status: "PENDING",
-        };
+          const reservationData: Record<string, unknown> = {
+            cabanaId,
+            userId: session.user.id,
+            guestName,
+            startDate: start,
+            endDate: end,
+            notes: notes ?? null,
+            status: "PENDING",
+          };
 
-        return tx.reservation.create({
-          data: reservationData as never,
-          include: {
-            cabana: { select: { id: true, name: true } },
-            user: { select: { id: true, username: true } },
-          },
-        });
-      },
-      { isolationLevel: "Serializable", timeout: 10000 },
-    );
-
-    logAudit({
-      userId: session.user.id,
-      action: "CREATE",
-      entity: "Reservation",
-      entityId: reservation.id,
-      newValue: { cabanaId, guestName, startDate, endDate, notes },
-    });
-
-    // SSE broadcast — non-blocking
-    after(async () => {
-      sseManager.broadcast(SSE_EVENTS.RESERVATION_CREATED, {
-        reservationId: reservation.id,
-        cabanaName: reservation.cabana?.name ?? "",
-        guestName,
-        startDate,
-        endDate,
-      });
-
-      const admins = await prisma.user.findMany({
-        where: {
-          isActive: true,
-          role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN] },
+          return tx.reservation.create({
+            data: reservationData as never,
+            include: {
+              cabana: { select: { id: true, name: true } },
+              user: { select: { id: true, username: true } },
+            },
+          });
         },
-        select: { id: true },
+        { isolationLevel: "Serializable", timeout: 10000 },
+      );
+
+      logAudit({
+        userId: session.user.id,
+        action: "CREATE",
+        entity: "Reservation",
+        entityId: reservation.id,
+        newValue: { cabanaId, guestName, startDate, endDate, notes },
       });
 
-      if (admins.length === 0) return;
+      // SSE broadcast — non-blocking
+      after(async () => {
+        sseManager.broadcast(SSE_EVENTS.RESERVATION_CREATED, {
+          reservationId: reservation.id,
+          cabanaName: reservation.cabana?.name ?? "",
+          guestName,
+          startDate,
+          endDate,
+        });
 
-      await notificationService.sendMany(
-        admins.map((admin) => ({
-          userId: admin.id,
-          type: NotificationType.NEW_REQUEST,
-          title: "Yeni Rezervasyon Talebi",
-          message: `${guestName} için yeni rezervasyon talebi oluşturuldu.`,
-          metadata: {
-            reservationId: reservation.id,
-            cabanaName: reservation.cabana?.name ?? "",
-            startDate,
-            endDate,
+        const admins = await prisma.user.findMany({
+          where: {
+            isActive: true,
+            role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN] },
           },
-        })),
-      );
-    });
+          select: { id: true },
+        });
 
-    return NextResponse.json(reservation, { status: 201 });
-  } catch (err) {
-    if (err instanceof Error && err.message === "CONFLICT") {
-      return NextResponse.json(
-        { error: "Seçilen tarih aralığında bu kabana müsait değildir." },
-        { status: 409 },
-      );
+        if (admins.length === 0) return;
+
+        await notificationService.sendMany(
+          admins.map((admin) => ({
+            userId: admin.id,
+            type: NotificationType.NEW_REQUEST,
+            title: "Yeni Rezervasyon Talebi",
+            message: `${guestName} için yeni rezervasyon talebi oluşturuldu.`,
+            metadata: {
+              reservationId: reservation.id,
+              cabanaName: reservation.cabana?.name ?? "",
+              startDate,
+              endDate,
+            },
+          })),
+        );
+      });
+
+      return NextResponse.json(reservation, { status: 201 });
+    } catch (err) {
+      if (err instanceof Error && err.message === "CONFLICT") {
+        return NextResponse.json(
+          { error: "Seçilen tarih aralığında bu kabana müsait değildir." },
+          { status: 409 },
+        );
+      }
+      throw err;
     }
-    throw err;
-  }
-});
+  },
+  { requiredPermissions: ["reservation.create"] },
+);

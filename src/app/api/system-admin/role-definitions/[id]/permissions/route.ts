@@ -5,6 +5,7 @@ import { Role } from "@/types";
 import { prisma } from "@/lib/prisma";
 import { parseBody } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
+import { invalidatePermissionCache } from "@/lib/permission-cache";
 
 const db = prisma as any;
 
@@ -65,6 +66,7 @@ export const GET = withAuth(
 
     return NextResponse.json({ success: true, data: links, error: null });
   },
+  { requiredPermissions: ["role.definition.view"] },
 );
 
 export const PUT = withAuth(
@@ -201,6 +203,9 @@ export const PUT = withAuth(
       },
     });
 
+    // Permission cache'i invalidate et — değişiklik anında yansısın
+    invalidatePermissionCache(roleDef.role as Role);
+
     const updatedLinks = await db.rolePermission.findMany({
       where: {
         roleDefinitionId: id,
@@ -235,4 +240,5 @@ export const PUT = withAuth(
       error: null,
     });
   },
+  { requiredPermissions: ["role.definition.update"] },
 );

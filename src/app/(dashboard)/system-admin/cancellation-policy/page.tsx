@@ -13,6 +13,7 @@ import {
   Percent,
 } from "lucide-react";
 import { Field, ErrorMsg, inputCls } from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 interface CancellationRule {
   id: string;
@@ -246,21 +247,23 @@ export default function CancellationPolicyPage() {
                     : "Pasif — iptal cezası yok"}
                 </p>
               </div>
-              <button
-                onClick={() => update({ enabled: !policy.enabled })}
-                className="flex items-center gap-2 text-sm transition-colors"
-                aria-label={
-                  policy.enabled
-                    ? "Politikayı devre dışı bırak"
-                    : "Politikayı etkinleştir"
-                }
-              >
-                {policy.enabled ? (
-                  <ToggleRight className="w-8 h-8 text-amber-400" />
-                ) : (
-                  <ToggleLeft className="w-8 h-8 text-neutral-600" />
-                )}
-              </button>
+              <PermissionGate permission="system.config.update">
+                <button
+                  onClick={() => update({ enabled: !policy.enabled })}
+                  className="flex items-center gap-2 text-sm transition-colors"
+                  aria-label={
+                    policy.enabled
+                      ? "Politikayı devre dışı bırak"
+                      : "Politikayı etkinleştir"
+                  }
+                >
+                  {policy.enabled ? (
+                    <ToggleRight className="w-8 h-8 text-amber-400" />
+                  ) : (
+                    <ToggleLeft className="w-8 h-8 text-neutral-600" />
+                  )}
+                </button>
+              </PermissionGate>
             </div>
 
             {/* Default Penalty */}
@@ -294,13 +297,15 @@ export default function CancellationPolicyPage() {
                   Kurallar ({sortedRules.length})
                 </h2>
                 {!showForm && (
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors min-h-[44px] px-3"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Kural Ekle
-                  </button>
+                  <PermissionGate permission="system.config.update">
+                    <button
+                      onClick={() => setShowForm(true)}
+                      className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors min-h-[44px] px-3"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Kural Ekle
+                    </button>
+                  </PermissionGate>
                 )}
               </div>
 
@@ -334,13 +339,15 @@ export default function CancellationPolicyPage() {
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => deleteRule(rule.id)}
-                    className="w-10 h-10 flex items-center justify-center text-neutral-600 hover:text-red-400 transition-colors rounded-lg hover:bg-neutral-800"
-                    aria-label={`${rule.label} kuralını sil`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <PermissionGate permission="system.config.update">
+                    <button
+                      onClick={() => deleteRule(rule.id)}
+                      className="w-10 h-10 flex items-center justify-center text-neutral-600 hover:text-red-400 transition-colors rounded-lg hover:bg-neutral-800"
+                      aria-label={`${rule.label} kuralını sil`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </PermissionGate>
                 </div>
               ))}
             </div>
@@ -376,16 +383,18 @@ export default function CancellationPolicyPage() {
 
             {/* Save */}
             {isDirty && (
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={handleSave}
-                  disabled={mutation.isPending}
-                  className="flex items-center gap-2 min-h-[44px] px-5 py-2 text-sm font-semibold rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  {mutation.isPending ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              </div>
+              <PermissionGate permission="system.config.update">
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={mutation.isPending}
+                    className="flex items-center gap-2 min-h-[44px] px-5 py-2 text-sm font-semibold rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                    {mutation.isPending ? "Kaydediliyor..." : "Kaydet"}
+                  </button>
+                </div>
+              </PermissionGate>
             )}
           </>
         ) : null}

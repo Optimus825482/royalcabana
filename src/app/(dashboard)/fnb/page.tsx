@@ -24,7 +24,12 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
-import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
 
 // ── Types ──
 
@@ -210,7 +215,10 @@ function OrderCard({
   onStatusChange: (id: string, status: StatusKey) => void;
   isUpdating: boolean;
 }) {
-  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({ queryKey: ["system-currency"], queryFn: fetchSystemCurrency });
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
   const total = orderTotal(order.items);
   const cfg = STATUS_CONFIG[order.status];
 
@@ -334,7 +342,10 @@ function NewOrderModal({
   const [lines, setLines] = useState<OrderLineItem[]>([]);
   const [error, setError] = useState("");
 
-  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({ queryKey: ["system-currency"], queryFn: fetchSystemCurrency });
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
 
   const { data: reservationData, isLoading: resLoading } = useQuery({
     queryKey: ["reservations-active"],
@@ -464,7 +475,7 @@ function NewOrderModal({
           {prodLoading ? (
             <p className="text-xs text-neutral-500">Ürünler yükleniyor...</p>
           ) : (
-            <div className="max-h-64 overflow-y-auto space-y-3 pr-1">
+            <div className="max-h-64 overflow-y-auto space-y-3 rc-scrollbar">
               {groupedProducts.map((group) => (
                 <div key={group.name}>
                   <p className="text-xs font-medium text-neutral-500 mb-1.5 uppercase tracking-wider">
@@ -585,7 +596,10 @@ function NewOrderModal({
 // ── Daily Summary ──
 
 function DailySummary({ orders }: { orders: FnbOrder[] }) {
-  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({ queryKey: ["system-currency"], queryFn: fetchSystemCurrency });
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
   const stats = useMemo(() => {
     const byStatus: Record<StatusKey, number> = {
       PREPARING: 0,

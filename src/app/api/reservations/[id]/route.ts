@@ -59,4 +59,5 @@ export const GET = withAuth(
 
     return NextResponse.json(reservation);
   },
+  { requiredPermissions: ["reservation.view"] },
 );

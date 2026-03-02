@@ -39,6 +39,7 @@ export const GET = withAuth(
 
     return NextResponse.json({ items, total });
   },
+  { requiredPermissions: ["reservation.view"] },
 );
 
 // POST — Bekleme listesine ekle
@@ -79,4 +80,5 @@ export const POST = withAuth(
 
     return NextResponse.json(item, { status: 201 });
   },
+  { requiredPermissions: ["reservation.create"] },
 );

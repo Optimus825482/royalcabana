@@ -12,6 +12,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 interface UserRow {
   id: string;
@@ -120,6 +121,9 @@ export default function UsersPage() {
   const [roleDrafts, setRoleDrafts] = useState<Record<string, Role>>({});
   const [roleSavingUserId, setRoleSavingUserId] = useState<string | null>(null);
 
+  // Role change confirmation
+  const [roleConfirmUser, setRoleConfirmUser] = useState<UserRow | null>(null);
+
   const currentUserRole = session?.user?.role as Role | undefined;
 
   const roleLabelMap = useMemo(() => {
@@ -132,7 +136,10 @@ export default function UsersPage() {
 
   const activeRoles = useMemo(() => {
     const rolesFromDefinitions = roleDefinitions
-      .filter((roleDefinition) => roleDefinition.isActive && !roleDefinition.isDeleted)
+      .filter(
+        (roleDefinition) =>
+          roleDefinition.isActive && !roleDefinition.isDeleted,
+      )
       .map((roleDefinition) => roleDefinition.role);
 
     return rolesFromDefinitions.length > 0
@@ -175,7 +182,9 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || data.message || "Kullanıcı oluşturulamadı.");
+        throw new Error(
+          data.error || data.message || "Kullanıcı oluşturulamadı.",
+        );
       }
       setShowCreate(false);
       setCreateForm(defaultCreateForm);
@@ -217,7 +226,9 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || data.message || "Kullanıcı güncellenemedi.");
+        throw new Error(
+          data.error || data.message || "Kullanıcı güncellenemedi.",
+        );
       }
       setEditUser(null);
       setEditForm(null);
@@ -240,7 +251,9 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || data.message || "Kullanıcı devre dışı bırakılamadı.");
+        throw new Error(
+          data.error || data.message || "Kullanıcı devre dışı bırakılamadı.",
+        );
       }
       setDeactivateUser(null);
       showSuccess("Kullanıcı devre dışı bırakıldı.");
@@ -292,15 +305,17 @@ export default function UsersPage() {
             Sistem kullanıcılarını yönetin
           </p>
         </div>
-        <button
-          onClick={() => {
-            setShowCreate(true);
-            setCreateError("");
-          }}
-          className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 min-h-[44px] rounded-lg transition-colors"
-        >
-          + Yeni Kullanıcı
-        </button>
+        <PermissionGate permission="user.create">
+          <button
+            onClick={() => {
+              setShowCreate(true);
+              setCreateError("");
+            }}
+            className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 min-h-[44px] rounded-lg transition-colors"
+          >
+            + Yeni Kullanıcı
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Toast messages */}
@@ -334,7 +349,7 @@ export default function UsersPage() {
                   <tr className="border-b border-neutral-800 text-neutral-400 text-left">
                     <th className="px-4 py-3 font-medium">Kullanıcı Adı</th>
                     <th className="px-4 py-3 font-medium">E-posta</th>
-                        <th className="px-4 py-3 font-medium">Yetki (Rol)</th>
+                    <th className="px-4 py-3 font-medium">Yetki (Rol)</th>
                     <th className="px-4 py-3 font-medium">Durum</th>
                     <th className="px-4 py-3 font-medium text-right">
                       İşlemler
@@ -354,37 +369,44 @@ export default function UsersPage() {
                         {user.email}
                       </td>
                       <td className="px-4 py-3 text-neutral-300">
-                        <div className="flex items-center gap-2 justify-start">
-                          <select
-                            value={getDraftRole(user)}
-                            onChange={(e) =>
-                              setRoleDrafts((prev) => ({
-                                ...prev,
-                                [user.id]: e.target.value as Role,
-                              }))
-                            }
-                            disabled={!canEditRoleOfUser(user) || roleSavingUserId === user.id}
-                            title="Kullanıcı rolü"
-                            className="bg-neutral-800 border border-neutral-700 rounded-md px-2 py-1 text-xs text-neutral-100 disabled:opacity-50"
-                          >
-                            {editableRoles.map((r) => (
-                              <option key={r} value={r}>
-                                {roleLabelMap[r]}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            onClick={() => handleQuickRoleUpdate(user)}
-                            disabled={
-                              !canEditRoleOfUser(user) ||
-                              roleSavingUserId === user.id ||
-                              getDraftRole(user) === user.role
-                            }
-                            className="text-xs px-2.5 min-h-[30px] rounded-md bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-700/30 text-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {roleSavingUserId === user.id ? "Kaydediliyor..." : "Kaydet"}
-                          </button>
-                        </div>
+                        <PermissionGate permission="user.update">
+                          <div className="flex items-center gap-2 justify-start">
+                            <select
+                              value={getDraftRole(user)}
+                              onChange={(e) =>
+                                setRoleDrafts((prev) => ({
+                                  ...prev,
+                                  [user.id]: e.target.value as Role,
+                                }))
+                              }
+                              disabled={
+                                !canEditRoleOfUser(user) ||
+                                roleSavingUserId === user.id
+                              }
+                              title="Kullanıcı rolü"
+                              className="bg-neutral-800 border border-neutral-700 rounded-md px-2 py-1 text-xs text-neutral-100 disabled:opacity-50"
+                            >
+                              {editableRoles.map((r) => (
+                                <option key={r} value={r}>
+                                  {roleLabelMap[r]}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => setRoleConfirmUser(user)}
+                              disabled={
+                                !canEditRoleOfUser(user) ||
+                                roleSavingUserId === user.id ||
+                                getDraftRole(user) === user.role
+                              }
+                              className="text-xs px-2.5 min-h-[30px] rounded-md bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-700/30 text-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {roleSavingUserId === user.id
+                                ? "Kaydediliyor..."
+                                : "Kaydet"}
+                            </button>
+                          </div>
+                        </PermissionGate>
                       </td>
                       <td className="px-4 py-3">
                         {user.isActive ? (
@@ -401,19 +423,23 @@ export default function UsersPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => openEdit(user)}
-                            className="text-xs px-3 min-h-[36px] rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                          >
-                            Düzenle
-                          </button>
-                          {user.isActive && (
+                          <PermissionGate permission="user.update">
                             <button
-                              onClick={() => setDeactivateUser(user)}
-                              className="text-xs px-3 min-h-[36px] rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                              onClick={() => openEdit(user)}
+                              className="text-xs px-3 min-h-[36px] rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                             >
-                              Devre Dışı
+                              Düzenle
                             </button>
+                          </PermissionGate>
+                          {user.isActive && (
+                            <PermissionGate permission="user.delete">
+                              <button
+                                onClick={() => setDeactivateUser(user)}
+                                className="text-xs px-3 min-h-[36px] rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                              >
+                                Devre Dışı
+                              </button>
+                            </PermissionGate>
                           )}
                         </div>
                       </td>
@@ -447,54 +473,63 @@ export default function UsersPage() {
                       </span>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-neutral-500">Yetki (Rol)</p>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={getDraftRole(user)}
-                        onChange={(e) =>
-                          setRoleDrafts((prev) => ({
-                            ...prev,
-                            [user.id]: e.target.value as Role,
-                          }))
-                        }
-                        disabled={!canEditRoleOfUser(user) || roleSavingUserId === user.id}
-                        title="Kullanıcı rolü"
-                        className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-100 disabled:opacity-50"
-                      >
-                        {editableRoles.map((r) => (
-                          <option key={r} value={r}>
-                            {roleLabelMap[r]}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => handleQuickRoleUpdate(user)}
-                        disabled={
-                          !canEditRoleOfUser(user) ||
-                          roleSavingUserId === user.id ||
-                          getDraftRole(user) === user.role
-                        }
-                        className="px-3 min-h-[40px] rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-700/30 text-yellow-300 text-sm disabled:opacity-50"
-                      >
-                        {roleSavingUserId === user.id ? "..." : "Kaydet"}
-                      </button>
+                  <PermissionGate permission="user.update">
+                    <div className="space-y-2">
+                      <p className="text-xs text-neutral-500">Yetki (Rol)</p>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={getDraftRole(user)}
+                          onChange={(e) =>
+                            setRoleDrafts((prev) => ({
+                              ...prev,
+                              [user.id]: e.target.value as Role,
+                            }))
+                          }
+                          disabled={
+                            !canEditRoleOfUser(user) ||
+                            roleSavingUserId === user.id
+                          }
+                          title="Kullanıcı rolü"
+                          className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-100 disabled:opacity-50"
+                        >
+                          {editableRoles.map((r) => (
+                            <option key={r} value={r}>
+                              {roleLabelMap[r]}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => setRoleConfirmUser(user)}
+                          disabled={
+                            !canEditRoleOfUser(user) ||
+                            roleSavingUserId === user.id ||
+                            getDraftRole(user) === user.role
+                          }
+                          className="px-3 min-h-[40px] rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-700/30 text-yellow-300 text-sm disabled:opacity-50"
+                        >
+                          {roleSavingUserId === user.id ? "..." : "Kaydet"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </PermissionGate>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => openEdit(user)}
-                      className="flex-1 text-sm min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                    >
-                      Düzenle
-                    </button>
-                    {user.isActive && (
+                    <PermissionGate permission="user.update">
                       <button
-                        onClick={() => setDeactivateUser(user)}
-                        className="flex-1 text-sm min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                        onClick={() => openEdit(user)}
+                        className="flex-1 text-sm min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                       >
-                        Devre Dışı
+                        Düzenle
                       </button>
+                    </PermissionGate>
+                    {user.isActive && (
+                      <PermissionGate permission="user.delete">
+                        <button
+                          onClick={() => setDeactivateUser(user)}
+                          className="flex-1 text-sm min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                        >
+                          Devre Dışı
+                        </button>
+                      </PermissionGate>
                     )}
                   </div>
                 </div>
@@ -717,6 +752,46 @@ export default function UsersPage() {
               className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
             >
               {deactivateLoading ? "İşleniyor..." : "Devre Dışı Bırak"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Role Change Confirm Modal */}
+      {roleConfirmUser && (
+        <Modal
+          title="Rol Değişikliği Onayı"
+          onClose={() => setRoleConfirmUser(null)}
+        >
+          <p className="text-neutral-300 text-sm mb-6">
+            <span className="text-yellow-400 font-medium">
+              {roleConfirmUser.username}
+            </span>{" "}
+            kullanıcısının rolünü{" "}
+            <span className="text-neutral-100 font-medium">
+              {roleLabelMap[roleConfirmUser.role]}
+            </span>
+            {" → "}
+            <span className="text-neutral-100 font-medium">
+              {roleLabelMap[getDraftRole(roleConfirmUser)]}
+            </span>{" "}
+            olarak değiştirmek istediğinizden emin misiniz?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setRoleConfirmUser(null)}
+              className={cancelBtnCls}
+            >
+              Vazgeç
+            </button>
+            <button
+              onClick={() => {
+                handleQuickRoleUpdate(roleConfirmUser);
+                setRoleConfirmUser(null);
+              }}
+              className={submitBtnCls}
+            >
+              Onayla
             </button>
           </div>
         </Modal>

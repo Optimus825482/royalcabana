@@ -24,78 +24,86 @@ const allRoles = [
   Role.FNB_USER,
 ];
 
-export const GET = withAuth(allRoles, async (req) => {
-  const { searchParams } = new URL(req.url);
-  const classId = searchParams.get("classId");
+export const GET = withAuth(
+  allRoles,
+  async (req) => {
+    const { searchParams } = new URL(req.url);
+    const classId = searchParams.get("classId");
 
-  const cabanas = await prisma.cabana.findMany({
-    where: classId ? { classId } : undefined,
-    include: {
-      cabanaClass: { select: { id: true, name: true } },
-      concept: { select: { id: true, name: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+    const cabanas = await prisma.cabana.findMany({
+      where: classId ? { classId } : undefined,
+      include: {
+        cabanaClass: { select: { id: true, name: true } },
+        concept: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
 
-  return NextResponse.json(cabanas);
-});
+    return NextResponse.json(cabanas);
+  },
+  { requiredPermissions: ["map.view"] },
+);
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
-  const body = await req.json();
-  const parsed = createCabanaSchema.safeParse(body);
+export const POST = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session }) => {
+    const body = await req.json();
+    const parsed = createCabanaSchema.safeParse(body);
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-  const {
-    name,
-    classId,
-    conceptId,
-    coordX,
-    coordY,
-    rotation,
-    scaleX,
-    scaleY,
-    color,
-  } = parsed.data;
-
-  const existing = await prisma.cabana.findUnique({ where: { name } });
-  if (existing) {
-    return NextResponse.json(
-      { error: "Bu isimde bir kabana zaten mevcut." },
-      { status: 409 },
-    );
-  }
-
-  const cabana = await prisma.cabana.create({
-    data: {
+    const {
       name,
       classId,
-      conceptId: conceptId ?? null,
+      conceptId,
       coordX,
       coordY,
-      rotation: rotation ?? 0,
-      scaleX: scaleX ?? 1,
-      scaleY: scaleY ?? 1,
-      color: color ?? null,
-    },
-    include: {
-      cabanaClass: { select: { id: true, name: true } },
-      concept: { select: { id: true, name: true } },
-    },
-  });
+      rotation,
+      scaleX,
+      scaleY,
+      color,
+    } = parsed.data;
 
-  logAudit({
-    userId: session.user.id,
-    action: "CREATE",
-    entity: "Cabana",
-    entityId: cabana.id,
-    newValue: { name, classId, conceptId, coordX, coordY },
-  });
+    const existing = await prisma.cabana.findUnique({ where: { name } });
+    if (existing) {
+      return NextResponse.json(
+        { error: "Bu isimde bir kabana zaten mevcut." },
+        { status: 409 },
+      );
+    }
 
-  return NextResponse.json(cabana, { status: 201 });
-});
+    const cabana = await prisma.cabana.create({
+      data: {
+        name,
+        classId,
+        conceptId: conceptId ?? null,
+        coordX,
+        coordY,
+        rotation: rotation ?? 0,
+        scaleX: scaleX ?? 1,
+        scaleY: scaleY ?? 1,
+        color: color ?? null,
+      },
+      include: {
+        cabanaClass: { select: { id: true, name: true } },
+        concept: { select: { id: true, name: true } },
+      },
+    });
+
+    logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "Cabana",
+      entityId: cabana.id,
+      newValue: { name, classId, conceptId, coordX, coordY },
+    });
+
+    return NextResponse.json(cabana, { status: 201 });
+  },
+  { requiredPermissions: ["map.update"] },
+);

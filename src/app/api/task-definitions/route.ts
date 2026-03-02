@@ -14,41 +14,45 @@ const createSchema = z.object({
 });
 
 // GET — Aktif görev tanımlarını listele
-export const GET = withAuth([Role.SYSTEM_ADMIN, Role.ADMIN], async (req) => {
-  const { searchParams } = req.nextUrl;
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const limit = Math.min(
-    100,
-    Math.max(1, Number(searchParams.get("limit")) || 50),
-  );
-  const skip = (page - 1) * limit;
-  const search = searchParams.get("search")?.trim() || undefined;
-  const category = searchParams.get("category")?.trim() || undefined;
+export const GET = withAuth(
+  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  async (req) => {
+    const { searchParams } = req.nextUrl;
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("limit")) || 50),
+    );
+    const skip = (page - 1) * limit;
+    const search = searchParams.get("search")?.trim() || undefined;
+    const category = searchParams.get("category")?.trim() || undefined;
 
-  const where: Record<string, unknown> = { deletedAt: null, isActive: true };
+    const where: Record<string, unknown> = { deletedAt: null, isActive: true };
 
-  if (search) {
-    where.OR = [
-      { title: { contains: search, mode: "insensitive" } },
-      { description: { contains: search, mode: "insensitive" } },
-    ];
-  }
-  if (category) {
-    where.category = category;
-  }
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    if (category) {
+      where.category = category;
+    }
 
-  const [items, total] = await Promise.all([
-    (prisma as any).taskDefinition.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    }),
-    (prisma as any).taskDefinition.count({ where }),
-  ]);
+    const [items, total] = await Promise.all([
+      (prisma as any).taskDefinition.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      (prisma as any).taskDefinition.count({ where }),
+    ]);
 
-  return NextResponse.json({ items, total });
-});
+    return NextResponse.json({ items, total });
+  },
+  { requiredPermissions: ["task.definition.view"] },
+);
 
 // POST — Yeni görev tanımı oluştur
 export const POST = withAuth(
@@ -79,4 +83,5 @@ export const POST = withAuth(
 
     return NextResponse.json(item, { status: 201 });
   },
+  { requiredPermissions: ["task.definition.create"] },
 );

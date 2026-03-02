@@ -113,6 +113,7 @@ export const PATCH = withAuth(
 
     return NextResponse.json(updated);
   },
+  { requiredPermissions: ["user.update"] },
 );
 
 export const DELETE = withAuth(
@@ -164,4 +165,5 @@ export const DELETE = withAuth(
 
     return NextResponse.json({ message: "User deactivated" });
   },
+  { requiredPermissions: ["user.delete"] },
 );

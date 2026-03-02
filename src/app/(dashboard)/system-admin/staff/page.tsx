@@ -25,6 +25,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 // ── Types ──
 
@@ -421,12 +422,14 @@ export default function StaffPage() {
             <h4 className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-amber-400" /> Atamalar
             </h4>
-            <button
-              onClick={() => openAssignment(staff.id)}
-              className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
-            >
-              + Atama Ekle
-            </button>
+            <PermissionGate permission="staff.update">
+              <button
+                onClick={() => openAssignment(staff.id)}
+                className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                + Atama Ekle
+              </button>
+            </PermissionGate>
           </div>
           {assignments.length === 0 ? (
             <p className="text-xs text-neutral-500">Henüz atama yok.</p>
@@ -458,12 +461,14 @@ export default function StaffPage() {
             <h4 className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
               <ClipboardList className="w-3.5 h-3.5 text-amber-400" /> Görevler
             </h4>
-            <button
-              onClick={() => openTask(staff.id)}
-              className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
-            >
-              + Görev Ekle
-            </button>
+            <PermissionGate permission="staff.update">
+              <button
+                onClick={() => openTask(staff.id)}
+                className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                + Görev Ekle
+              </button>
+            </PermissionGate>
           </div>
           {tasks.length === 0 ? (
             <p className="text-xs text-neutral-500">Henüz görev yok.</p>
@@ -530,13 +535,15 @@ export default function StaffPage() {
             Personel, atama ve görevleri yönetin
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Yeni Personel
-        </button>
+        <PermissionGate permission="staff.create">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Yeni Personel
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Toast */}
@@ -641,21 +648,25 @@ export default function StaffPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => openEdit(s)}
-                      title="Düzenle"
-                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    {s.isActive && (
+                    <PermissionGate permission="staff.update">
                       <button
-                        onClick={() => setDeactivateTarget(s)}
-                        title="Devre dışı bırak"
-                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                        onClick={() => openEdit(s)}
+                        title="Düzenle"
+                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                       >
-                        <UserX className="w-3.5 h-3.5" />
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
+                    </PermissionGate>
+                    {s.isActive && (
+                      <PermissionGate permission="staff.delete">
+                        <button
+                          onClick={() => setDeactivateTarget(s)}
+                          title="Devre dışı bırak"
+                          className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                        >
+                          <UserX className="w-3.5 h-3.5" />
+                        </button>
+                      </PermissionGate>
                     )}
                   </div>
                 </div>

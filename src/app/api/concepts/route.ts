@@ -20,70 +20,81 @@ const createConceptSchema = z.object({
   serviceFee: z.coerce.number().min(0).optional(),
 });
 
-export const GET = withAuth(allRoles, async () => {
-  const concepts = await prisma.concept.findMany({
-    include: {
-      products: { include: { product: true } },
-      cabanaClass: { select: { id: true, name: true } },
-      _count: { select: { cabanas: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(concepts);
-});
+export const GET = withAuth(
+  allRoles,
+  async () => {
+    const concepts = await prisma.concept.findMany({
+      include: {
+        products: { include: { product: true } },
+        cabanaClass: { select: { id: true, name: true } },
+        _count: { select: { cabanas: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(concepts);
+  },
+  { requiredPermissions: ["concept.view"] },
+);
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
-  const body = await req.json();
-  const parsed = createConceptSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { message: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+export const POST = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session }) => {
+    const body = await req.json();
+    const parsed = createConceptSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-  const { name, description, classId, productIds, serviceFee } = parsed.data;
+    const { name, description, classId, productIds, serviceFee } = parsed.data;
 
-  const existing = await prisma.concept.findUnique({ where: { name } });
-  if (existing) {
-    return NextResponse.json(
-      { message: "Bu isimde bir konsept zaten mevcut." },
-      { status: 409 },
-    );
-  }
+    const existing = await prisma.concept.findUnique({ where: { name } });
+    if (existing) {
+      return NextResponse.json(
+        { message: "Bu isimde bir konsept zaten mevcut." },
+        { status: 409 },
+      );
+    }
 
-  const concept = await (prisma as any).concept.create({
-    data: {
-      name,
-      description,
-      classId: classId || null,
-      serviceFee: serviceFee ?? 0,
-      products: productIds?.length
-        ? {
-            create: productIds.map((productId) => ({ productId, quantity: 1 })),
-          }
-        : undefined,
-    },
-    include: {
-      products: { include: { product: true } },
-      cabanaClass: { select: { id: true, name: true } },
-      _count: { select: { cabanas: true } },
-    },
-  });
+    const concept = await (prisma as any).concept.create({
+      data: {
+        name,
+        description,
+        classId: classId || null,
+        serviceFee: serviceFee ?? 0,
+        products: productIds?.length
+          ? {
+              create: productIds.map((productId) => ({
+                productId,
+                quantity: 1,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        products: { include: { product: true } },
+        cabanaClass: { select: { id: true, name: true } },
+        _count: { select: { cabanas: true } },
+      },
+    });
 
-  logAudit({
-    userId: session.user.id,
-    action: "CREATE",
-    entity: "Concept",
-    entityId: concept.id,
-    newValue: {
-      name,
-      description,
-      classId,
-      productIds,
-      serviceFee: serviceFee ?? 0,
-    },
-  });
+    logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "Concept",
+      entityId: concept.id,
+      newValue: {
+        name,
+        description,
+        classId,
+        productIds,
+        serviceFee: serviceFee ?? 0,
+      },
+    });
 
-  return NextResponse.json(concept, { status: 201 });
-});
+    return NextResponse.json(concept, { status: 201 });
+  },
+  { requiredPermissions: ["concept.create"] },
+);

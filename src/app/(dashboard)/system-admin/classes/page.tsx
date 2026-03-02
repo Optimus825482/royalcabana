@@ -10,6 +10,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 interface ClassAttribute {
   id: string;
@@ -215,16 +216,18 @@ export default function ClassesPage() {
             Kabana sınıflarını ve özelliklerini yönetin
           </p>
         </div>
-        <button
-          onClick={() => {
-            setShowCreate(true);
-            setCreateError("");
-            setCreateForm(defaultCreateForm);
-          }}
-          className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          + Yeni Sınıf
-        </button>
+        <PermissionGate permission="cabana.class.create">
+          <button
+            onClick={() => {
+              setShowCreate(true);
+              setCreateError("");
+              setCreateForm(defaultCreateForm);
+            }}
+            className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            + Yeni Sınıf
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Toast messages */}
@@ -284,21 +287,25 @@ export default function ClassesPage() {
                   >
                     {expandedId === cls.id ? "Kapat" : "Özellikler"}
                   </button>
-                  <button
-                    onClick={() => openEdit(cls)}
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                  >
-                    Düzenle
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDeleteClass(cls);
-                      setDeleteError("");
-                    }}
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
-                  >
-                    Sil
-                  </button>
+                  <PermissionGate permission="cabana.class.update">
+                    <button
+                      onClick={() => openEdit(cls)}
+                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                    >
+                      Düzenle
+                    </button>
+                  </PermissionGate>
+                  <PermissionGate permission="cabana.class.delete">
+                    <button
+                      onClick={() => {
+                        setDeleteClass(cls);
+                        setDeleteError("");
+                      }}
+                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    >
+                      Sil
+                    </button>
+                  </PermissionGate>
                 </div>
               </div>
 
@@ -329,12 +336,14 @@ export default function ClassesPage() {
                               {attr.value}
                             </span>
                           </div>
-                          <button
-                            onClick={() => handleDeleteAttr(cls.id, attr.id)}
-                            className="text-xs text-red-500 hover:text-red-400 transition-colors ml-4"
-                          >
-                            Sil
-                          </button>
+                          <PermissionGate permission="cabana.class.update">
+                            <button
+                              onClick={() => handleDeleteAttr(cls.id, attr.id)}
+                              className="text-xs text-red-500 hover:text-red-400 transition-colors ml-4"
+                            >
+                              Sil
+                            </button>
+                          </PermissionGate>
                         </div>
                       ))}
                     </div>
@@ -372,13 +381,15 @@ export default function ClassesPage() {
                       }
                       className={inputCls + " flex-1"}
                     />
-                    <button
-                      onClick={() => handleAddAttr(cls.id)}
-                      disabled={attrLoading[cls.id]}
-                      className="min-h-[44px] text-xs px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-neutral-950 font-semibold transition-colors shrink-0"
-                    >
-                      {attrLoading[cls.id] ? "..." : "Ekle"}
-                    </button>
+                    <PermissionGate permission="cabana.class.update">
+                      <button
+                        onClick={() => handleAddAttr(cls.id)}
+                        disabled={attrLoading[cls.id]}
+                        className="min-h-[44px] text-xs px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-neutral-950 font-semibold transition-colors shrink-0"
+                      >
+                        {attrLoading[cls.id] ? "..." : "Ekle"}
+                      </button>
+                    </PermissionGate>
                   </div>
                   {attrError[cls.id] && (
                     <p className="text-red-400 text-xs mt-2">

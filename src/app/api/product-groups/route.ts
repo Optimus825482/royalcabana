@@ -17,32 +17,40 @@ const createSchema = z.object({
   sortOrder: z.number().int().default(0),
 });
 
-export const GET = withAuth(allRoles, async () => {
-  const groups = await prisma.productGroup.findMany({
-    orderBy: { sortOrder: "asc" },
-    include: { _count: { select: { products: true } } },
-  });
-  return NextResponse.json(groups);
-});
+export const GET = withAuth(
+  allRoles,
+  async () => {
+    const groups = await prisma.productGroup.findMany({
+      orderBy: { sortOrder: "asc" },
+      include: { _count: { select: { products: true } } },
+    });
+    return NextResponse.json(groups);
+  },
+  { requiredPermissions: ["product.view"] },
+);
 
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
-  const body = await req.json();
-  const parsed = createSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { message: "Validation error", errors: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
-  const group = await prisma.productGroup.create({ data: parsed.data });
+export const POST = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session }) => {
+    const body = await req.json();
+    const parsed = createSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const group = await prisma.productGroup.create({ data: parsed.data });
 
-  logAudit({
-    userId: session.user.id,
-    action: "CREATE",
-    entity: "ProductGroup",
-    entityId: group.id,
-    newValue: parsed.data,
-  });
+    logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "ProductGroup",
+      entityId: group.id,
+      newValue: parsed.data,
+    });
 
-  return NextResponse.json(group, { status: 201 });
-});
+    return NextResponse.json(group, { status: 201 });
+  },
+  { requiredPermissions: ["product.create"] },
+);

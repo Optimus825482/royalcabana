@@ -34,37 +34,42 @@ export const GET = withAuth(
 
     return NextResponse.json({ items, total });
   },
+  { requiredPermissions: ["blackout.view"] },
 );
 
 // POST — Blackout tarihi oluştur (SYSTEM_ADMIN only)
-export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
-  const body = await req.json();
-  const parsed = parseBody(createBlackoutDateSchema, body);
+export const POST = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { session }) => {
+    const body = await req.json();
+    const parsed = parseBody(createBlackoutDateSchema, body);
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
-  }
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
 
-  const { cabanaId, startDate, endDate, reason } = parsed.data;
+    const { cabanaId, startDate, endDate, reason } = parsed.data;
 
-  const item = await (prisma as any).blackoutDate.create({
-    data: {
-      cabanaId: cabanaId ?? null,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      reason: reason ?? null,
-      createdBy: session.user.id,
-    },
-    include: { cabana: { select: { id: true, name: true } } },
-  });
+    const item = await (prisma as any).blackoutDate.create({
+      data: {
+        cabanaId: cabanaId ?? null,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        reason: reason ?? null,
+        createdBy: session.user.id,
+      },
+      include: { cabana: { select: { id: true, name: true } } },
+    });
 
-  logAudit({
-    userId: session.user.id,
-    action: "CREATE",
-    entity: "BlackoutDate",
-    entityId: item.id,
-    newValue: { cabanaId, startDate, endDate, reason },
-  });
+    logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "BlackoutDate",
+      entityId: item.id,
+      newValue: { cabanaId, startDate, endDate, reason },
+    });
 
-  return NextResponse.json(item, { status: 201 });
-});
+    return NextResponse.json(item, { status: 201 });
+  },
+  { requiredPermissions: ["blackout.create"] },
+);

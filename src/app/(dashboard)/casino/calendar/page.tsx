@@ -8,7 +8,12 @@ import ReservationTimeline from "@/components/calendar/ReservationTimeline";
 import ReservationRequestForm from "@/components/calendar/ReservationRequestForm";
 import { ReservationStatus } from "@/types";
 import { AlertTriangle, X, LayoutList, CalendarDays } from "lucide-react";
-import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
 import type {
   ReservationEvent,
   CabanaResource,
@@ -88,7 +93,10 @@ async function fetchSystemConfig(): Promise<{
   const data = await res.json();
   // API returns { isOpen: boolean }
   if (typeof data.isOpen !== "undefined") {
-    return { system_open_for_reservation: data.isOpen === true || data.isOpen === "true" };
+    return {
+      system_open_for_reservation:
+        data.isOpen === true || data.isOpen === "true",
+    };
   }
   if (Array.isArray(data)) {
     const entry = data.find(
@@ -275,7 +283,11 @@ export default function CasinoCalendarPage() {
               if (!systemOpen) return;
               const cabana = cabanas.find((c) => c.id === cabanaId);
               if (!cabana) return;
-              setRequestModal({ cabanaId: cabana.id, cabanaName: cabana.name, date });
+              setRequestModal({
+                cabanaId: cabana.id,
+                cabanaName: cabana.name,
+                date,
+              });
             }}
             onReservationClick={(r: TimelineReservation) => {
               const detail = reservationData?.reservations.find(
@@ -361,7 +373,7 @@ function ReservationDetailModal({
 }: {
   reservation: ReservationDetail;
   onClose: () => void;
-    currency: CurrencyCode;
+  currency: CurrencyCode;
 }) {
   return (
     <div
@@ -385,7 +397,7 @@ function ReservationDetailModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 overscroll-contain">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 overscroll-contain rc-scrollbar">
           <span
             className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_BADGE[reservation.status]}`}
           >
@@ -490,7 +502,9 @@ function CabanaDetailModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
-          <h2 className="text-base font-semibold text-amber-400">{cabana.name}</h2>
+          <h2 className="text-base font-semibold text-amber-400">
+            {cabana.name}
+          </h2>
           <button
             onClick={onClose}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
@@ -500,11 +514,15 @@ function CabanaDetailModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 overscroll-contain">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 overscroll-contain rc-scrollbar">
           <DetailRow label="Kabana" value={cabana.name} />
           <DetailRow
             label="Durum"
-            value={cabana.isOpenForReservation ? "Rezervasyona Açık" : "Rezervasyona Kapalı"}
+            value={
+              cabana.isOpenForReservation
+                ? "Rezervasyona Açık"
+                : "Rezervasyona Kapalı"
+            }
             valueClass={
               cabana.isOpenForReservation ? "text-emerald-400" : "text-red-400"
             }
@@ -515,7 +533,10 @@ function CabanaDetailModal({
           {cabana.concept?.name && (
             <DetailRow label="Konsept" value={cabana.concept.name} />
           )}
-          <DetailRow label="Toplam Rezervasyon" value={String(reservationCount)} />
+          <DetailRow
+            label="Toplam Rezervasyon"
+            value={String(reservationCount)}
+          />
         </div>
 
         <div className="p-5 border-t border-neutral-800 shrink-0">

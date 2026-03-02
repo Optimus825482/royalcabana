@@ -37,6 +37,7 @@ export const GET = withAuth(
 
     return NextResponse.json(staff);
   },
+  { requiredPermissions: ["staff.view"] },
 );
 
 // PATCH — Personel güncelle
@@ -84,6 +85,7 @@ export const PATCH = withAuth(
 
     return NextResponse.json(updated);
   },
+  { requiredPermissions: ["staff.update"] },
 );
 
 // DELETE — Personel soft delete
@@ -118,4 +120,5 @@ export const DELETE = withAuth(
 
     return NextResponse.json({ success: true });
   },
+  { requiredPermissions: ["staff.delete"] },
 );

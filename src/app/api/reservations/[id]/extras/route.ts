@@ -32,10 +32,11 @@ export const GET = withAuth(
 
     return NextResponse.json(extras);
   },
+  { requiredPermissions: ["reservation.view"] },
 );
 
 export const POST = withAuth(
-  [Role.FNB_USER, Role.ADMIN],
+  [Role.FNB_USER, Role.ADMIN, Role.SYSTEM_ADMIN],
   async (req, { session, params }) => {
     const id = params!.id;
     const reservation = await prisma.reservation.findUnique({ where: { id } });
@@ -149,4 +150,5 @@ export const POST = withAuth(
 
     return NextResponse.json(created, { status: 201 });
   },
+  { requiredPermissions: ["fnb.order.create"] },
 );

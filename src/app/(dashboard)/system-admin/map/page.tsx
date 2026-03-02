@@ -175,15 +175,15 @@ export default function SystemAdminMapPage() {
         setSelectedCabana((prev) =>
           prev
             ? {
-              ...prev,
-              coordX,
-              coordY,
-              ...(rotation !== undefined ? { rotation } : {}),
-              ...(scaleX !== undefined ? { scaleX } : {}),
-              ...(scaleY !== undefined ? { scaleY } : {}),
-              ...(color !== undefined ? { color } : {}),
-              ...(isLocked !== undefined ? { isLocked } : {}),
-            }
+                ...prev,
+                coordX,
+                coordY,
+                ...(rotation !== undefined ? { rotation } : {}),
+                ...(scaleX !== undefined ? { scaleX } : {}),
+                ...(scaleY !== undefined ? { scaleY } : {}),
+                ...(color !== undefined ? { color } : {}),
+                ...(isLocked !== undefined ? { isLocked } : {}),
+              }
             : prev,
         );
       }
@@ -389,66 +389,66 @@ export default function SystemAdminMapPage() {
               <LoadingSpinner message="Kabanalar yükleniyor..." />
             </div>
           ) : (
-              <div className="h-full min-h-[300px] md:min-h-[500px]">
-                <CabanaMap
-                  cabanas={cabanas}
-                  editable={true}
-                  onCabanaClick={handleCabanaClick}
-                  onLocationUpdate={handleLocationUpdate}
-                  onMapClick={handleMapClick}
-                  onCabanaDelete={handleDeleteFromMap}
-                  onElevationSave={handleElevationSave}
-                  onElevationReset={handleResetElevation}
-                  savedElevationData={savedElevationData}
-                  selectedCabanaId={selectedCabana?.id}
-                  placementCoords={placementCoords}
-                />
+            <div className="h-full min-h-[300px] md:min-h-[500px]">
+              <CabanaMap
+                cabanas={cabanas}
+                editable={true}
+                onCabanaClick={handleCabanaClick}
+                onLocationUpdate={handleLocationUpdate}
+                onMapClick={handleMapClick}
+                onCabanaDelete={handleDeleteFromMap}
+                onElevationSave={handleElevationSave}
+                onElevationReset={handleResetElevation}
+                savedElevationData={savedElevationData}
+                selectedCabanaId={selectedCabana?.id}
+                placementCoords={placementCoords}
+              />
             </div>
           )}
         </div>
 
         {/* Right panel — only visible when a cabana is selected */}
         {selectedCabana && (
-        <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-neutral-800 bg-neutral-900 flex flex-col overflow-y-auto max-h-[50vh] md:max-h-none">
-            {(
-            <div className="p-5 space-y-5">
-              {/* Cabana info */}
-              <div>
-                <div className="flex items-start justify-between mb-3">
-                  <h2 className="text-base font-semibold text-yellow-400">
-                    {selectedCabana.name}
-                  </h2>
-                  <span
-                    className={`text-xs font-medium ${statusColor[selectedCabana.status]}`}
-                  >
-                    {statusLabel[selectedCabana.status]}
-                  </span>
-                </div>
-                <div className="space-y-1.5 text-xs text-neutral-400">
-                  <div className="flex justify-between">
-                    <span>Sınıf</span>
-                    <span className="text-neutral-200">
-                      {selectedCabana.cabanaClass?.name ?? "—"}
+          <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-neutral-800 bg-neutral-900 flex flex-col overflow-y-auto max-h-[50vh] md:max-h-none rc-scrollbar">
+            {
+              <div className="p-5 space-y-5">
+                {/* Cabana info */}
+                <div>
+                  <div className="flex items-start justify-between mb-3">
+                    <h2 className="text-base font-semibold text-yellow-400">
+                      {selectedCabana.name}
+                    </h2>
+                    <span
+                      className={`text-xs font-medium ${statusColor[selectedCabana.status]}`}
+                    >
+                      {statusLabel[selectedCabana.status]}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Konsept</span>
-                    <span className="text-neutral-200">
-                      {selectedCabana.concept?.name ?? "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Konum X</span>
-                    <span className="text-neutral-200">
-                      {Math.round(selectedCabana.coordX)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Konum Y</span>
-                    <span className="text-neutral-200">
-                      {Math.round(selectedCabana.coordY)}
-                    </span>
-                  </div>
+                  <div className="space-y-1.5 text-xs text-neutral-400">
+                    <div className="flex justify-between">
+                      <span>Sınıf</span>
+                      <span className="text-neutral-200">
+                        {selectedCabana.cabanaClass?.name ?? "—"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Konsept</span>
+                      <span className="text-neutral-200">
+                        {selectedCabana.concept?.name ?? "—"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Konum X</span>
+                      <span className="text-neutral-200">
+                        {Math.round(selectedCabana.coordX)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Konum Y</span>
+                      <span className="text-neutral-200">
+                        {Math.round(selectedCabana.coordY)}
+                      </span>
+                    </div>
                     <div className="flex justify-between">
                       <span>Döndürme</span>
                       <span className="text-neutral-200">
@@ -473,14 +473,16 @@ export default function SystemAdminMapPage() {
                         {selectedCabana.isLocked ? "🔒 Sabit" : "Serbest"}
                       </span>
                     </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="border-t border-neutral-800" />
+                <div className="border-t border-neutral-800" />
 
-              {/* Edit form */}
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-neutral-400">Düzenle</p>
+                {/* Edit form */}
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-neutral-400">
+                    Düzenle
+                  </p>
 
                   {/* Transform Controls — Rotation, ScaleX, ScaleY, Color, Lock, Save */}
                   <TransformControls
@@ -501,89 +503,89 @@ export default function SystemAdminMapPage() {
 
                   <div className="border-t border-neutral-800" />
 
-                <div>
-                  <label className="block text-xs text-neutral-500 mb-1">
-                    Sınıf Değiştir
-                  </label>
-                  <select
-                    value={editClassId}
-                    onChange={(e) => setEditClassId(e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">Sınıf seçin</option>
-                    {classes.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-neutral-500 mb-1">
-                    Konsept Değiştir
-                  </label>
-                  <select
-                    value={editConceptId}
-                    onChange={(e) => setEditConceptId(e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">Konsept yok</option>
-                    {concepts.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <button
-                  onClick={handleUpdateCabana}
-                  disabled={editLoading || !editClassId}
-                  className="w-full py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors"
-                >
-                  {editLoading ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              </div>
-
-              <div className="border-t border-neutral-800" />
-
-              {/* Delete */}
-              {!showDeleteConfirm ? (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full py-2 text-sm font-semibold rounded-lg bg-red-950/50 hover:bg-red-900/60 border border-red-800/40 text-red-400 transition-colors"
-                >
-                  Kabana Sil
-                </button>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-xs text-neutral-400">
-                    <span className="text-yellow-400">
-                      {selectedCabana.name}
-                    </span>{" "}
-                    silinecek. Emin misiniz?
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className="flex-1 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                  <div>
+                    <label className="block text-xs text-neutral-500 mb-1">
+                      Sınıf Değiştir
+                    </label>
+                    <select
+                      value={editClassId}
+                      onChange={(e) => setEditClassId(e.target.value)}
+                      className={selectCls}
                     >
-                      İptal
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      disabled={deleteLoading}
-                      className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
-                    >
-                      {deleteLoading ? "Siliniyor..." : "Sil"}
-                    </button>
+                      <option value="">Sınıf seçin</option>
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
+                  <div>
+                    <label className="block text-xs text-neutral-500 mb-1">
+                      Konsept Değiştir
+                    </label>
+                    <select
+                      value={editConceptId}
+                      onChange={(e) => setEditConceptId(e.target.value)}
+                      className={selectCls}
+                    >
+                      <option value="">Konsept yok</option>
+                      {concepts.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={handleUpdateCabana}
+                    disabled={editLoading || !editClassId}
+                    className="w-full py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors"
+                  >
+                    {editLoading ? "Kaydediliyor..." : "Kaydet"}
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+
+                <div className="border-t border-neutral-800" />
+
+                {/* Delete */}
+                {!showDeleteConfirm ? (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full py-2 text-sm font-semibold rounded-lg bg-red-950/50 hover:bg-red-900/60 border border-red-800/40 text-red-400 transition-colors"
+                  >
+                    Kabana Sil
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-neutral-400">
+                      <span className="text-yellow-400">
+                        {selectedCabana.name}
+                      </span>{" "}
+                      silinecek. Emin misiniz?
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="flex-1 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                      >
+                        İptal
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        disabled={deleteLoading}
+                        className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+                      >
+                        {deleteLoading ? "Siliniyor..." : "Sil"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            }
+          </div>
         )}
       </div>
 

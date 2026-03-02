@@ -93,4 +93,5 @@ export const POST = withAuth(
 
     return NextResponse.json(cancelRequest, { status: 201 });
   },
+  { requiredPermissions: ["reservation.delete"] },
 );
