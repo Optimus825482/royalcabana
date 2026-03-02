@@ -1164,15 +1164,7 @@ export default function CabanaMapInner({
 
   // ─── Sunset Bar state (persisted to DB via SystemConfig) ──────────────────
   const SUNSET_BAR_CONFIG_KEY = "sunset_bar_transform";
-  const [sunsetBarTransform, setSunsetBarTransform] = useState(() => {
-    if (typeof window === "undefined") return { ...SUNSET_DEFAULT };
-    const saved = localStorage.getItem(SUNSET_BAR_CONFIG_KEY);
-    if (saved) {
-      try { return { ...SUNSET_DEFAULT, ...JSON.parse(saved) }; }
-      catch { return { ...SUNSET_DEFAULT }; }
-    }
-    return { ...SUNSET_DEFAULT };
-  });
+  const [sunsetBarTransform, setSunsetBarTransform] = useState(() => ({ ...SUNSET_DEFAULT }));
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
   const [buildingContextMenu, setBuildingContextMenu] = useState<{
     x: number;
@@ -1182,15 +1174,10 @@ export default function CabanaMapInner({
 
   // ─── Blue Sea Bar state (persisted to DB via SystemConfig) ────────────────
   const BLUE_SEA_BAR_CONFIG_KEY = "blue_sea_bar_transform";
-  const [blueSeaBarTransform, setBlueSeaBarTransform] = useState(() => {
-    if (typeof window === "undefined") return { ...BLUE_SEA_DEFAULT };
-    const saved = localStorage.getItem(BLUE_SEA_BAR_CONFIG_KEY);
-    if (saved) {
-      try { return { ...BLUE_SEA_DEFAULT, ...JSON.parse(saved) }; }
-      catch { return { ...BLUE_SEA_DEFAULT }; }
-    }
-    return { ...BLUE_SEA_DEFAULT };
-  });
+  const [blueSeaBarTransform, setBlueSeaBarTransform] = useState(() => ({ ...BLUE_SEA_DEFAULT }));
+
+  // ─── Flag: DB'den yükleme tamamlandı mı? Bu flag true olana kadar save tetiklenmez ─
+  const barDbLoadedRef = useRef(false);
 
   // ─── Fetch bar transforms from DB on mount ────────────────────────────────
   const barInitRef = useRef(false);
@@ -1206,16 +1193,34 @@ export default function CabanaMapInner({
           const merged = { ...def, ...parsed };
           setter(merged);
           localStorage.setItem(key, JSON.stringify(merged));
+          return;
         }
-      } catch { /* API hatası — localStorage/default kullan */ }
+      } catch { /* API hatası */ }
+      // API başarısız olursa localStorage'a bak
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          try {
+            setter({ ...def, ...JSON.parse(saved) });
+            return;
+          } catch { /* parse hatası */ }
+        }
+      }
     };
-    fetchBarConfig(SUNSET_BAR_CONFIG_KEY, setSunsetBarTransform, SUNSET_DEFAULT);
-    fetchBarConfig(BLUE_SEA_BAR_CONFIG_KEY, setBlueSeaBarTransform, BLUE_SEA_DEFAULT);
+    Promise.all([
+      fetchBarConfig(SUNSET_BAR_CONFIG_KEY, setSunsetBarTransform, SUNSET_DEFAULT),
+      fetchBarConfig(BLUE_SEA_BAR_CONFIG_KEY, setBlueSeaBarTransform, BLUE_SEA_DEFAULT),
+    ]).finally(() => {
+      // Yükleme bitti — artık save effect'leri aktif
+      barDbLoadedRef.current = true;
+    });
   }, [SUNSET_DEFAULT, BLUE_SEA_DEFAULT]);
 
   // ─── Save bar transforms to DB + localStorage (debounced) ─────────────────
   const saveTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const saveBarConfig = useCallback((key: string, value: typeof SUNSET_DEFAULT) => {
+    // DB yüklemesi tamamlanmadan kaydetme (ilk mount'taki defaults'ı overwrite etmemek için)
+    if (!barDbLoadedRef.current) return;
     localStorage.setItem(key, JSON.stringify(value));
     if (saveTimerRef.current[key]) clearTimeout(saveTimerRef.current[key]);
     saveTimerRef.current[key] = setTimeout(async () => {
@@ -1994,6 +1999,7 @@ export default function CabanaMapInner({
               y: number;
               scale: number;
               rotation: number;
+              isLocked: boolean;
             }) => ({
               ...prev,
               x: coordX,
@@ -2009,6 +2015,7 @@ export default function CabanaMapInner({
               y: number;
               scale: number;
               rotation: number;
+              isLocked: boolean;
             }) => ({
               ...prev,
               x: coordX,
@@ -3048,6 +3055,7 @@ export default function CabanaMapInner({
                         y: number;
                         scale: number;
                         rotation: number;
+                        isLocked: boolean;
                       }) => ({
                         ...prev,
                         scale: Number(e.target.value),
@@ -3077,6 +3085,7 @@ export default function CabanaMapInner({
                         y: number;
                         scale: number;
                         rotation: number;
+                        isLocked: boolean;
                       }) => ({
                         ...prev,
                         rotation: Number(e.target.value),
@@ -3105,6 +3114,7 @@ export default function CabanaMapInner({
                     y: 280,
                     scale: 1,
                     rotation: 0,
+                    isLocked: false,
                   });
                 }}
                 className="flex-1 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
@@ -3176,6 +3186,7 @@ export default function CabanaMapInner({
                         y: number;
                         scale: number;
                         rotation: number;
+                        isLocked: boolean;
                       }) => ({
                         ...prev,
                         scale: Number(e.target.value),
@@ -3205,6 +3216,7 @@ export default function CabanaMapInner({
                         y: number;
                         scale: number;
                         rotation: number;
+                        isLocked: boolean;
                       }) => ({
                         ...prev,
                         rotation: Number(e.target.value),
@@ -3233,6 +3245,7 @@ export default function CabanaMapInner({
                     y: 420,
                     scale: 1,
                     rotation: 0,
+                    isLocked: false,
                   });
                 }}
                 className="flex-1 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
