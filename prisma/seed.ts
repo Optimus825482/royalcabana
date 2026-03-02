@@ -777,7 +777,7 @@ async function main() {
   // ===== ÖRNEK KABANA FİYATLARI =====
   // Bugünden itibaren 30 gün için örnek günlük fiyatlar
   const allCabanas = await prisma.cabana.findMany({
-    where: { isDeleted: false },
+    where: { deletedAt: null },
   });
   const today = new Date();
 
@@ -810,24 +810,20 @@ async function main() {
 
   // Kabana fiyat aralıkları (sezonluk)
   const currentYear = today.getFullYear();
+  // Önce mevcut sezonluk fiyat aralıklarını temizle
+  await prisma.cabanaPriceRange.deleteMany({
+    where: {
+      cabanaId: { in: allCabanas.map((c) => c.id) },
+      startDate: { gte: new Date(`${currentYear}-01-01`) },
+    },
+  });
+
   for (const cab of allCabanas) {
     const basePrice = classBasePrices[cab.classId] ?? 5000;
 
     // Yaz sezonu: Haziran - Ağustos (%30 artış, priority yüksek)
-    await prisma.cabanaPriceRange.upsert({
-      where: {
-        cabanaId_startDate_endDate: {
-          cabanaId: cab.id,
-          startDate: new Date(`${currentYear}-06-01`),
-          endDate: new Date(`${currentYear}-08-31`),
-        },
-      },
-      update: {
-        dailyPrice: basePrice * 1.3,
-        label: "Yaz Sezonu",
-        priority: 10,
-      },
-      create: {
+    await prisma.cabanaPriceRange.create({
+      data: {
         cabanaId: cab.id,
         startDate: new Date(`${currentYear}-06-01`),
         endDate: new Date(`${currentYear}-08-31`),
@@ -838,20 +834,8 @@ async function main() {
     });
 
     // Bahar kampanyası: Nisan - Mayıs (%10 indirim)
-    await prisma.cabanaPriceRange.upsert({
-      where: {
-        cabanaId_startDate_endDate: {
-          cabanaId: cab.id,
-          startDate: new Date(`${currentYear}-04-01`),
-          endDate: new Date(`${currentYear}-05-31`),
-        },
-      },
-      update: {
-        dailyPrice: basePrice * 0.9,
-        label: "Bahar Kampanyası",
-        priority: 5,
-      },
-      create: {
+    await prisma.cabanaPriceRange.create({
+      data: {
         cabanaId: cab.id,
         startDate: new Date(`${currentYear}-04-01`),
         endDate: new Date(`${currentYear}-05-31`),
