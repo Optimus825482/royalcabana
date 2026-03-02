@@ -112,7 +112,10 @@ function CabanaPricesTab({
     }, [selectedCabana, month]);
 
     useEffect(() => {
-        loadPrices();
+        const timer = setTimeout(() => {
+            void loadPrices();
+        }, 0);
+        return () => clearTimeout(timer);
     }, [loadPrices]);
 
     const [year, m] = month.split("-").map(Number);
@@ -123,8 +126,9 @@ function CabanaPricesTab({
         <div className="space-y-6">
             <div className="flex gap-4 flex-wrap">
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs text-neutral-400">Kabana</label>
+                    <label htmlFor="readonly-cabana-select" className="text-xs text-neutral-400">Kabana</label>
                     <select
+                        id="readonly-cabana-select"
                         value={selectedCabana}
                         onChange={(e) => {
                             setSelectedCabana(e.target.value);
@@ -141,8 +145,9 @@ function CabanaPricesTab({
                     </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs text-neutral-400">Ay</label>
+                    <label htmlFor="readonly-month-input" className="text-xs text-neutral-400">Ay</label>
                     <input
+                        id="readonly-month-input"
                         type="month"
                         value={month}
                         onChange={(e) => {
@@ -232,14 +237,18 @@ function ConceptPricesTab({
     }, [selectedConcept]);
 
     useEffect(() => {
-        loadConceptPrices();
+        const timer = setTimeout(() => {
+            void loadConceptPrices();
+        }, 0);
+        return () => clearTimeout(timer);
     }, [loadConceptPrices]);
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-1 max-w-xs">
-                <label className="text-xs text-neutral-400">Konsept</label>
+                <label htmlFor="readonly-concept-select" className="text-xs text-neutral-400">Konsept</label>
                 <select
+                    id="readonly-concept-select"
                     value={selectedConcept}
                     onChange={(e) => {
                         setSelectedConcept(e.target.value);
@@ -351,8 +360,9 @@ function PricePreviewTab({
         <div className="space-y-6">
             <div className="flex gap-4 flex-wrap">
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs text-neutral-400">Kabana</label>
+                    <label htmlFor="calc-cabana-select" className="text-xs text-neutral-400">Kabana</label>
                     <select
+                        id="calc-cabana-select"
                         value={form.cabanaId}
                         onChange={(e) =>
                             setForm((p) => ({ ...p, cabanaId: e.target.value }))
@@ -368,10 +378,11 @@ function PricePreviewTab({
                     </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs text-neutral-400">
+                    <label htmlFor="calc-concept-select" className="text-xs text-neutral-400">
                         Konsept (opsiyonel)
                     </label>
                     <select
+                        id="calc-concept-select"
                         value={form.conceptId}
                         onChange={(e) =>
                             setForm((p) => ({ ...p, conceptId: e.target.value }))
@@ -387,8 +398,9 @@ function PricePreviewTab({
                     </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs text-neutral-400">Başlangıç</label>
+                    <label htmlFor="calc-start-date" className="text-xs text-neutral-400">Başlangıç</label>
                     <input
+                        id="calc-start-date"
                         type="date"
                         value={form.startDate}
                         onChange={(e) =>
@@ -398,8 +410,9 @@ function PricePreviewTab({
                     />
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs text-neutral-400">Bitiş</label>
+                    <label htmlFor="calc-end-date" className="text-xs text-neutral-400">Bitiş</label>
                     <input
+                        id="calc-end-date"
                         type="date"
                         value={form.endDate}
                         onChange={(e) =>

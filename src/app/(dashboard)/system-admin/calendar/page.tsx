@@ -183,7 +183,8 @@ export default function SysAdminCalendarPage() {
         new Map(
             cabanas.map((c) => [
                 c.classId,
-                (c as any).cabanaClass?.name ?? c.classId,
+                (c as CabanaWithStatus & { cabanaClass?: { name?: string } | null })
+                    .cabanaClass?.name ?? c.classId,
             ]),
         ).entries(),
     );
@@ -208,9 +209,11 @@ export default function SysAdminCalendarPage() {
 
     const handleContextMenu = useCallback(
         (
-            _event: ReservationEvent,
-            _action: "modify" | "cancel" | "extra-concept",
+            event: ReservationEvent,
+            action: "modify" | "cancel" | "extra-concept",
         ) => {
+            void event;
+            void action;
             // Context menu actions placeholder
         },
         [],
@@ -274,6 +277,7 @@ export default function SysAdminCalendarPage() {
                     <select
                         value={classFilter}
                         onChange={(e) => setClassFilter(e.target.value)}
+                        aria-label="Kabana sınıfına göre filtrele"
                         className="px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-amber-500 min-h-[44px]"
                     >
                         <option value="">Tüm Sınıflar</option>

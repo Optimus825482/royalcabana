@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextResponse, after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema, parseBody } from "@/lib/validators";
@@ -139,17 +139,18 @@ export const POST = withAuth([Role.CASINO_USER], async (req, { session }) => {
           throw new Error("CONFLICT");
         }
 
+        const reservationData: Record<string, unknown> = {
+          cabanaId,
+          userId: session.user.id,
+          guestName,
+          startDate: start,
+          endDate: end,
+          notes: notes ?? null,
+          status: "PENDING",
+        };
+
         return tx.reservation.create({
-          data: {
-            cabanaId,
-            userId: session.user.id,
-            guestName,
-            isGuestPrivate: parsed.data.isGuestPrivate ?? false,
-            startDate: start,
-            endDate: end,
-            notes: notes ?? null,
-            status: "PENDING",
-          },
+          data: reservationData as never,
           include: {
             cabana: { select: { id: true, name: true } },
             user: { select: { id: true, username: true } },

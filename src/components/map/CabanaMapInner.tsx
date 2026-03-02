@@ -208,6 +208,164 @@ function createCabanaLabel(text: string, color: string): THREE.Sprite {
   return sprite;
 }
 
+// ─── Sunbed (Şezlong) pair builder ──────────────────────────────────────────
+
+function buildSunbedPair(cabana: CabanaWithStatus): THREE.Group {
+  const group = new THREE.Group();
+  const { w, d } = getCabanaDimensions(cabana);
+  const rotation = ((cabana.rotation ?? 0) * Math.PI) / 180;
+
+  // Materials
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0xc0c0c0,
+    roughness: 0.4,
+    metalness: 0.6,
+  });
+  const cushionMat = new THREE.MeshStandardMaterial({
+    color: 0xf5f0e8,
+    roughness: 0.85,
+    metalness: 0,
+  });
+  const accentMat = new THREE.MeshStandardMaterial({
+    color: 0x2196f3,
+    roughness: 0.7,
+    metalness: 0,
+  });
+
+  // Sunbed dimensions
+  const bedW = 5;
+  const bedD = 10;
+  const bedH = 0.6;
+  const legH = 2;
+  const gap = 3; // gap between two sunbeds
+  const frontOffset = d / 2 + bedD / 2 + 6; // distance from cabana center to sunbed center
+
+  // Build one sunbed
+  function makeSunbed(offsetX: number): void {
+    // Frame (metal legs)
+    const legR = 0.2;
+    const legPositions = [
+      [offsetX - bedW * 0.4, -frontOffset - bedD * 0.4],
+      [offsetX + bedW * 0.4, -frontOffset - bedD * 0.4],
+      [offsetX - bedW * 0.4, -frontOffset + bedD * 0.4],
+      [offsetX + bedW * 0.4, -frontOffset + bedD * 0.4],
+    ];
+    legPositions.forEach(([lx, ly]) => {
+      const leg = new THREE.Mesh(
+        new THREE.CylinderGeometry(legR, legR, legH, 6),
+        frameMat,
+      );
+      leg.rotation.x = Math.PI / 2;
+      leg.position.set(lx, ly, legH / 2);
+      leg.castShadow = true;
+      group.add(leg);
+    });
+
+    // Bed base (cushion)
+    const bed = new THREE.Mesh(
+      new THREE.BoxGeometry(bedW, bedD, bedH),
+      cushionMat,
+    );
+    bed.position.set(offsetX, -frontOffset, legH + bedH / 2);
+    bed.receiveShadow = true;
+    bed.castShadow = true;
+    group.add(bed);
+
+    // Head rest (raised part)
+    const headW = bedW * 0.9;
+    const headD = bedD * 0.25;
+    const headH = bedH * 1.5;
+    const headRest = new THREE.Mesh(
+      new THREE.BoxGeometry(headW, headD, headH),
+      cushionMat,
+    );
+    headRest.position.set(
+      offsetX,
+      -frontOffset + bedD * 0.35,
+      legH + bedH + headH * 0.3,
+    );
+    headRest.rotation.x = -0.3; // slight angle
+    headRest.castShadow = true;
+    group.add(headRest);
+
+    // Towel accent stripe
+    const towel = new THREE.Mesh(
+      new THREE.BoxGeometry(bedW * 0.85, bedD * 0.7, 0.15),
+      accentMat,
+    );
+    towel.position.set(offsetX, -frontOffset - bedD * 0.05, legH + bedH + 0.1);
+    group.add(towel);
+  }
+
+  // Two sunbeds side by side
+  makeSunbed(-(bedW / 2 + gap / 2));
+  makeSunbed(bedW / 2 + gap / 2);
+
+  // Small table between sunbeds
+  const tableR = 1.5;
+  const tableH = 0.4;
+  const tableLegH = legH + bedH - tableH;
+  const tableTop = new THREE.Mesh(
+    new THREE.CylinderGeometry(tableR, tableR, tableH, 12),
+    frameMat,
+  );
+  tableTop.rotation.x = Math.PI / 2;
+  tableTop.position.set(0, -frontOffset, tableLegH + tableH / 2);
+  tableTop.castShadow = true;
+  group.add(tableTop);
+
+  // Table leg
+  const tableLeg = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.3, tableLegH, 6),
+    frameMat,
+  );
+  tableLeg.rotation.x = Math.PI / 2;
+  tableLeg.position.set(0, -frontOffset, tableLegH / 2);
+  group.add(tableLeg);
+
+  // Position & rotation (same as cabana)
+  const worldPos = pixelToWorld(cabana.coordX, cabana.coordY);
+  group.position.copy(worldPos);
+  group.rotation.z = rotation;
+
+  // Mark as sunbed for raycasting (not cabana)
+  group.userData = { cabanaId: cabana.id, isSunbed: true };
+  group.traverse((child) => {
+    child.userData = { cabanaId: cabana.id, isSunbed: true };
+  });
+
+  return group;
+}
+
+// ─── Check if cabana has enough front space for sunbeds ─────────────────────
+
+function hasFrontSpace(
+  cabana: CabanaWithStatus,
+  allCabanas: CabanaWithStatus[],
+  minDistance: number = 30,
+): boolean {
+  const { d } = getCabanaDimensions(cabana);
+  const rotation = ((cabana.rotation ?? 0) * Math.PI) / 180;
+
+  // Front direction in world space (cabana faces -Y, rotated by rotation around Z)
+  const frontDirX = Math.sin(rotation);
+  const frontDirY = -Math.cos(rotation);
+
+  // Front check point: cabana center + front offset
+  const checkDist = d / 2 + 12; // sunbed center distance
+  const frontX = cabana.coordX + frontDirX * checkDist;
+  const frontY = cabana.coordY + frontDirY * checkDist;
+
+  for (const other of allCabanas) {
+    if (other.id === cabana.id) continue;
+    const dx = other.coordX - frontX;
+    const dy = other.coordY - frontY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < minDistance) return false;
+  }
+  return true;
+}
+
 function buildCabanaMesh(
   cabana: CabanaWithStatus,
   selected: boolean,
@@ -643,13 +801,6 @@ function buildSunsetBarMesh(
     roughness: 0.6,
     metalness: 0.15,
   });
-  const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x87ceeb,
-    roughness: 0.1,
-    metalness: 0.3,
-    transparent: true,
-    opacity: 0.4,
-  });
   const counterMat = new THREE.MeshStandardMaterial({
     color: 0x8b4513,
     roughness: 0.6,
@@ -1013,11 +1164,19 @@ function buildBlueSeaBarMesh(
   gradient.addColorStop(0.5, "#00e5ff");
   gradient.addColorStop(1, "#1e90ff");
   labelCtx.fillStyle = gradient;
-  labelCtx.fillText("BLUE SEA BAR", labelCanvas.width / 2, labelCanvas.height / 2);
+  labelCtx.fillText(
+    "BLUE SEA BAR",
+    labelCanvas.width / 2,
+    labelCanvas.height / 2,
+  );
 
   labelCtx.strokeStyle = "#0d47a1";
   labelCtx.lineWidth = 2;
-  labelCtx.strokeText("BLUE SEA BAR", labelCanvas.width / 2, labelCanvas.height / 2);
+  labelCtx.strokeText(
+    "BLUE SEA BAR",
+    labelCanvas.width / 2,
+    labelCanvas.height / 2,
+  );
 
   const labelTexture = new THREE.CanvasTexture(labelCanvas);
   labelTexture.needsUpdate = true;
@@ -1103,6 +1262,7 @@ export default function CabanaMapInner({
   const controlsRef = useRef<MapControls | null>(null);
   const planeRef = useRef<THREE.Mesh | null>(null);
   const cabanaMeshesRef = useRef<THREE.Group[]>([]);
+  const sunbedMeshesRef = useRef<THREE.Group[]>([]);
   const placementRef = useRef<THREE.Mesh | null>(null);
   const rafRef = useRef<number>(0);
   const dragStateRef = useRef<{
@@ -1149,6 +1309,7 @@ export default function CabanaMapInner({
   const [rectDefined, setRectDefined] = useState(false);
   const [rectElevation, setRectElevation] = useState(50);
   const [svgTick, setSvgTick] = useState(0);
+  const svgTickRafRef = useRef<number | null>(null);
   const [rectScreenStart, setRectScreenStart] = useState<{
     x: number;
     y: number;
@@ -1159,12 +1320,20 @@ export default function CabanaMapInner({
   } | null>(null);
 
   // ─── Bar transform defaults ────────────────────────────────────────────────
-  const SUNSET_DEFAULT = useMemo(() => ({ x: 540, y: 280, scale: 1, rotation: 0, isLocked: false }), []);
-  const BLUE_SEA_DEFAULT = useMemo(() => ({ x: 680, y: 420, scale: 1, rotation: 0, isLocked: false }), []);
+  const SUNSET_DEFAULT = useMemo(
+    () => ({ x: 540, y: 280, scale: 1, rotation: 0, isLocked: false }),
+    [],
+  );
+  const BLUE_SEA_DEFAULT = useMemo(
+    () => ({ x: 680, y: 420, scale: 1, rotation: 0, isLocked: false }),
+    [],
+  );
 
   // ─── Sunset Bar state (persisted to DB via SystemConfig) ──────────────────
   const SUNSET_BAR_CONFIG_KEY = "sunset_bar_transform";
-  const [sunsetBarTransform, setSunsetBarTransform] = useState(() => ({ ...SUNSET_DEFAULT }));
+  const [sunsetBarTransform, setSunsetBarTransform] = useState(() => ({
+    ...SUNSET_DEFAULT,
+  }));
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
   const [buildingContextMenu, setBuildingContextMenu] = useState<{
     x: number;
@@ -1174,7 +1343,9 @@ export default function CabanaMapInner({
 
   // ─── Blue Sea Bar state (persisted to DB via SystemConfig) ────────────────
   const BLUE_SEA_BAR_CONFIG_KEY = "blue_sea_bar_transform";
-  const [blueSeaBarTransform, setBlueSeaBarTransform] = useState(() => ({ ...BLUE_SEA_DEFAULT }));
+  const [blueSeaBarTransform, setBlueSeaBarTransform] = useState(() => ({
+    ...BLUE_SEA_DEFAULT,
+  }));
 
   // ─── Flag: DB'den yükleme tamamlandı mı? Bu flag true olana kadar save tetiklenmez ─
   const barDbLoadedRef = useRef(false);
@@ -1184,7 +1355,11 @@ export default function CabanaMapInner({
   useEffect(() => {
     if (barInitRef.current) return;
     barInitRef.current = true;
-    const fetchBarConfig = async (key: string, setter: (v: typeof SUNSET_DEFAULT) => void, def: typeof SUNSET_DEFAULT) => {
+    const fetchBarConfig = async (
+      key: string,
+      setter: (v: typeof SUNSET_DEFAULT) => void,
+      def: typeof SUNSET_DEFAULT,
+    ) => {
       try {
         const res = await fetch(`/api/system/config/${key}`);
         if (res.ok) {
@@ -1195,7 +1370,9 @@ export default function CabanaMapInner({
           localStorage.setItem(key, JSON.stringify(merged));
           return;
         }
-      } catch { /* API hatası */ }
+      } catch {
+        /* API hatası */
+      }
       // API başarısız olursa localStorage'a bak
       if (typeof window !== "undefined") {
         const saved = localStorage.getItem(key);
@@ -1203,13 +1380,23 @@ export default function CabanaMapInner({
           try {
             setter({ ...def, ...JSON.parse(saved) });
             return;
-          } catch { /* parse hatası */ }
+          } catch {
+            /* parse hatası */
+          }
         }
       }
     };
     Promise.all([
-      fetchBarConfig(SUNSET_BAR_CONFIG_KEY, setSunsetBarTransform, SUNSET_DEFAULT),
-      fetchBarConfig(BLUE_SEA_BAR_CONFIG_KEY, setBlueSeaBarTransform, BLUE_SEA_DEFAULT),
+      fetchBarConfig(
+        SUNSET_BAR_CONFIG_KEY,
+        setSunsetBarTransform,
+        SUNSET_DEFAULT,
+      ),
+      fetchBarConfig(
+        BLUE_SEA_BAR_CONFIG_KEY,
+        setBlueSeaBarTransform,
+        BLUE_SEA_DEFAULT,
+      ),
     ]).finally(() => {
       // Yükleme bitti — artık save effect'leri aktif
       barDbLoadedRef.current = true;
@@ -1217,25 +1404,36 @@ export default function CabanaMapInner({
   }, [SUNSET_DEFAULT, BLUE_SEA_DEFAULT]);
 
   // ─── Save bar transforms to DB + localStorage (debounced) ─────────────────
-  const saveTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const saveBarConfig = useCallback((key: string, value: typeof SUNSET_DEFAULT) => {
-    // DB yüklemesi tamamlanmadan kaydetme (ilk mount'taki defaults'ı overwrite etmemek için)
-    if (!barDbLoadedRef.current) return;
-    localStorage.setItem(key, JSON.stringify(value));
-    if (saveTimerRef.current[key]) clearTimeout(saveTimerRef.current[key]);
-    saveTimerRef.current[key] = setTimeout(async () => {
-      try {
-        await fetch(`/api/system/config/${key}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: JSON.stringify(value) }),
-        });
-      } catch { /* sessiz hata */ }
-    }, 500);
-  }, []);
+  const saveTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
+  const saveBarConfig = useCallback(
+    (key: string, value: typeof SUNSET_DEFAULT) => {
+      // DB yüklemesi tamamlanmadan kaydetme (ilk mount'taki defaults'ı overwrite etmemek için)
+      if (!barDbLoadedRef.current) return;
+      localStorage.setItem(key, JSON.stringify(value));
+      if (saveTimerRef.current[key]) clearTimeout(saveTimerRef.current[key]);
+      saveTimerRef.current[key] = setTimeout(async () => {
+        try {
+          await fetch(`/api/system/config/${key}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: JSON.stringify(value) }),
+          });
+        } catch {
+          /* sessiz hata */
+        }
+      }, 500);
+    },
+    [],
+  );
 
-  useEffect(() => { saveBarConfig(SUNSET_BAR_CONFIG_KEY, sunsetBarTransform); }, [sunsetBarTransform, saveBarConfig]);
-  useEffect(() => { saveBarConfig(BLUE_SEA_BAR_CONFIG_KEY, blueSeaBarTransform); }, [blueSeaBarTransform, saveBarConfig]);
+  useEffect(() => {
+    saveBarConfig(SUNSET_BAR_CONFIG_KEY, sunsetBarTransform);
+  }, [sunsetBarTransform, saveBarConfig]);
+  useEffect(() => {
+    saveBarConfig(BLUE_SEA_BAR_CONFIG_KEY, blueSeaBarTransform);
+  }, [blueSeaBarTransform, saveBarConfig]);
 
   // Building drag state ref
   const buildingDragRef = useRef<{
@@ -1274,7 +1472,6 @@ export default function CabanaMapInner({
         y: ((-v.y + 1) / 2) * rect.height,
       };
     };
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external Three.js camera state
     setRectScreenStart(rectStart ? project(rectStart) : null);
     setRectScreenEnd(rectEnd ? project(rectEnd) : null);
   }, [rectStart, rectEnd, svgTick]);
@@ -1294,6 +1491,7 @@ export default function CabanaMapInner({
   const sunsetBarTransformRef = useRef(sunsetBarTransform);
   const blueSeaBarTransformRef = useRef(blueSeaBarTransform);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are intentionally synced every render for imperative three.js handlers
   useEffect(() => {
     cabanasRef.current = cabanas;
     selectedIdRef.current = selectedCabanaId;
@@ -1504,12 +1702,21 @@ export default function CabanaMapInner({
 
     // SVG re-render on camera change
     const onControlsChange = () => {
-      setSvgTick((t) => t + 1);
+      if (!rectActiveRef.current) return;
+      if (svgTickRafRef.current !== null) return;
+      svgTickRafRef.current = requestAnimationFrame(() => {
+        svgTickRafRef.current = null;
+        setSvgTick((t) => t + 1);
+      });
     };
     controls.addEventListener("change", onControlsChange);
 
     return () => {
       cancelAnimationFrame(rafRef.current);
+      if (svgTickRafRef.current !== null) {
+        cancelAnimationFrame(svgTickRafRef.current);
+        svgTickRafRef.current = null;
+      }
       window.removeEventListener("resize", onResize);
       controls.removeEventListener("change", onControlsChange);
       controls.dispose();
@@ -1659,10 +1866,30 @@ export default function CabanaMapInner({
       });
     });
     cabanaMeshesRef.current = [];
+    sunbedMeshesRef.current.forEach((g) => {
+      scene.remove(g);
+      g.traverse((child) => {
+        if ((child as THREE.Mesh).geometry)
+          (child as THREE.Mesh).geometry.dispose();
+        if ((child as THREE.Mesh).material) {
+          const mat = (child as THREE.Mesh).material;
+          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+          else (mat as THREE.Material).dispose();
+        }
+      });
+    });
+    sunbedMeshesRef.current = [];
     cabanas.forEach((cabana) => {
       const group = buildCabanaMesh(cabana, cabana.id === selectedCabanaId);
       scene.add(group);
       cabanaMeshesRef.current.push(group);
+
+      // Önünde alan varsa şezlong ekle
+      if (hasFrontSpace(cabana, cabanas)) {
+        const sunbeds = buildSunbedPair(cabana);
+        scene.add(sunbeds);
+        sunbedMeshesRef.current.push(sunbeds);
+      }
     });
   }, [cabanas, selectedCabanaId]);
 
@@ -1838,7 +2065,10 @@ export default function CabanaMapInner({
       ];
 
       const allMeshes: THREE.Object3D[] = [];
-      const meshToBuilding = new Map<THREE.Object3D, { type: string; group: THREE.Group }>();
+      const meshToBuilding = new Map<
+        THREE.Object3D,
+        { type: string; group: THREE.Group }
+      >();
 
       for (const b of buildings) {
         if (!b.ref) continue;
@@ -1879,8 +2109,10 @@ export default function CabanaMapInner({
         if (buildingHit) {
           // Check if building is locked
           const isLocked =
-            (buildingHit.buildingType === "sunset-bar" && sunsetBarTransformRef.current.isLocked) ||
-            (buildingHit.buildingType === "blue-sea-bar" && blueSeaBarTransformRef.current.isLocked);
+            (buildingHit.buildingType === "sunset-bar" &&
+              sunsetBarTransformRef.current.isLocked) ||
+            (buildingHit.buildingType === "blue-sea-bar" &&
+              blueSeaBarTransformRef.current.isLocked);
           if (isLocked) {
             // Building is locked, just select it but don't allow drag
             setSelectedBuilding(buildingHit.buildingType);
@@ -2241,10 +2473,11 @@ export default function CabanaMapInner({
           <button
             onClick={() => setFogEnabled(!fogEnabled)}
             title="Sis (Fog)"
-            className={`p-2 rounded-lg transition-all ${fogEnabled
-              ? "bg-blue-600 text-white"
-              : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-              }`}
+            className={`p-2 rounded-lg transition-all ${
+              fogEnabled
+                ? "bg-blue-600 text-white"
+                : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+            }`}
           >
             <svg
               className="w-4 h-4"
@@ -2263,10 +2496,11 @@ export default function CabanaMapInner({
           <button
             onClick={() => setDisplacementEnabled(!displacementEnabled)}
             title="Yükseklik (Displacement)"
-            className={`p-2 rounded-lg transition-all ${displacementEnabled
-              ? "bg-blue-600 text-white"
-              : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-              }`}
+            className={`p-2 rounded-lg transition-all ${
+              displacementEnabled
+                ? "bg-blue-600 text-white"
+                : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+            }`}
           >
             <svg
               className="w-4 h-4"
@@ -2283,10 +2517,11 @@ export default function CabanaMapInner({
           <button
             onClick={() => setEnhancedLighting(!enhancedLighting)}
             title="Gelişmiş Işık"
-            className={`p-2 rounded-lg transition-all ${enhancedLighting
-              ? "bg-yellow-600 text-white"
-              : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-              }`}
+            className={`p-2 rounded-lg transition-all ${
+              enhancedLighting
+                ? "bg-yellow-600 text-white"
+                : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+            }`}
           >
             <svg
               className="w-4 h-4"
@@ -2311,10 +2546,11 @@ export default function CabanaMapInner({
           <button
             onClick={() => setGridVisible(!gridVisible)}
             title="Grid Çizgileri"
-            className={`p-2 rounded-lg transition-all ${gridVisible
-              ? "bg-purple-600 text-white"
-              : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-              }`}
+            className={`p-2 rounded-lg transition-all ${
+              gridVisible
+                ? "bg-purple-600 text-white"
+                : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+            }`}
           >
             <svg
               className="w-4 h-4"
@@ -2345,6 +2581,7 @@ export default function CabanaMapInner({
               step={5}
               value={displacementScale}
               onChange={(e) => setDisplacementScale(Number(e.target.value))}
+              aria-label="Yükseklik ölçeği"
               className="w-20 accent-blue-500 h-1"
             />
             <span className="text-[10px] text-neutral-400 w-6 tabular-nums">
@@ -2404,10 +2641,11 @@ export default function CabanaMapInner({
                   }
                 }}
                 title="Alan Yükselt"
-                className={`p-2 rounded-lg transition-all ${rectActive
-                  ? "bg-yellow-600 text-white"
-                  : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-                  }`}
+                className={`p-2 rounded-lg transition-all ${
+                  rectActive
+                    ? "bg-yellow-600 text-white"
+                    : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+                }`}
               >
                 <svg
                   className="w-4 h-4"
@@ -2474,6 +2712,7 @@ export default function CabanaMapInner({
                         if (val > 0 && displacementScale < 30)
                           setDisplacementScale(60);
                       }}
+                      aria-label="Seçili alan yüksekliği"
                       className="w-16 accent-yellow-500 h-1"
                     />
                     <span className="text-[10px] text-neutral-400 w-6 tabular-nums">
@@ -2599,10 +2838,11 @@ export default function CabanaMapInner({
                     setRectElevation(50);
                   }}
                   title="Geri Al"
-                  className={`p-1.5 rounded transition-colors ${canUndo
-                    ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-300"
-                    : "bg-neutral-800 text-neutral-600 cursor-not-allowed"
-                    }`}
+                  className={`p-1.5 rounded transition-colors ${
+                    canUndo
+                      ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-300"
+                      : "bg-neutral-800 text-neutral-600 cursor-not-allowed"
+                  }`}
                 >
                   <svg
                     className="w-3.5 h-3.5"
@@ -2703,7 +2943,9 @@ export default function CabanaMapInner({
           style={{ left: buildingContextMenu.x, top: buildingContextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className={`px-3 py-1.5 text-[11px] font-semibold border-b border-neutral-800 ${buildingContextMenu.buildingType === "blue-sea-bar" ? "text-blue-400" : "text-orange-400"}`}>
+          <div
+            className={`px-3 py-1.5 text-[11px] font-semibold border-b border-neutral-800 ${buildingContextMenu.buildingType === "blue-sea-bar" ? "text-blue-400" : "text-orange-400"}`}
+          >
             {buildingContextMenu.buildingType === "sunset-bar"
               ? "Sunset Bar"
               : buildingContextMenu.buildingType === "blue-sea-bar"
@@ -2744,8 +2986,10 @@ export default function CabanaMapInner({
             }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors text-left ${buildingContextMenu.buildingType === "blue-sea-bar" ? "hover:bg-blue-600/20 hover:text-blue-400" : "hover:bg-orange-600/20 hover:text-orange-400"}`}
           >
-            {(buildingContextMenu.buildingType === "sunset-bar" && sunsetBarTransform.isLocked) ||
-              (buildingContextMenu.buildingType === "blue-sea-bar" && blueSeaBarTransform.isLocked)
+            {(buildingContextMenu.buildingType === "sunset-bar" &&
+              sunsetBarTransform.isLocked) ||
+            (buildingContextMenu.buildingType === "blue-sea-bar" &&
+              blueSeaBarTransform.isLocked)
               ? "🔓 Kilidi Aç"
               : "🔒 Sabitle"}
           </button>
@@ -2871,6 +3115,7 @@ export default function CabanaMapInner({
                 <button
                   key={c}
                   onClick={() => setPickerColor(c)}
+                  aria-label={`Renk seç: ${c}`}
                   className={`w-8 h-8 rounded-lg border-2 transition-all ${pickerColor === c ? "border-white scale-110" : "border-transparent hover:border-neutral-600"}`}
                   style={{ backgroundColor: c }}
                 />
@@ -2881,6 +3126,7 @@ export default function CabanaMapInner({
                   type="color"
                   value={pickerColor}
                   onChange={(e) => setPickerColor(e.target.value)}
+                  aria-label="Özel renk seç"
                   className="sr-only"
                 />
               </label>
@@ -2939,6 +3185,7 @@ export default function CabanaMapInner({
                   step={0.1}
                   value={resizeScaleX}
                   onChange={(e) => setResizeScaleX(Number(e.target.value))}
+                  aria-label="Kabana genişliği"
                   className="w-full accent-yellow-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -2958,6 +3205,7 @@ export default function CabanaMapInner({
                   step={0.1}
                   value={resizeScaleY}
                   onChange={(e) => setResizeScaleY(Number(e.target.value))}
+                  aria-label="Kabana derinliği"
                   className="w-full accent-yellow-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -2977,6 +3225,7 @@ export default function CabanaMapInner({
                   step={5}
                   value={resizeRotation}
                   onChange={(e) => setResizeRotation(Number(e.target.value))}
+                  aria-label="Kabana döndürme"
                   className="w-full accent-yellow-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -3062,6 +3311,7 @@ export default function CabanaMapInner({
                       }),
                     )
                   }
+                  aria-label="Sunset Bar boyutu"
                   className="w-full accent-orange-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -3092,6 +3342,7 @@ export default function CabanaMapInner({
                       }),
                     )
                   }
+                  aria-label="Sunset Bar döndürme"
                   className="w-full accent-orange-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -3193,6 +3444,7 @@ export default function CabanaMapInner({
                       }),
                     )
                   }
+                  aria-label="Blue Sea Bar boyutu"
                   className="w-full accent-blue-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -3223,6 +3475,7 @@ export default function CabanaMapInner({
                       }),
                     )
                   }
+                  aria-label="Blue Sea Bar döndürme"
                   className="w-full accent-blue-500 h-1.5 cursor-pointer"
                 />
               </div>

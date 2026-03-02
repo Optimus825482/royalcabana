@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
@@ -45,7 +45,10 @@ export const GET = withAuth(
     }
 
     // Misafir gizliliği: isGuestPrivate ise Casino dışındaki roller göremez
-    if (reservation.isGuestPrivate && session.user.role !== Role.CASINO_USER) {
+    if (
+      (reservation as unknown as { isGuestPrivate?: boolean }).isGuestPrivate &&
+      session.user.role !== Role.CASINO_USER
+    ) {
       return NextResponse.json({
         ...reservation,
         guestName: "Gizli Misafir",
@@ -55,5 +58,5 @@ export const GET = withAuth(
     }
 
     return NextResponse.json(reservation);
-  };,
+  },
 );

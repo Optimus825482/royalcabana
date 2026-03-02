@@ -100,7 +100,6 @@ export const GET = withAuth(
           userId: true,
           guestName: true,
           guestId: true,
-          isGuestPrivate: true,
           startDate: true,
           endDate: true,
           status: true,

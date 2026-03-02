@@ -206,6 +206,7 @@ function DetailPanel({
                 </div>
                 <button
                     onClick={onClose}
+                    aria-label="Detayı kapat"
                     className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-neutral-200"
                 >
                     <X className="w-5 h-5" />
@@ -496,7 +497,10 @@ export default function AdminReservationsPage() {
     }, [page, statusFilter, search]);
 
     useEffect(() => {
-        fetchReservations();
+        const timer = setTimeout(() => {
+            void fetchReservations();
+        }, 0);
+        return () => clearTimeout(timer);
     }, [fetchReservations]);
 
     // Debounced search
@@ -765,6 +769,7 @@ export default function AdminReservationsPage() {
                                 <button
                                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                                     disabled={page === 1}
+                                    aria-label="Önceki sayfa"
                                     className="p-2 rounded-lg hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
@@ -772,6 +777,7 @@ export default function AdminReservationsPage() {
                                 <button
                                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
+                                    aria-label="Sonraki sayfa"
                                     className="p-2 rounded-lg hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400"
                                 >
                                     <ChevronRight className="w-4 h-4" />
