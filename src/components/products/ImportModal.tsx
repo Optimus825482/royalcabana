@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Upload,
   FileSpreadsheet,
@@ -21,6 +21,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -112,9 +113,9 @@ const statusLabel: Record<MatchStatus, string> = {
   UNMATCHED: "Belirsiz",
 };
 
-const fmt = (v: number | null | undefined) =>
+const fmt = (v: number | null | undefined, cur: CurrencyCode = DEFAULT_CURRENCY) =>
   v != null
-    ? v.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })
+    ? formatPrice(v, cur)
     : "—";
 
 /* ------------------------------------------------------------------ */
@@ -168,6 +169,11 @@ export default function ImportModal({
   onComplete,
 }: ImportModalProps) {
   const qc = useQueryClient();
+
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
 
   const [step, setStep] = useState<Step>(1);
   const [file, setFile] = useState<File | null>(null);
@@ -603,11 +609,11 @@ export default function ImportModal({
                           </td>
                           {/* Purchase */}
                           <td className="text-right px-3 py-2 text-neutral-300 whitespace-nowrap">
-                            {fmt(row.purchasePrice)}
+                            {fmt(row.purchasePrice, currency)}
                           </td>
                           {/* Sale */}
                           <td className="text-right px-3 py-2 text-neutral-300 whitespace-nowrap">
-                            {fmt(row.salePrice)}
+                            {fmt(row.salePrice, currency)}
                           </td>
                           {/* Status badge */}
                           <td className="text-center px-3 py-2">

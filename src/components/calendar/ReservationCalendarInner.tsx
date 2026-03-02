@@ -33,6 +33,8 @@ const STATUS_COLORS: Record<ReservationStatus, string> = {
   [ReservationStatus.CANCELLED]: "bg-neutral-500",
   [ReservationStatus.MODIFICATION_PENDING]: "bg-orange-500",
   [ReservationStatus.EXTRA_PENDING]: "bg-purple-500",
+  [ReservationStatus.CHECKED_IN]: "bg-teal-500",
+  [ReservationStatus.CHECKED_OUT]: "bg-slate-500",
 };
 
 const STATUS_LABELS: Record<ReservationStatus, string> = {
@@ -42,6 +44,8 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
   [ReservationStatus.CANCELLED]: "İptal",
   [ReservationStatus.MODIFICATION_PENDING]: "Değişiklik Bekliyor",
   [ReservationStatus.EXTRA_PENDING]: "Ek Konsept Bekliyor",
+  [ReservationStatus.CHECKED_IN]: "Giriş Yapıldı",
+  [ReservationStatus.CHECKED_OUT]: "Çıkış Yapıldı",
 };
 
 const STATUS_TEXT_COLORS: Record<ReservationStatus, string> = {
@@ -51,6 +55,8 @@ const STATUS_TEXT_COLORS: Record<ReservationStatus, string> = {
   [ReservationStatus.CANCELLED]: "text-neutral-400",
   [ReservationStatus.MODIFICATION_PENDING]: "text-orange-400",
   [ReservationStatus.EXTRA_PENDING]: "text-purple-400",
+  [ReservationStatus.CHECKED_IN]: "text-teal-400",
+  [ReservationStatus.CHECKED_OUT]: "text-slate-400",
 };
 
 const STATUS_BADGE: Record<ReservationStatus, string> = {
@@ -65,6 +71,10 @@ const STATUS_BADGE: Record<ReservationStatus, string> = {
     "bg-orange-950/50 border-orange-800/40 text-orange-400",
   [ReservationStatus.EXTRA_PENDING]:
     "bg-purple-950/50 border-purple-800/40 text-purple-400",
+  [ReservationStatus.CHECKED_IN]:
+    "bg-teal-950/50 border-teal-700/40 text-teal-400",
+  [ReservationStatus.CHECKED_OUT]:
+    "bg-slate-800 border-slate-700 text-slate-400",
 };
 
 const WEEKDAYS_TR = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];

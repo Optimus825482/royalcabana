@@ -104,7 +104,7 @@ export default function CasinoViewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
+    <div className="text-neutral-100 flex flex-col">
       {/* System closed banner */}
       {!configLoading && !systemOpen && (
         <div className="px-6 py-3 bg-amber-950/60 border-b border-amber-700/40 flex items-center gap-2 shrink-0">

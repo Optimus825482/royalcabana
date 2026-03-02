@@ -12,6 +12,7 @@ import {
   submitBtnCls,
 } from "@/components/shared/FormComponents";
 import { Plus, Pencil, Trash2, CalendarRange, Tag } from "lucide-react";
+import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 // ── Types ──
 
@@ -52,12 +53,7 @@ const defaultForm: PriceRangeForm = {
   priority: "0",
 };
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    minimumFractionDigits: 2,
-  }).format(amount);
+// formatCurrency artık currency.ts'den geliyor
 
 const formatDate = (dateStr: string) =>
   new Intl.DateTimeFormat("tr-TR", {
@@ -145,6 +141,13 @@ async function deletePriceRange(id: string): Promise<void> {
 export default function SeasonsPage() {
   const queryClient = useQueryClient();
 
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
+
+  const formatCurrency = (amount: number) => formatPrice(amount, currency);
+
   const [cabanaFilter, setCabanaFilter] = useState("ALL");
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState<PriceRangeForm>(defaultForm);
@@ -224,7 +227,7 @@ export default function SeasonsPage() {
   // ── Render ──
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
@@ -423,6 +426,7 @@ export default function SeasonsPage() {
               form={createForm}
               setForm={setCreateForm}
               cabanas={cabanas}
+              currency={currency}
             />
             {createMutation.isError && (
               <ErrorMsg msg={(createMutation.error as Error).message} />
@@ -466,6 +470,7 @@ export default function SeasonsPage() {
           >
             <PriceRangeFormFields
               form={editForm}
+              currency={currency}
               setForm={(updater) =>
                 setEditForm((f) =>
                   f
@@ -547,10 +552,12 @@ function PriceRangeFormFields({
   form,
   setForm,
   cabanas,
+  currency,
 }: {
   form: PriceRangeForm;
   setForm: React.Dispatch<React.SetStateAction<PriceRangeForm>>;
   cabanas: CabanaOption[];
+    currency: CurrencyCode;
 }) {
   return (
     <>
@@ -593,7 +600,7 @@ function PriceRangeFormFields({
           />
         </Field>
       </div>
-      <Field label="Günlük Fiyat (₺)">
+      <Field label={`Günlük Fiyat (${currencySymbol(currency)})`}>
         <input
           type="number"
           required

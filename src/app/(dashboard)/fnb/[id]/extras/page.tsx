@@ -4,6 +4,7 @@ import { useState, use } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 interface Product {
   id: string;
@@ -38,6 +39,11 @@ export default function FnBExtrasPage({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
@@ -92,7 +98,7 @@ export default function FnBExtrasPage({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+    <div className="text-neutral-100">
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
@@ -137,7 +143,7 @@ export default function FnBExtrasPage({
                       {product.name}
                     </p>
                     <p className="text-xs text-yellow-400 mt-0.5">
-                      {product.salePrice.toLocaleString("tr-TR")} ₺
+                      {formatPrice(product.salePrice, currency)}
                     </p>
                   </div>
 
@@ -173,7 +179,7 @@ export default function FnBExtrasPage({
                 {items.length} ürün seçildi
               </span>
               <span className="text-yellow-400 font-semibold">
-                {total.toLocaleString("tr-TR")} ₺
+                {formatPrice(total, currency)}
               </span>
             </div>
           </div>

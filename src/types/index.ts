@@ -98,6 +98,10 @@ export interface CabanaWithStatus {
   coordX: number;
   coordY: number;
   rotation: number;
+  scaleX: number;
+  scaleY: number;
+  color?: string | null;
+  isLocked: boolean;
   status: CabanaStatus;
   isOpenForReservation: boolean;
   classId: string;

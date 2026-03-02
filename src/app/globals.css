@@ -125,6 +125,7 @@
   html {
     -webkit-text-size-adjust: 100%;
     touch-action: manipulation;
+    font-size: 18px; /* Base font size increased from 16px */
   }
   body {
     @apply bg-background text-foreground;

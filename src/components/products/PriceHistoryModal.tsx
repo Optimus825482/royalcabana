@@ -9,6 +9,7 @@ import {
   InboxIcon,
 } from "lucide-react";
 import { Modal } from "@/components/shared/FormComponents";
+import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -32,9 +33,9 @@ interface PriceRecord {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const fmt = (v: number | null | undefined) =>
+const fmt = (v: number | null | undefined, cur: CurrencyCode = DEFAULT_CURRENCY) =>
   v != null
-    ? v.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })
+    ? formatPrice(v, cur)
     : "—";
 
 const fmtDate = (d: string) =>
@@ -70,6 +71,11 @@ export default function PriceHistoryModal({
   product,
   onClose,
 }: PriceHistoryModalProps) {
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
+
   const { data, isLoading } = useQuery<PriceRecord[]>({
     queryKey: ["price-history", product?.id],
     queryFn: async () => {
@@ -136,7 +142,7 @@ export default function PriceHistoryModal({
                           previous={prev?.purchasePrice ?? null}
                         />
                       </span>
-                      {fmt(rec.purchasePrice)}
+                      {fmt(rec.purchasePrice, currency)}
                     </td>
                     <td className="text-right px-3 py-2 text-neutral-200 whitespace-nowrap">
                       <span className="mr-1">
@@ -145,7 +151,7 @@ export default function PriceHistoryModal({
                           previous={prev?.salePrice ?? null}
                         />
                       </span>
-                      {fmt(rec.salePrice)}
+                      {fmt(rec.salePrice, currency)}
                     </td>
                     <td className="text-center px-3 py-2">
                       <span

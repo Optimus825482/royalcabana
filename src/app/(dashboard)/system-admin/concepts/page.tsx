@@ -11,6 +11,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 interface Product {
   id: string;
@@ -51,6 +52,11 @@ const defaultCreateForm = {
 
 export default function ConceptsPage() {
   const queryClient = useQueryClient();
+
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
 
   const {
     data: conceptsData,
@@ -272,7 +278,7 @@ export default function ConceptsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
@@ -349,10 +355,7 @@ export default function ConceptsPage() {
                     {Number(concept.serviceFee) > 0 && (
                       <span className="text-xs px-2.5 py-1 rounded-full bg-green-950/40 text-green-400 border border-green-800/30">
                         Hizmet:{" "}
-                        {Number(concept.serviceFee).toLocaleString("tr-TR", {
-                          style: "currency",
-                          currency: "TRY",
-                        })}
+                        {formatPrice(Number(concept.serviceFee), currency)}
                       </span>
                     )}
                   </div>
@@ -412,10 +415,7 @@ export default function ConceptsPage() {
                               Adet: {cp.quantity}
                             </span>
                             <span className="text-yellow-500">
-                              {cp.product.salePrice.toLocaleString("tr-TR", {
-                                style: "currency",
-                                currency: "TRY",
-                              })}
+                              {formatPrice(cp.product.salePrice, currency)}
                             </span>
                           </div>
                           <button
@@ -437,10 +437,7 @@ export default function ConceptsPage() {
                         Konsept Hizmet Ücreti
                       </span>
                       <span className="text-xs text-yellow-300 font-semibold">
-                        {Number(concept.serviceFee).toLocaleString("tr-TR", {
-                          style: "currency",
-                          currency: "TRY",
-                        })}
+                        {formatPrice(Number(concept.serviceFee), currency)}
                       </span>
                     </div>
                   )}
@@ -517,7 +514,7 @@ export default function ConceptsPage() {
                 placeholder="Konsept açıklaması..."
               />
             </Field>
-            <Field label="Hizmet Ücreti (₺)">
+            <Field label={`Hizmet Ücreti (${currencySymbol(currency)})`}>
               <input
                 type="number"
                 min="0"
@@ -595,7 +592,7 @@ export default function ConceptsPage() {
                 className={inputCls + " resize-none"}
               />
             </Field>
-            <Field label="Hizmet Ücreti (₺)">
+            <Field label={`Hizmet Ücreti (${currencySymbol(currency)})`}>
               <input
                 type="number"
                 min="0"

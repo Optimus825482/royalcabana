@@ -117,6 +117,10 @@ model Cabana {
   coordX               Float
   coordY               Float
   rotation             Float        @default(0)
+  scaleX               Float        @default(1)
+  scaleY               Float        @default(1)
+  color                String?
+  isLocked             Boolean      @default(false)
   status               CabanaStatus @default(AVAILABLE)
   isOpenForReservation Boolean      @default(true)
   deletedAt            DateTime?

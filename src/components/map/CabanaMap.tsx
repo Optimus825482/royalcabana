@@ -7,8 +7,21 @@ export interface MapComponentProps {
   cabanas: CabanaWithStatus[];
   editable?: boolean;
   onCabanaClick?: (cabana: CabanaWithStatus) => void;
-  onLocationUpdate?: (cabanaId: string, coordX: number, coordY: number) => void;
+  onLocationUpdate?: (
+    cabanaId: string,
+    coordX: number,
+    coordY: number,
+    rotation?: number,
+    scaleX?: number,
+    scaleY?: number,
+    color?: string,
+    isLocked?: boolean,
+  ) => void;
   onMapClick?: (lat: number, lng: number) => void;
+  onCabanaDelete?: (cabanaId: string) => void;
+  onElevationSave?: (dataUrl: string) => void;
+  onElevationReset?: () => void;
+  savedElevationData?: string | null;
   selectedCabanaId?: string;
   placementCoords?: { lat: number; lng: number } | null;
 }

@@ -12,6 +12,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 interface Product {
   id: string;
@@ -23,12 +24,13 @@ interface Product {
   group: { id: string; name: string } | null;
 }
 
-function formatTRY(value: number) {
-  return value.toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
-}
-
 export default function PricingPage() {
   const queryClient = useQueryClient();
+
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["products-and-groups"],
@@ -115,7 +117,7 @@ export default function PricingPage() {
     parseFloat(editForm.purchasePrice) > parseFloat(editForm.salePrice);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
@@ -201,10 +203,10 @@ export default function PricingPage() {
                       {p.group?.name ?? "—"}
                     </td>
                     <td className="px-5 py-3.5 text-right text-neutral-300">
-                      {formatTRY(p.purchasePrice)}
+                      {formatPrice(p.purchasePrice, currency)}
                     </td>
                     <td className="px-5 py-3.5 text-right text-yellow-400 font-medium">
-                      {formatTRY(p.salePrice)}
+                      {formatPrice(p.salePrice, currency)}
                     </td>
                     <td
                       className={`px-5 py-3.5 text-right text-xs font-medium ${isLoss ? "text-red-400" : "text-emerald-400"}`}
@@ -267,13 +269,13 @@ export default function PricingPage() {
                     <span className="text-neutral-500">
                       Maliyet:{" "}
                       <span className="text-neutral-300">
-                        {formatTRY(p.purchasePrice)}
+                        {formatPrice(p.purchasePrice, currency)}
                       </span>
                     </span>
                     <span className="text-neutral-500">
                       Satış:{" "}
                       <span className="text-yellow-400 font-medium">
-                        {formatTRY(p.salePrice)}
+                        {formatPrice(p.salePrice, currency)}
                       </span>
                     </span>
                   </div>
@@ -307,7 +309,7 @@ export default function PricingPage() {
           <form onSubmit={handlePriceUpdate} className="space-y-4">
             {editError && <ErrorMsg msg={editError} />}
 
-            <Field label="Maliyet (₺)">
+            <Field label={`Maliyet (${currencySymbol(currency)})`}>
               <input
                 type="number"
                 step="0.01"
@@ -322,7 +324,7 @@ export default function PricingPage() {
               />
             </Field>
 
-            <Field label="Satış Fiyatı (₺)">
+            <Field label={`Satış Fiyatı (${currencySymbol(currency)})`}>
               <input
                 type="number"
                 step="0.01"

@@ -489,7 +489,7 @@ const WINDY_LAYERS: {
 // Merit Royal, Alsancak, Kıbrıs
 const WINDY_LAT = 35.3557;
 const WINDY_LON = 33.2104;
-const WINDY_ZOOM = 7;
+const WINDY_ZOOM = 14;
 
 function buildWindyUrl(layer: WindyLayer): string {
   return `https://embed.windy.com/embed.html?type=map&location=coordinates&metricTemp=%C2%B0C&metricWind=km%2Fh&metricRain=mm&zoom=${WINDY_ZOOM}&overlay=${layer}&product=ecmwf&level=surface&lat=${WINDY_LAT}&lon=${WINDY_LON}&message=true`;
@@ -604,7 +604,7 @@ export default function WeatherPage() {
   }, [data?.current.dt]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       <div className="max-w-5xl mx-auto space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between gap-4">

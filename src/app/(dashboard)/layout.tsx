@@ -6,8 +6,8 @@ import { authOptions } from "@/lib/auth";
 import SessionProvider from "@/components/shared/SessionProvider";
 import QueryProvider from "@/components/shared/QueryProvider";
 import ToastProvider from "@/components/shared/ToastProvider";
-import Navbar from "@/components/shared/Navbar";
 import DashboardShell from "@/components/shared/DashboardShell";
+import DashboardLayoutClient from "@/components/shared/DashboardLayoutClient";
 import SessionTracker from "@/components/shared/SessionTracker";
 
 export default async function DashboardLayout({
@@ -31,13 +31,10 @@ export default async function DashboardLayout({
       <QueryProvider>
         <ToastProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <div className="flex flex-col min-h-screen bg-neutral-950">
-              <DashboardShell>
-                <Navbar />
-                <SessionTracker />
-                <main className="flex-1 overflow-auto">{children}</main>
-              </DashboardShell>
-            </div>
+            <DashboardShell>
+              <SessionTracker />
+              <DashboardLayoutClient>{children}</DashboardLayoutClient>
+            </DashboardShell>
           </NextIntlClientProvider>
         </ToastProvider>
       </QueryProvider>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import WeatherWidget from "@/components/shared/WeatherWidget";
+// WeatherWidget moved to StickyHeader
 import {
   Plus,
   Clock,
@@ -24,6 +24,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 // ── Types ──
 
@@ -127,12 +128,6 @@ const FILTER_TABS: { key: StatusKey | "ALL"; label: string }[] = [
   { key: "CANCELLED", label: "İptal" },
 ];
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-  }).format(amount);
-
 function relativeTime(dateStr: string): string {
   const now = Date.now();
   const diff = now - new Date(dateStr).getTime();
@@ -215,6 +210,7 @@ function OrderCard({
   onStatusChange: (id: string, status: StatusKey) => void;
   isUpdating: boolean;
 }) {
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({ queryKey: ["system-currency"], queryFn: fetchSystemCurrency });
   const total = orderTotal(order.items);
   const cfg = STATUS_CONFIG[order.status];
 
@@ -248,7 +244,7 @@ function OrderCard({
                 <span className="text-neutral-500"> × {item.quantity}</span>
               </span>
               <span className="text-neutral-400 shrink-0 ml-2">
-                {formatCurrency(Number(item.unitPrice) * item.quantity)}
+                {formatPrice(Number(item.unitPrice) * item.quantity, currency)}
               </span>
             </li>
           ))}
@@ -256,7 +252,7 @@ function OrderCard({
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-800">
           <span className="text-xs text-neutral-500">Toplam</span>
           <span className="text-sm font-semibold text-yellow-400">
-            {formatCurrency(total)}
+            {formatPrice(total, currency)}
           </span>
         </div>
       </div>
@@ -337,6 +333,8 @@ function NewOrderModal({
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<OrderLineItem[]>([]);
   const [error, setError] = useState("");
+
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({ queryKey: ["system-currency"], queryFn: fetchSystemCurrency });
 
   const { data: reservationData, isLoading: resLoading } = useQuery({
     queryKey: ["reservations-active"],
@@ -489,7 +487,7 @@ function NewOrderModal({
                               {product.name}
                             </p>
                             <p className="text-xs text-neutral-500">
-                              {formatCurrency(Number(product.salePrice))}
+                              {formatPrice(Number(product.salePrice), currency)}
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
@@ -529,7 +527,7 @@ function NewOrderModal({
                           </div>
                           {qty > 0 && (
                             <span className="text-xs text-yellow-400 w-16 text-right shrink-0">
-                              {formatCurrency(lineTotal)}
+                              {formatPrice(lineTotal, currency)}
                             </span>
                           )}
                         </div>
@@ -549,7 +547,7 @@ function NewOrderModal({
               Sipariş Toplamı ({activeLines.length} kalem)
             </span>
             <span className="text-lg font-bold text-yellow-400">
-              {formatCurrency(grandTotal)}
+              {formatPrice(grandTotal, currency)}
             </span>
           </div>
         )}
@@ -587,6 +585,7 @@ function NewOrderModal({
 // ── Daily Summary ──
 
 function DailySummary({ orders }: { orders: FnbOrder[] }) {
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({ queryKey: ["system-currency"], queryFn: fetchSystemCurrency });
   const stats = useMemo(() => {
     const byStatus: Record<StatusKey, number> = {
       PREPARING: 0,
@@ -619,7 +618,7 @@ function DailySummary({ orders }: { orders: FnbOrder[] }) {
         <div className="bg-neutral-800/50 rounded-lg px-3 py-2.5">
           <p className="text-xs text-neutral-500">Gelir (Teslim)</p>
           <p className="text-lg font-bold text-yellow-400">
-            {formatCurrency(stats.totalRevenue)}
+            {formatPrice(stats.totalRevenue, currency)}
           </p>
         </div>
         {/* By Status */}
@@ -721,7 +720,7 @@ export default function FnbPage() {
   }, [queryClient]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -729,9 +728,6 @@ export default function FnbPage() {
             F&B Sipariş Yönetimi
           </h1>
           <div className="flex items-center gap-3">
-            <div className="hidden sm:block">
-              <WeatherWidget />
-            </div>
             <button
               onClick={() => setShowModal(true)}
               className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 text-neutral-950 transition-colors"

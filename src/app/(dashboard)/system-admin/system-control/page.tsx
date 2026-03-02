@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CabanaStatus } from "@/types";
+import {
+  CURRENCIES,
+  DEFAULT_CURRENCY,
+  type CurrencyCode,
+} from "@/lib/currency";
 
 interface CabanaRow {
   id: string;
@@ -59,9 +64,23 @@ export default function SystemControlPage() {
       },
     });
 
+  const { data: currencyCode = DEFAULT_CURRENCY, isLoading: currencyLoading } =
+    useQuery<CurrencyCode>({
+      queryKey: ["system-currency"],
+      queryFn: async () => {
+        const res = await fetch("/api/system/config/system_currency");
+        if (!res.ok) return DEFAULT_CURRENCY;
+        const data = await res.json();
+        const val = data?.data?.value ?? data?.value ?? DEFAULT_CURRENCY;
+        if (val === "TRY" || val === "EUR" || val === "USD") return val as CurrencyCode;
+        return DEFAULT_CURRENCY;
+      },
+    });
+
   const [systemToggling, setSystemToggling] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [moduleToggling, setModuleToggling] = useState<string | null>(null);
+  const [currencySaving, setCurrencySaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -159,8 +178,30 @@ export default function SystemControlPage() {
     }
   }
 
+  async function handleCurrencyChange(newCurrency: CurrencyCode) {
+    setCurrencySaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/system/config/system_currency", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: newCurrency }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Para birimi güncellenemedi.");
+      }
+      queryClient.invalidateQueries({ queryKey: ["system-currency"] });
+      showSuccess(`Para birimi ${CURRENCIES[newCurrency].label} olarak güncellendi.`);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
+    } finally {
+      setCurrencySaving(false);
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-yellow-400">
           Sistem Kontrolü
@@ -273,6 +314,41 @@ export default function SystemControlPage() {
             ))}
           </div>
         ) : null}
+      </div>
+
+      {/* Para Birimi Seçimi */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-neutral-300 mb-4">
+          Para Birimi
+        </h2>
+        {currencyLoading ? (
+          <div className="text-neutral-500 text-sm">Yükleniyor...</div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-neutral-100 font-medium">Aktif Para Birimi</p>
+              <p className="text-sm text-neutral-500 mt-0.5">
+                Tüm fiyatlandırma işlemleri seçilen para birimi üzerinden
+                gösterilir.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
+                <button
+                  key={code}
+                  onClick={() => handleCurrencyChange(code)}
+                  disabled={currencySaving}
+                  className={`px-4 py-2.5 min-h-[44px] rounded-lg text-sm font-medium transition-colors border ${currencyCode === code
+                      ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                      : "bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {CURRENCIES[code].symbol} {code}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Kabana Bazında Rezervasyon Durumu */}

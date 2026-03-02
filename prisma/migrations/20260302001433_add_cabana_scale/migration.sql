@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "cabanas" ADD COLUMN     "scale" DOUBLE PRECISION NOT NULL DEFAULT 1;

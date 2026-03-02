@@ -8,6 +8,10 @@ const locationSchema = z.object({
   coordX: z.number(),
   coordY: z.number(),
   rotation: z.number().optional(),
+  scaleX: z.number().min(0.1).max(5).optional(),
+  scaleY: z.number().min(0.1).max(5).optional(),
+  color: z.string().optional(),
+  isLocked: z.boolean().optional(),
 });
 
 export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
@@ -24,12 +28,24 @@ export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
   }
 
   try {
-    const data: Record<string, number> = {
+    const data: Record<string, number | string | boolean> = {
       coordX: parsed.data.coordX,
       coordY: parsed.data.coordY,
     };
     if (parsed.data.rotation !== undefined) {
       data.rotation = parsed.data.rotation;
+    }
+    if (parsed.data.scaleX !== undefined) {
+      data.scaleX = parsed.data.scaleX;
+    }
+    if (parsed.data.scaleY !== undefined) {
+      data.scaleY = parsed.data.scaleY;
+    }
+    if (parsed.data.color !== undefined) {
+      data.color = parsed.data.color;
+    }
+    if (parsed.data.isLocked !== undefined) {
+      data.isLocked = parsed.data.isLocked;
     }
     const updated = await prisma.cabana.update({
       where: { id },
@@ -40,6 +56,10 @@ export const PATCH = withAuth([Role.SYSTEM_ADMIN], async (req, { params }) => {
         coordX: true,
         coordY: true,
         rotation: true,
+        scaleX: true,
+        scaleY: true,
+        color: true,
+        isLocked: true,
       },
     });
     return NextResponse.json(updated);

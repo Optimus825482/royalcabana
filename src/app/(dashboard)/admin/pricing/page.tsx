@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { PriceBreakdown } from "@/types";
+import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ function TabButton({
 
 // ─── Tab 1: Kabana Fiyatları ──────────────────────────────────────────────────
 
-function CabanaPricesTab({ cabanas }: { cabanas: Cabana[] }) {
+function CabanaPricesTab({ cabanas, currency }: { cabanas: Cabana[]; currency: CurrencyCode }) {
   const [selectedCabana, setSelectedCabana] = useState("");
   const [month, setMonth] = useState(() => {
     const now = new Date();
@@ -220,7 +221,7 @@ function CabanaPricesTab({ cabanas }: { cabanas: Cabana[] }) {
 
 // ─── Tab 2: Konsept Fiyatları ─────────────────────────────────────────────────
 
-function ConceptPricesTab({ concepts }: { concepts: Concept[] }) {
+function ConceptPricesTab({ concepts, currency }: { concepts: Concept[]; currency: CurrencyCode }) {
   const [selectedConcept, setSelectedConcept] = useState("");
   const [conceptPrices, setConceptPrices] = useState<Record<string, string>>(
     {},
@@ -316,7 +317,7 @@ function ConceptPricesTab({ concepts }: { concepts: Concept[] }) {
                   {product.name}
                 </span>
                 <span className="text-xs text-neutral-500">
-                  Genel: {product.salePrice} ₺
+                  Genel: {formatPrice(product.salePrice, currency)}
                 </span>
                 <input
                   type="number"
@@ -332,7 +333,7 @@ function ConceptPricesTab({ concepts }: { concepts: Concept[] }) {
                   }
                   className="bg-neutral-700 border border-neutral-600 rounded px-4 py-3 text-base sm:text-sm text-neutral-100 w-32 text-right min-h-[44px]"
                 />
-                <span className="text-xs text-neutral-500">₺</span>
+                <span className="text-xs text-neutral-500">{currencySymbol(currency)}</span>
               </div>
             ))}
           </div>
@@ -367,9 +368,11 @@ function ConceptPricesTab({ concepts }: { concepts: Concept[] }) {
 function PricePreviewTab({
   cabanas,
   concepts,
+  currency,
 }: {
   cabanas: Cabana[];
   concepts: Concept[];
+    currency: CurrencyCode;
 }) {
   const [form, setForm] = useState({
     cabanaId: "",
@@ -507,10 +510,10 @@ function PricePreviewTab({
                     {item.quantity}
                   </td>
                   <td className="py-2 text-right text-neutral-300">
-                    {item.unitPrice.toFixed(2)} ₺
+                    {item.unitPrice.toFixed(2)} {currencySymbol(currency)}
                   </td>
                   <td className="py-2 text-right text-neutral-200">
-                    {item.total.toFixed(2)} ₺
+                    {item.total.toFixed(2)} {currencySymbol(currency)}
                   </td>
                   <td className="py-2 text-right">
                     <span
@@ -533,16 +536,16 @@ function PricePreviewTab({
           <div className="flex justify-end">
             <div className="bg-neutral-800 rounded-lg px-6 py-4 text-right space-y-1">
               <div className="text-xs text-neutral-400">
-                Kabana: {breakdown.cabanaDaily.toFixed(2)} ₺
+                Kabana: {breakdown.cabanaDaily.toFixed(2)} {currencySymbol(currency)}
               </div>
               <div className="text-xs text-neutral-400">
-                Konsept: {breakdown.conceptTotal.toFixed(2)} ₺
+                Konsept: {breakdown.conceptTotal.toFixed(2)} {currencySymbol(currency)}
               </div>
               <div className="text-xs text-neutral-400">
-                Ekstralar: {breakdown.extrasTotal.toFixed(2)} ₺
+                Ekstralar: {breakdown.extrasTotal.toFixed(2)} {currencySymbol(currency)}
               </div>
               <div className="text-lg font-bold text-amber-400 border-t border-neutral-700 pt-2 mt-2">
-                Toplam: {breakdown.grandTotal.toFixed(2)} ₺
+                Toplam: {breakdown.grandTotal.toFixed(2)} {currencySymbol(currency)}
               </div>
             </div>
           </div>
@@ -557,12 +560,17 @@ function PricePreviewTab({
 export default function PricingPage() {
   const [tab, setTab] = useState<"cabana" | "concept" | "preview">("cabana");
 
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
+
   const { data: cabanas = [] } = useQuery<Cabana[]>({
     queryKey: ["cabanas-pricing"],
     queryFn: async () => {
       const r = await fetch("/api/cabanas");
       const d = await r.json();
-      return d.cabanas ?? [];
+      return Array.isArray(d) ? d : (d.cabanas ?? []);
     },
   });
 
@@ -576,7 +584,7 @@ export default function PricingPage() {
   });
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       <h1 className="text-2xl font-bold text-amber-400 mb-6">
         Fiyatlandırma Yönetimi
       </h1>
@@ -594,10 +602,10 @@ export default function PricingPage() {
       </div>
 
       <div className="bg-neutral-900 rounded-lg p-4 sm:p-6">
-        {tab === "cabana" && <CabanaPricesTab cabanas={cabanas} />}
-        {tab === "concept" && <ConceptPricesTab concepts={concepts} />}
+        {tab === "cabana" && <CabanaPricesTab cabanas={cabanas} currency={currency} />}
+        {tab === "concept" && <ConceptPricesTab concepts={concepts} currency={currency} />}
         {tab === "preview" && (
-          <PricePreviewTab cabanas={cabanas} concepts={concepts} />
+          <PricePreviewTab cabanas={cabanas} concepts={concepts} currency={currency} />
         )}
       </div>
     </div>

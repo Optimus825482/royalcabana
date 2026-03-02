@@ -118,7 +118,7 @@ export default function ReportsPage() {
 
   if (sessionStatus === "loading" || loadingMeta) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <p className="text-neutral-500 text-sm">Yükleniyor...</p>
       </div>
     );
@@ -130,7 +130,7 @@ export default function ReportsPage() {
       session.user.role !== Role.CASINO_USER)
   ) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl px-8 py-10 text-center max-w-sm">
           <p className="text-red-400 font-semibold mb-2">Erişim Reddedildi</p>
           <p className="text-neutral-500 text-sm">
@@ -205,7 +205,7 @@ export default function ReportsPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       {/* Slidev Editor (fullscreen modal) */}
       {showSlidev && (
         <Suspense

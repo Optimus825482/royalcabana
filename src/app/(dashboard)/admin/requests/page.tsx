@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ReservationStatus } from "@/types";
+import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,8 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
   [ReservationStatus.CANCELLED]: "İptal",
   [ReservationStatus.MODIFICATION_PENDING]: "Değişiklik Bekliyor",
   [ReservationStatus.EXTRA_PENDING]: "Ek Konsept Bekliyor",
+  [ReservationStatus.CHECKED_IN]: "Giriş Yapıldı",
+  [ReservationStatus.CHECKED_OUT]: "Çıkış Yapıldı",
 };
 
 const STATUS_BADGE: Record<ReservationStatus, string> = {
@@ -57,6 +60,10 @@ const STATUS_BADGE: Record<ReservationStatus, string> = {
     "bg-orange-500/20 text-orange-300 border border-orange-500/30",
   [ReservationStatus.EXTRA_PENDING]:
     "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+  [ReservationStatus.CHECKED_IN]:
+    "bg-teal-500/20 text-teal-300 border border-teal-500/30",
+  [ReservationStatus.CHECKED_OUT]:
+    "bg-slate-500/20 text-slate-300 border border-slate-500/30",
 };
 
 function formatDate(dateStr: string) {
@@ -142,11 +149,13 @@ function DetailPanel({
   onApprove,
   onReject,
   actionLoading,
+  currency,
 }: {
   reservation: Reservation;
   onApprove: (id: string, price: number) => void;
   onReject: (id: string) => void;
   actionLoading: boolean;
+    currency: CurrencyCode;
 }) {
   const [totalPrice, setTotalPrice] = useState(
     reservation.totalPrice ? String(reservation.totalPrice) : "",
@@ -200,7 +209,7 @@ function DetailPanel({
             <div className="col-span-2">
               <span className="text-neutral-500">Toplam Fiyat</span>
               <p className="text-amber-400 font-semibold text-base">
-                {reservation.totalPrice.toLocaleString("tr-TR")} ₺
+                {formatPrice(reservation.totalPrice, currency)}
               </p>
             </div>
           )}
@@ -230,7 +239,7 @@ function DetailPanel({
           <div className="flex gap-3 items-end">
             <div className="flex-1">
               <label className="text-xs text-neutral-500 mb-1 block">
-                Toplam Fiyat (₺)
+                Toplam Fiyat ({currencySymbol(currency)})
               </label>
               <input
                 type="number"
@@ -349,6 +358,11 @@ export default function RequestsPage() {
     text: string;
     type: "success" | "error";
   } | null>(null);
+  const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
+
+  useEffect(() => {
+    fetchSystemCurrency().then(setCurrency).catch(() => { });
+  }, []);
 
   const fetchReservations = useCallback(async () => {
     setLoading(true);
@@ -407,7 +421,7 @@ export default function RequestsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
+    <div className="text-neutral-100 flex flex-col">
       {/* Header */}
       <div className="px-4 sm:px-6 py-5 border-b border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -514,6 +528,7 @@ export default function RequestsPage() {
                 onApprove={handleApprove}
                 onReject={(id) => setRejectTarget(id)}
                 actionLoading={actionLoading}
+                currency={currency}
               />
             </>
           ) : (

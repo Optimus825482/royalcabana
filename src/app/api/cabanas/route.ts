@@ -11,6 +11,10 @@ const createCabanaSchema = z.object({
   conceptId: z.string().cuid().optional(),
   coordX: z.number(),
   coordY: z.number(),
+  rotation: z.number().optional(),
+  scaleX: z.number().min(0.1).max(5).optional(),
+  scaleY: z.number().min(0.1).max(5).optional(),
+  color: z.string().optional(),
 });
 
 const allRoles = [
@@ -47,7 +51,17 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
     );
   }
 
-  const { name, classId, conceptId, coordX, coordY } = parsed.data;
+  const {
+    name,
+    classId,
+    conceptId,
+    coordX,
+    coordY,
+    rotation,
+    scaleX,
+    scaleY,
+    color,
+  } = parsed.data;
 
   const existing = await prisma.cabana.findUnique({ where: { name } });
   if (existing) {
@@ -64,6 +78,10 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
       conceptId: conceptId ?? null,
       coordX,
       coordY,
+      rotation: rotation ?? 0,
+      scaleX: scaleX ?? 1,
+      scaleY: scaleY ?? 1,
+      color: color ?? null,
     },
     include: {
       cabanaClass: { select: { id: true, name: true } },

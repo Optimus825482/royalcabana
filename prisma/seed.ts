@@ -519,56 +519,206 @@ async function main() {
     },
   });
 
-  // Örnek Kabanalar
+  // ===== KABANALAR — Görseldeki yerleşim planına göre =====
+  // Harita boyutu: 1040×678 piksel (sonnn.png)
+  // Koordinatlar (coordX, coordY) = piksel cinsinden (0,0 sol-üst köşe)
+  // Hava fotoğrafı + kroki eşleşmesine göre düzenlenmiştir.
+
   const cabanas = [
+    // ─── SOL DENİZ PLATFORMU — L-şekil, 8 kabana (2×2 üst + 2×2 alt) ──
+    // Üst sol çift
     {
       name: "Kabana-01",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 100,
-      coordY: 150,
+      coordY: 340,
     },
     {
       name: "Kabana-02",
       classId: standardClass.id,
       conceptId: basicConcept.id,
-      coordX: 200,
-      coordY: 150,
+      coordX: 100,
+      coordY: 385,
+    },
+    // Üst sağ çift
+    {
+      name: "Kabana-07",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 168,
+      coordY: 340,
     },
     {
+      name: "Kabana-08",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 168,
+      coordY: 385,
+    },
+    // Alt sol çift (platformun alt kolu)
+    {
       name: "Kabana-03",
-      classId: premiumClass.id,
-      conceptId: premiumConcept.id,
-      coordX: 300,
-      coordY: 200,
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 78,
+      coordY: 455,
     },
     {
       name: "Kabana-04",
-      classId: premiumClass.id,
-      conceptId: premiumConcept.id,
-      coordX: 400,
-      coordY: 200,
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 78,
+      coordY: 500,
     },
+    // Alt sağ çift (platformun alt kolu)
     {
       name: "Kabana-05",
-      classId: vipClass.id,
-      conceptId: null,
-      coordX: 500,
-      coordY: 250,
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 192,
+      coordY: 455,
     },
     {
       name: "Kabana-06",
-      classId: familyClass.id,
-      conceptId: null,
-      coordX: 150,
-      coordY: 300,
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 192,
+      coordY: 500,
+    },
+
+    // ─── KIYI BOYUNCA — 4 standart kabana, kıyı hattında sıralı ───────
+    {
+      name: "Kabana-09",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 285,
+      coordY: 255,
+    },
+    {
+      name: "Kabana-10",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 323,
+      coordY: 255,
+    },
+    {
+      name: "Kabana-11",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 361,
+      coordY: 255,
+    },
+    {
+      name: "Kabana-12",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 399,
+      coordY: 255,
+    },
+
+    // ─── ANA DENİZ PLATFORMU (artı/+ şekli) — 10 kabana ──────────────
+    // Sol kol (yukarıdan aşağı): 16 → 17 → 18
+    {
+      name: "Kabana-16",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 548,
+      coordY: 325,
+    },
+    {
+      name: "Kabana-17",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 548,
+      coordY: 372,
+    },
+    {
+      name: "Kabana-18",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 548,
+      coordY: 419,
+    },
+    // Sağ kol (yukarıdan aşağı): 25 → 24 → 23
+    {
+      name: "Kabana-25",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 692,
+      coordY: 325,
+    },
+    {
+      name: "Kabana-24",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 692,
+      coordY: 372,
+    },
+    {
+      name: "Kabana-23",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 692,
+      coordY: 419,
+    },
+    // Alt sol köşe: 19 (üst), 20 (alt)
+    {
+      name: "Kabana-19",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 563,
+      coordY: 488,
+    },
+    {
+      name: "Kabana-20",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 563,
+      coordY: 535,
+    },
+    // Alt sağ köşe: 22 (üst), 21 (alt)
+    {
+      name: "Kabana-22",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 677,
+      coordY: 488,
+    },
+    {
+      name: "Kabana-21",
+      classId: standardClass.id,
+      conceptId: basicConcept.id,
+      coordX: 677,
+      coordY: 535,
+    },
+
+    // ─── VIP KABANALAR — Kıyıda, merkez iskele yakını, büyük ─────────
+    {
+      name: "VIP Kabana-26",
+      classId: vipClass.id,
+      conceptId: premiumConcept.id,
+      coordX: 462,
+      coordY: 268,
+    },
+    {
+      name: "VIP Kabana-27",
+      classId: vipClass.id,
+      conceptId: premiumConcept.id,
+      coordX: 522,
+      coordY: 268,
     },
   ];
 
   for (const cabana of cabanas) {
     await prisma.cabana.upsert({
       where: { name: cabana.name },
-      update: {},
+      update: {
+        coordX: cabana.coordX,
+        coordY: cabana.coordY,
+        classId: cabana.classId,
+        conceptId: cabana.conceptId,
+      },
       create: cabana,
     });
   }
@@ -585,6 +735,157 @@ async function main() {
     update: {},
     create: { key: "app_name", value: "Royal Cabana" },
   });
+
+  // Currency preference
+  await prisma.systemConfig.upsert({
+    where: { key: "system_currency" },
+    update: {},
+    create: { key: "system_currency", value: "TRY" },
+  });
+
+  // Bar positions (map buildings)
+  await prisma.systemConfig.upsert({
+    where: { key: "sunset_bar_transform" },
+    update: {},
+    create: {
+      key: "sunset_bar_transform",
+      value: JSON.stringify({
+        x: 540,
+        y: 280,
+        scale: 1,
+        rotation: 0,
+        isLocked: false,
+      }),
+    },
+  });
+
+  await prisma.systemConfig.upsert({
+    where: { key: "blue_sea_bar_transform" },
+    update: {},
+    create: {
+      key: "blue_sea_bar_transform",
+      value: JSON.stringify({
+        x: 680,
+        y: 420,
+        scale: 1,
+        rotation: 0,
+        isLocked: false,
+      }),
+    },
+  });
+
+  // ===== ÖRNEK KABANA FİYATLARI =====
+  // Bugünden itibaren 30 gün için örnek günlük fiyatlar
+  const allCabanas = await prisma.cabana.findMany({
+    where: { isDeleted: false },
+  });
+  const today = new Date();
+
+  // Sınıf bazlı günlük fiyat haritası
+  const classBasePrices: Record<string, number> = {
+    [standardClass.id]: 5000,
+    [premiumClass.id]: 8500,
+    [vipClass.id]: 15000,
+    [familyClass.id]: 7000,
+  };
+
+  for (const cab of allCabanas) {
+    const basePrice = classBasePrices[cab.classId] ?? 5000;
+    for (let d = 0; d < 30; d++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + d);
+      const dateStr = date.toISOString().split("T")[0];
+      // Hafta sonu %20 artış
+      const dayOfWeek = date.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const dailyPrice = isWeekend ? basePrice * 1.2 : basePrice;
+
+      await prisma.cabanaPrice.upsert({
+        where: { cabanaId_date: { cabanaId: cab.id, date: new Date(dateStr) } },
+        update: { dailyPrice },
+        create: { cabanaId: cab.id, date: new Date(dateStr), dailyPrice },
+      });
+    }
+  }
+
+  // Kabana fiyat aralıkları (sezonluk)
+  const currentYear = today.getFullYear();
+  for (const cab of allCabanas) {
+    const basePrice = classBasePrices[cab.classId] ?? 5000;
+
+    // Yaz sezonu: Haziran - Ağustos (%30 artış, priority yüksek)
+    await prisma.cabanaPriceRange.upsert({
+      where: {
+        cabanaId_startDate_endDate: {
+          cabanaId: cab.id,
+          startDate: new Date(`${currentYear}-06-01`),
+          endDate: new Date(`${currentYear}-08-31`),
+        },
+      },
+      update: {
+        dailyPrice: basePrice * 1.3,
+        label: "Yaz Sezonu",
+        priority: 10,
+      },
+      create: {
+        cabanaId: cab.id,
+        startDate: new Date(`${currentYear}-06-01`),
+        endDate: new Date(`${currentYear}-08-31`),
+        dailyPrice: basePrice * 1.3,
+        label: "Yaz Sezonu",
+        priority: 10,
+      },
+    });
+
+    // Bahar kampanyası: Nisan - Mayıs (%10 indirim)
+    await prisma.cabanaPriceRange.upsert({
+      where: {
+        cabanaId_startDate_endDate: {
+          cabanaId: cab.id,
+          startDate: new Date(`${currentYear}-04-01`),
+          endDate: new Date(`${currentYear}-05-31`),
+        },
+      },
+      update: {
+        dailyPrice: basePrice * 0.9,
+        label: "Bahar Kampanyası",
+        priority: 5,
+      },
+      create: {
+        cabanaId: cab.id,
+        startDate: new Date(`${currentYear}-04-01`),
+        endDate: new Date(`${currentYear}-05-31`),
+        dailyPrice: basePrice * 0.9,
+        label: "Bahar Kampanyası",
+        priority: 5,
+      },
+    });
+  }
+
+  // ===== ÖRNEK KONSEPT FİYATLARI =====
+  // Her konseptin ürünlerine özel fiyatlar
+  const conceptProducts = await prisma.conceptProduct.findMany({
+    include: { product: true },
+  });
+
+  for (const cp of conceptProducts) {
+    // Konsept fiyatı = ürünün satış fiyatının %85'i (konsept indirimi)
+    const conceptPrice = Number(cp.product.salePrice) * 0.85;
+    await prisma.conceptPrice.upsert({
+      where: {
+        conceptId_productId: {
+          conceptId: cp.conceptId,
+          productId: cp.productId,
+        },
+      },
+      update: { price: conceptPrice },
+      create: {
+        conceptId: cp.conceptId,
+        productId: cp.productId,
+        price: conceptPrice,
+      },
+    });
+  }
 
   console.log("Seeding completed!");
   console.log(

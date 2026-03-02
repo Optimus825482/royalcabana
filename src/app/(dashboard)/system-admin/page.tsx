@@ -1,52 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import WeatherWidget from "@/components/shared/WeatherWidget";
 import {
-  Users,
-  Layers,
-  Package,
-  Map,
-  Settings,
-  DollarSign,
-  Lightbulb,
-  User as UserIcon,
-  ScrollText,
-  Shield,
-  CalendarOff,
-  UserCog,
-  Warehouse,
-  QrCode,
-  FileCode,
-  BarChart3,
-  CalendarCheck,
+  Percent,
   Clock,
+  CalendarCheck,
   TrendingUp,
   UserCheck,
-  Package as PackageIcon,
-  Percent,
-  ClipboardList,
+  Users,
+  Package,
+  MapPin,
+  ArrowRight,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-type MenuItem = {
-  href: string;
-  label: string;
-  description: string;
-  Icon: LucideIcon;
-};
-
-type MenuGroup = {
-  title: string;
-  Icon: LucideIcon;
-  color: string;
-  items: MenuItem[];
-};
+import Link from "next/link";
+import WeatherCard from "@/components/shared/WeatherCard";
 
 interface SystemStats {
   totalCabanas: number;
@@ -66,243 +33,18 @@ interface SystemStats {
   totalStaff: number;
 }
 
-/* ------------------------------------------------------------------ */
-/*  KPI card config                                                    */
-/* ------------------------------------------------------------------ */
-
-interface KpiCard {
-  key: keyof SystemStats;
-  label: string;
-  Icon: LucideIcon;
-  color: string; // tailwind text color
-  bg: string; // tailwind bg for icon wrapper
-  format?: "percent";
-}
-
-const KPI_CARDS: KpiCard[] = [
-  {
-    key: "occupancyRate",
-    label: "Doluluk Oranı",
-    Icon: Percent,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    format: "percent",
-  },
-  {
-    key: "pendingRequests",
-    label: "Bekleyen Talepler",
-    Icon: Clock,
-    color: "text-orange-400",
-    bg: "bg-orange-500/10",
-  },
-  {
-    key: "approvedThisMonth",
-    label: "Bu Ay Onaylanan",
-    Icon: CalendarCheck,
-    color: "text-green-400",
-    bg: "bg-green-500/10",
-  },
-  {
-    key: "checkedInToday",
-    label: "Bugün Check-in",
-    Icon: TrendingUp,
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-  },
-  {
-    key: "activeUsers",
-    label: "Aktif Kullanıcılar",
-    Icon: UserCheck,
-    color: "text-purple-400",
-    bg: "bg-purple-500/10",
-  },
-  {
-    key: "totalStaff",
-    label: "Toplam Personel",
-    Icon: PackageIcon,
-    color: "text-teal-400",
-    bg: "bg-teal-500/10",
-  },
-];
-
-/* ------------------------------------------------------------------ */
-/*  Menu data (unchanged)                                              */
-/* ------------------------------------------------------------------ */
-
-const MENU_GROUPS: MenuGroup[] = [
-  {
-    title: "Tanımlar",
-    Icon: Layers,
-    color: "text-blue-400",
-    items: [
-      {
-        href: "/system-admin/classes",
-        label: "Kabana Sınıfları",
-        description: "Sınıf tanımlarını yönet",
-        Icon: Layers,
-      },
-      {
-        href: "/system-admin/concepts",
-        label: "Konseptler",
-        description: "Konsept ve ürün paketlerini yönet",
-        Icon: Lightbulb,
-      },
-      {
-        href: "/system-admin/products",
-        label: "Ürünler",
-        description: "Ürün ve grup tanımlamalarını yönet",
-        Icon: Package,
-      },
-      {
-        href: "/system-admin/products/stock",
-        label: "Stok Takibi",
-        description: "Ürün stok miktarlarını ve minimum stok uyarılarını yönet",
-        Icon: Warehouse,
-      },
-      {
-        href: "/system-admin/task-definitions",
-        label: "Görev Tanımları",
-        description: "Personele atanacak görev şablonlarını tanımla ve yönet",
-        Icon: ClipboardList,
-      },
-    ],
-  },
-  {
-    title: "Fiyatlandırma",
-    Icon: DollarSign,
-    color: "text-emerald-400",
-    items: [
-      {
-        href: "/system-admin/products/pricing",
-        label: "Fiyat İşlemleri",
-        description: "Toplu fiyat güncelleme, içe aktarma ve fiyat geçmişi",
-        Icon: DollarSign,
-      },
-      {
-        href: "/system-admin/cancellation-policy",
-        label: "İptal Politikası",
-        description: "Rezervasyon iptal kurallarını ve ceza oranlarını yönet",
-        Icon: Shield,
-      },
-    ],
-  },
-  {
-    title: "Kullanıcılar",
-    Icon: Users,
-    color: "text-amber-400",
-    items: [
-      {
-        href: "/system-admin/users",
-        label: "Kullanıcı Yönetimi",
-        description: "Kullanıcıları görüntüle, ekle ve düzenle",
-        Icon: Users,
-      },
-      {
-        href: "/system-admin/guests",
-        label: "Misafir Yönetimi",
-        description: "Misafir veritabanını yönet, VIP ve kara liste takibi",
-        Icon: UserIcon,
-      },
-      {
-        href: "/system-admin/staff",
-        label: "Personel Yönetimi",
-        description: "Personel, görev atamaları ve iş takibini yönet",
-        Icon: UserCog,
-      },
-    ],
-  },
-  {
-    title: "Sistem",
-    Icon: Settings,
-    color: "text-purple-400",
-    items: [
-      {
-        href: "/system-admin/system-control",
-        label: "Sistem Kontrolü",
-        description: "Sistem ayarlarını ve konfigürasyonu yönet",
-        Icon: Settings,
-      },
-      {
-        href: "/system-admin/blackout-dates",
-        label: "Kapalı Tarihler",
-        description: "Kabana kapalı tarihlerini ve bakım dönemlerini yönet",
-        Icon: CalendarOff,
-      },
-      {
-        href: "/system-admin/qr-codes",
-        label: "QR Kodlar",
-        description: "Kabana QR kodlarını oluştur ve yönet",
-        Icon: QrCode,
-      },
-      {
-        href: "/system-admin/audit-trail",
-        label: "Audit Log",
-        description: "Sistem işlem geçmişini görüntüle",
-        Icon: ScrollText,
-      },
-      {
-        href: "/system-admin/api-docs",
-        label: "API Dokümantasyonu",
-        description:
-          "Sistem API endpoint'lerini ve kullanım kılavuzunu görüntüle",
-        Icon: FileCode,
-      },
-    ],
-  },
-];
-
-const STANDALONE_ITEMS: MenuItem[] = [
-  {
-    href: "/system-admin/map",
-    label: "Kabana Haritası",
-    description: "Kabanaları harita üzerinde yönet",
-    Icon: Map,
-  },
-  {
-    href: "/reports",
-    label: "Raporlar",
-    description: "Doluluk, gelir ve talep istatistiklerini görüntüle",
-    Icon: BarChart3,
-  },
-];
-
-/* ------------------------------------------------------------------ */
-/*  KPI skeleton loader                                                */
-/* ------------------------------------------------------------------ */
-
 function KpiSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 animate-pulse"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-neutral-800" />
-            <div className="flex-1 space-y-2">
-              <div className="h-5 w-16 rounded bg-neutral-800" />
-              <div className="h-3 w-24 rounded bg-neutral-800" />
-            </div>
-          </div>
-        </div>
+          className="h-28 rounded-xl bg-neutral-900 border border-neutral-800 animate-pulse"
+        />
       ))}
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Format helpers                                                     */
-/* ------------------------------------------------------------------ */
-
-function formatKpiValue(value: number, format?: "percent") {
-  if (format === "percent") return `%${value}`;
-  return value.toLocaleString("tr-TR");
-}
-
-/* ------------------------------------------------------------------ */
-/*  Page component                                                     */
-/* ------------------------------------------------------------------ */
 
 export default function SystemAdminDashboard() {
   const { data: stats, isLoading } = useQuery<SystemStats>({
@@ -315,114 +57,210 @@ export default function SystemAdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-semibold text-yellow-400">
-              Sistem Yönetimi
-            </h1>
-            <p className="text-sm text-neutral-500 mt-1">
-              Yönetmek istediğiniz modülü seçin
-            </p>
-          </div>
-          <div className="hidden sm:block">
-            <WeatherWidget />
-          </div>
+    <div className="text-neutral-100 p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-semibold text-yellow-400">
+            Sistem Yönetimi
+          </h1>
+          <p className="text-sm text-neutral-500 mt-1">
+            Genel bakış ve istatistikler
+          </p>
         </div>
 
-        {/* KPI cards */}
-        <div className="mb-8">
-          {isLoading || !stats ? (
-            <KpiSkeleton />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {KPI_CARDS.map((card) => (
-                <div
-                  key={card.key}
-                  className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 transition-colors hover:border-neutral-700"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 shrink-0 rounded-lg ${card.bg} flex items-center justify-center`}
-                    >
-                      <card.Icon className={`w-5 h-5 ${card.color}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-lg font-semibold text-neutral-100 leading-tight">
-                        {formatKpiValue(stats[card.key], card.format)}
-                      </p>
-                      <p className="text-xs text-neutral-500 mt-0.5 truncate">
-                        {card.label}
-                      </p>
-                    </div>
-                  </div>
+        {/* KPI Cards */}
+        {isLoading || !stats ? (
+          <KpiSkeleton />
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Doluluk Oranı */}
+            <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <Percent className="w-5 h-5 text-emerald-400" />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Grouped sections */}
-        <div className="space-y-6 mb-6">
-          {MENU_GROUPS.map((group) => (
-            <div key={group.title}>
-              <div className="flex items-center gap-2 mb-3">
-                <group.Icon className={`w-5 h-5 ${group.color}`} />
-                <h2
-                  className={`text-sm font-semibold ${group.color} uppercase tracking-wider`}
-                >
-                  {group.title}
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {group.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex items-start gap-3 p-4 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-yellow-700/50 hover:bg-neutral-800/60 transition-all active:scale-[0.98] group"
-                  >
-                    <div className="w-9 h-9 shrink-0 rounded-lg bg-neutral-800 flex items-center justify-center group-hover:bg-yellow-500/10 transition-colors">
-                      <item.Icon className="w-4.5 h-4.5 text-neutral-400 group-hover:text-yellow-400 transition-colors" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-medium text-sm text-neutral-100 group-hover:text-yellow-400 transition-colors">
-                        {item.label}
-                      </span>
-                      <p className="text-xs text-neutral-500 mt-0.5">
-                        {item.description}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Standalone items */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {STANDALONE_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-start gap-3 p-4 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-yellow-700/50 hover:bg-neutral-800/60 transition-all active:scale-[0.98] group"
-            >
-              <div className="w-9 h-9 shrink-0 rounded-lg bg-neutral-800 flex items-center justify-center group-hover:bg-yellow-500/10 transition-colors">
-                <item.Icon className="w-4.5 h-4.5 text-neutral-400 group-hover:text-yellow-400 transition-colors" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-medium text-sm text-neutral-100 group-hover:text-yellow-400 transition-colors">
-                  {item.label}
+                <span className="text-xs text-emerald-400 font-medium uppercase tracking-wider">
+                  Doluluk
                 </span>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  {item.description}
-                </p>
               </div>
-            </Link>
-          ))}
-        </div>
+              <p className="text-3xl font-bold text-emerald-400">
+                %{stats.occupancyRate}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">
+                {stats.reservedCabanas}/{stats.totalCabanas} kabana
+              </p>
+            </div>
+
+            {/* Bekleyen Talepler */}
+            <div className="bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-orange-400" />
+                </div>
+                <span className="text-xs text-orange-400 font-medium uppercase tracking-wider">
+                  Bekleyen
+                </span>
+              </div>
+              <p className="text-3xl font-bold text-orange-400">
+                {stats.pendingRequests}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">Onay bekliyor</p>
+            </div>
+
+            {/* Bu Ay Onaylanan */}
+            <div className="bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <CalendarCheck className="w-5 h-5 text-green-400" />
+                </div>
+                <span className="text-xs text-green-400 font-medium uppercase tracking-wider">
+                  Bu Ay
+                </span>
+              </div>
+              <p className="text-3xl font-bold text-green-400">
+                {stats.approvedThisMonth}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">Onaylanan</p>
+            </div>
+
+            {/* Bugün Check-in */}
+            <div className="bg-gradient-to-br from-blue-500/20 to-blue-500/5 border border-blue-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-blue-400" />
+                </div>
+                <span className="text-xs text-blue-400 font-medium uppercase tracking-wider">
+                  Bugün
+                </span>
+              </div>
+              <p className="text-3xl font-bold text-blue-400">
+                {stats.checkedInToday}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">Check-in</p>
+            </div>
+
+            {/* Aktif Kullanıcılar */}
+            <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <UserCheck className="w-5 h-5 text-purple-400" />
+                </div>
+                <span className="text-xs text-purple-400 font-medium uppercase tracking-wider">
+                  Aktif
+                </span>
+              </div>
+              <p className="text-3xl font-bold text-purple-400">
+                {stats.activeUsers}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">
+                /{stats.totalUsers} kullanıcı
+              </p>
+            </div>
+
+            {/* Toplam Personel */}
+            <div className="bg-gradient-to-br from-teal-500/20 to-teal-500/5 border border-teal-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-teal-400" />
+                </div>
+                <span className="text-xs text-teal-400 font-medium uppercase tracking-wider">
+                  Personel
+                </span>
+              </div>
+              <p className="text-3xl font-bold text-teal-400">
+                {stats.totalStaff}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">Toplam</p>
+            </div>
+
+            {/* Aktif Ürünler */}
+            <div className="bg-gradient-to-br from-pink-500/20 to-pink-500/5 border border-pink-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                  <Package className="w-5 h-5 text-pink-400" />
+                </div>
+                <span className="text-xs text-pink-400 font-medium uppercase tracking-wider">
+                  Ürünler
+                </span>
+              </div>
+              <p className="text-3xl font-bold text-pink-400">
+                {stats.activeProducts}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">
+                /{stats.totalProducts} aktif
+              </p>
+            </div>
+
+            {/* Toplam Kabanalar */}
+            <div className="bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-amber-400" />
+                </div>
+                <span className="text-xs text-amber-400 font-medium uppercase tracking-wider">
+                  Kabanalar
+                </span>
+              </div>
+              <p className="text-3xl font-bold text-amber-400">
+                {stats.totalCabanas}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">
+                {stats.availableCabanas} müsait
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Kabana Durum Dağılımı */}
+        {!isLoading && stats && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <h2 className="text-sm font-semibold text-neutral-300 mb-4">
+                Kabana Durum Dağılımı
+              </h2>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="text-sm text-neutral-300">Müsait</span>
+                  </div>
+                  <span className="text-lg font-bold text-green-400">
+                    {stats.availableCabanas}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-red-500" />
+                    <span className="text-sm text-neutral-300">Rezerve</span>
+                  </div>
+                  <span className="text-lg font-bold text-red-400">
+                    {stats.reservedCabanas}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-neutral-500" />
+                    <span className="text-sm text-neutral-300">Kapalı</span>
+                  </div>
+                  <span className="text-lg font-bold text-neutral-400">
+                    {stats.closedCabanas}
+                  </span>
+                </div>
+              </div>
+              <Link
+                href="/system-admin/map"
+                className="flex items-center justify-center gap-2 w-full mt-4 py-2.5 text-sm font-medium text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg transition-colors"
+              >
+                Haritayı Görüntüle
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Weather Card */}
+            <WeatherCard />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import ReservationCalendar from "@/components/calendar/ReservationCalendar";
 import ReservationRequestForm from "@/components/calendar/ReservationRequestForm";
 import { ReservationStatus } from "@/types";
 import { AlertTriangle, X } from "lucide-react";
+import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 import type {
   ReservationEvent,
   CabanaResource,
@@ -43,6 +44,8 @@ const STATUS_LABEL: Record<ReservationStatus, string> = {
   [ReservationStatus.CANCELLED]: "İptal",
   [ReservationStatus.MODIFICATION_PENDING]: "Değişiklik Bekliyor",
   [ReservationStatus.EXTRA_PENDING]: "Ek Konsept Bekliyor",
+  [ReservationStatus.CHECKED_IN]: "Giriş Yapıldı",
+  [ReservationStatus.CHECKED_OUT]: "Çıkış Yapıldı",
 };
 
 const STATUS_BADGE: Record<ReservationStatus, string> = {
@@ -57,6 +60,10 @@ const STATUS_BADGE: Record<ReservationStatus, string> = {
     "bg-orange-950/50 border-orange-800/40 text-orange-400",
   [ReservationStatus.EXTRA_PENDING]:
     "bg-purple-950/50 border-purple-800/40 text-purple-400",
+  [ReservationStatus.CHECKED_IN]:
+    "bg-teal-950/50 border-teal-700/40 text-teal-400",
+  [ReservationStatus.CHECKED_OUT]:
+    "bg-slate-800 border-slate-700 text-slate-400",
 };
 
 async function fetchReservations(): Promise<ReservationListResponse> {
@@ -116,6 +123,11 @@ export default function CasinoCalendarPage() {
   const { data: systemConfig } = useQuery({
     queryKey: ["system-config"],
     queryFn: fetchSystemConfig,
+  });
+
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
   });
 
   const systemOpen = systemConfig?.system_open_for_reservation ?? true;
@@ -182,7 +194,7 @@ export default function CasinoCalendarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
+    <div className="text-neutral-100 flex flex-col">
       {/* System closed banner */}
       {!systemOpen && (
         <div className="px-4 sm:px-6 py-3 bg-amber-950/60 border-b border-amber-700/40 flex items-center gap-2 shrink-0">
@@ -243,6 +255,7 @@ export default function CasinoCalendarPage() {
         <ReservationDetailModal
           reservation={selectedReservation}
           onClose={() => setSelectedReservation(null)}
+          currency={currency}
         />
       )}
 
@@ -270,9 +283,11 @@ export default function CasinoCalendarPage() {
 function ReservationDetailModal({
   reservation,
   onClose,
+  currency,
 }: {
   reservation: ReservationDetail;
   onClose: () => void;
+    currency: CurrencyCode;
 }) {
   return (
     <div
@@ -316,7 +331,7 @@ function ReservationDetailModal({
             {reservation.totalPrice != null && (
               <DetailRow
                 label="Toplam"
-                value={`${reservation.totalPrice.toLocaleString("tr-TR")} ₺`}
+                value={formatPrice(reservation.totalPrice!, currency)}
                 valueClass="text-amber-400 font-semibold"
               />
             )}

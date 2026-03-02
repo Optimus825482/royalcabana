@@ -31,6 +31,10 @@ export interface ThreeViewProps {
     coordX: number,
     coordY: number,
     rotation?: number,
+    scaleX?: number,
+    scaleY?: number,
+    color?: string,
+    isLocked?: boolean,
   ) => void;
   onMapClick?: (coordY: number, coordX: number) => void;
   selectedCabanaId?: string;

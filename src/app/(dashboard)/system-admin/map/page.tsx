@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import CabanaMap from "@/components/map/CabanaMap";
-import CabanaThreeView from "@/components/three/CabanaThreeView";
+import TransformControls from "@/components/map/TransformControls";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,7 +28,6 @@ const defaultAddForm = {
 
 export default function SystemAdminMapPage() {
   const queryClient = useQueryClient();
-  const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
 
   const {
     data: mapData,
@@ -94,6 +93,35 @@ export default function SystemAdminMapPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Load saved elevation on mount — use query result directly
+  const { data: savedElevationData = null } = useQuery({
+    queryKey: ["map-elevation-data"],
+    queryFn: async () => {
+      const res = await fetch("/api/map/elevation");
+      if (!res.ok) return null;
+      const json = await res.json();
+      return (json.data as string | null) ?? null;
+    },
+    staleTime: Infinity,
+  });
+
+  const [resetElevationLoading, setResetElevationLoading] = useState(false);
+
+  async function handleResetElevation() {
+    if (!confirm("Tüm yükseltme verileri sıfırlanacak. Emin misiniz?")) return;
+    setResetElevationLoading(true);
+    try {
+      const res = await fetch("/api/map/elevation", { method: "DELETE" });
+      if (!res.ok) throw new Error("Yükseltme sıfırlanamadı.");
+      queryClient.invalidateQueries({ queryKey: ["map-elevation-data"] });
+      showSuccessMsg("Yükseltme verileri sıfırlandı. Sayfayı yenileyin.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Yükseltme sıfırlanamadı.");
+    } finally {
+      setResetElevationLoading(false);
+    }
+  }
+
   function showSuccessMsg(msg: string) {
     setSuccess(msg);
     setTimeout(() => setSuccess(""), 3000);
@@ -121,10 +149,21 @@ export default function SystemAdminMapPage() {
     coordX: number,
     coordY: number,
     rotation?: number,
+    scaleX?: number,
+    scaleY?: number,
+    color?: string,
+    isLocked?: boolean,
   ) {
     try {
-      const body: Record<string, number> = { coordX, coordY };
+      const body: Record<string, number | string | boolean> = {
+        coordX,
+        coordY,
+      };
       if (rotation !== undefined) body.rotation = rotation;
+      if (scaleX !== undefined) body.scaleX = scaleX;
+      if (scaleY !== undefined) body.scaleY = scaleY;
+      if (color !== undefined) body.color = color;
+      if (isLocked !== undefined) body.isLocked = isLocked;
       const res = await fetch(`/api/cabanas/${cabanaId}/location`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -134,7 +173,18 @@ export default function SystemAdminMapPage() {
       queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
       if (selectedCabana?.id === cabanaId) {
         setSelectedCabana((prev) =>
-          prev ? { ...prev, coordX, coordY } : prev,
+          prev
+            ? {
+              ...prev,
+              coordX,
+              coordY,
+              ...(rotation !== undefined ? { rotation } : {}),
+              ...(scaleX !== undefined ? { scaleX } : {}),
+              ...(scaleY !== undefined ? { scaleY } : {}),
+              ...(color !== undefined ? { color } : {}),
+              ...(isLocked !== undefined ? { isLocked } : {}),
+            }
+            : prev,
         );
       }
       showSuccessMsg("Konum güncellendi.");
@@ -236,6 +286,44 @@ export default function SystemAdminMapPage() {
     }
   }
 
+  // --- Save Elevation Data ---
+  async function handleElevationSave(dataUrl: string) {
+    try {
+      const res = await fetch("/api/map/elevation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ elevationData: dataUrl }),
+      });
+      if (!res.ok) throw new Error("Yükseklik verisi kaydedilemedi.");
+      // Optimistic update — query cache'i güncelle, state yok
+      queryClient.setQueryData(["map-elevation-data"], dataUrl);
+      showSuccessMsg("Yükseklik verisi kaydedildi.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Yükseklik kaydedilemedi.");
+    }
+  }
+
+  // --- Delete Cabana (from map context menu) ---
+  async function handleDeleteFromMap(cabanaId: string) {
+    try {
+      const res = await fetch(`/api/cabanas/${cabanaId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Kabana silinemedi.");
+      }
+      showSuccessMsg("Kabana silindi.");
+      if (selectedCabana?.id === cabanaId) {
+        setSelectedCabana(null);
+        setShowDeleteConfirm(false);
+      }
+      queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
+    }
+  }
+
   const statusLabel: Record<CabanaStatus, string> = {
     [CabanaStatus.AVAILABLE]: "Müsait",
     [CabanaStatus.RESERVED]: "Rezerve",
@@ -249,7 +337,7 @@ export default function SystemAdminMapPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
+    <div className="text-neutral-100 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 shrink-0">
         <div>
@@ -261,29 +349,6 @@ export default function SystemAdminMapPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* 2D / 3D Toggle */}
-          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("2d")}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-                viewMode === "2d"
-                  ? "bg-yellow-500 text-neutral-950"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              2D
-            </button>
-            <button
-              onClick={() => setViewMode("3d")}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-                viewMode === "3d"
-                  ? "bg-yellow-500 text-neutral-950"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              3D
-            </button>
-          </div>
           <button
             onClick={() => {
               setShowAddModal(true);
@@ -292,8 +357,9 @@ export default function SystemAdminMapPage() {
               setPlacementCoords(null);
             }}
             className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            title="Veya haritada sağ tıklayarak ekleyin"
           >
-            + Yeni Kabana Ekle
+            + Yeni Kabana
           </button>
         </div>
       </div>
@@ -323,58 +389,28 @@ export default function SystemAdminMapPage() {
               <LoadingSpinner message="Kabanalar yükleniyor..." />
             </div>
           ) : (
-            <div className="h-full min-h-[300px] md:min-h-[500px]">
-              {viewMode === "2d" ? (
+              <div className="h-full min-h-[300px] md:min-h-[500px]">
                 <CabanaMap
                   cabanas={cabanas}
                   editable={true}
                   onCabanaClick={handleCabanaClick}
                   onLocationUpdate={handleLocationUpdate}
                   onMapClick={handleMapClick}
+                  onCabanaDelete={handleDeleteFromMap}
+                  onElevationSave={handleElevationSave}
+                  onElevationReset={handleResetElevation}
+                  savedElevationData={savedElevationData}
                   selectedCabanaId={selectedCabana?.id}
                   placementCoords={placementCoords}
                 />
-              ) : (
-                <CabanaThreeView
-                  cabanas={cabanas}
-                  editable={true}
-                  onCabanaClick={handleCabanaClick}
-                  onLocationUpdate={handleLocationUpdate}
-                  onMapClick={handleMapClick}
-                  selectedCabanaId={selectedCabana?.id}
-                  placementCoords={placementCoords}
-                />
-              )}
             </div>
           )}
         </div>
 
-        {/* Right panel */}
+        {/* Right panel — only visible when a cabana is selected */}
+        {selectedCabana && (
         <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-neutral-800 bg-neutral-900 flex flex-col overflow-y-auto max-h-[50vh] md:max-h-none">
-          {!selectedCabana ? (
-            <div className="flex flex-col items-center justify-center flex-1 text-neutral-500 text-sm px-6 text-center gap-2">
-              <svg
-                className="w-10 h-10 text-neutral-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-                />
-              </svg>
-              <p>Haritadan bir kabana seçin</p>
-            </div>
-          ) : (
+            {(
             <div className="p-5 space-y-5">
               {/* Cabana info */}
               <div>
@@ -413,6 +449,30 @@ export default function SystemAdminMapPage() {
                       {Math.round(selectedCabana.coordY)}
                     </span>
                   </div>
+                    <div className="flex justify-between">
+                      <span>Döndürme</span>
+                      <span className="text-neutral-200">
+                        {Math.round(selectedCabana.rotation ?? 0)}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>En</span>
+                      <span className="text-neutral-200">
+                        {(selectedCabana.scaleX ?? 1).toFixed(1)}x
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Boy</span>
+                      <span className="text-neutral-200">
+                        {(selectedCabana.scaleY ?? 1).toFixed(1)}x
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Durum</span>
+                      <span className="text-neutral-200">
+                        {selectedCabana.isLocked ? "🔒 Sabit" : "Serbest"}
+                      </span>
+                    </div>
                 </div>
               </div>
 
@@ -421,6 +481,25 @@ export default function SystemAdminMapPage() {
               {/* Edit form */}
               <div className="space-y-3">
                 <p className="text-xs font-medium text-neutral-400">Düzenle</p>
+
+                  {/* Transform Controls — Rotation, ScaleX, ScaleY, Color, Lock, Save */}
+                  <TransformControls
+                    cabana={selectedCabana}
+                    onSave={(updates) => {
+                      handleLocationUpdate(
+                        selectedCabana.id,
+                        selectedCabana.coordX,
+                        selectedCabana.coordY,
+                        updates.rotation,
+                        updates.scaleX,
+                        updates.scaleY,
+                        updates.color,
+                        updates.isLocked,
+                      );
+                    }}
+                  />
+
+                  <div className="border-t border-neutral-800" />
 
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">
@@ -505,6 +584,7 @@ export default function SystemAdminMapPage() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Add Cabana Modal */}

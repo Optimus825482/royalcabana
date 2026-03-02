@@ -11,6 +11,7 @@ import {
   cancelBtnCls,
   submitBtnCls,
 } from "@/components/shared/FormComponents";
+import { formatPrice, currencySymbol, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 
 interface ProductGroup {
   id: string;
@@ -37,10 +38,6 @@ const defaultProductForm = {
 };
 const defaultGroupForm = { name: "", sortOrder: "0" };
 
-function formatTRY(value: number) {
-  return value.toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
-}
-
 function hasPriceWarning(p: string, s: string) {
   const pv = parseFloat(p),
     sv = parseFloat(s);
@@ -49,6 +46,11 @@ function hasPriceWarning(p: string, s: string) {
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
+
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
 
   const {
     data: productsAndGroups,
@@ -340,7 +342,7 @@ export default function ProductsPage() {
   const ungrouped = products.filter((p) => p.groupId === null);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
@@ -445,6 +447,7 @@ export default function ProductsPage() {
                       setDeleteProduct(p);
                       setDeleteError("");
                     }}
+                    currency={currency}
                   />
                 ))}
             </div>
@@ -475,6 +478,7 @@ export default function ProductsPage() {
                     setDeleteProduct(p);
                     setDeleteError("");
                   }}
+                    currency={currency}
                 />
               )}
             </div>
@@ -517,7 +521,7 @@ export default function ProductsPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Maliyet (₺)">
+            <Field label={`Maliyet (${currencySymbol(currency)})`}>
               <input
                 type="number"
                 required
@@ -531,7 +535,7 @@ export default function ProductsPage() {
                 placeholder="0.00"
               />
             </Field>
-            <Field label="Satış Fiyatı (₺)">
+            <Field label={`Satış Fiyatı (${currencySymbol(currency)})`}>
               <input
                 type="number"
                 required
@@ -600,7 +604,7 @@ export default function ProductsPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Maliyet (₺)">
+            <Field label={`Maliyet (${currencySymbol(currency)})`}>
               <input
                 type="number"
                 required
@@ -613,7 +617,7 @@ export default function ProductsPage() {
                 className={inputCls}
               />
             </Field>
-            <Field label="Satış Fiyatı (₺)">
+            <Field label={`Satış Fiyatı (${currencySymbol(currency)})`}>
               <input
                 type="number"
                 required
@@ -881,10 +885,12 @@ function ProductTable({
   products,
   onEdit,
   onDelete,
+  currency,
 }: {
   products: Product[];
   onEdit: (p: Product) => void;
   onDelete: (p: Product) => void;
+    currency: CurrencyCode;
 }) {
   return (
     <>
@@ -913,10 +919,10 @@ function ProductTable({
                 {p.name}
               </td>
               <td className="px-5 py-3.5 text-right text-neutral-300">
-                {formatTRY(p.purchasePrice)}
+                {formatPrice(p.purchasePrice, currency)}
               </td>
               <td className="px-5 py-3.5 text-right text-yellow-400 font-medium">
-                {formatTRY(p.salePrice)}
+                {formatPrice(p.salePrice, currency)}
               </td>
               <td className="px-5 py-3.5 text-center">
                 <span
@@ -972,13 +978,13 @@ function ProductTable({
               <span className="text-neutral-500">
                 Maliyet:{" "}
                 <span className="text-neutral-300">
-                  {formatTRY(p.purchasePrice)}
+                  {formatPrice(p.purchasePrice, currency)}
                 </span>
               </span>
               <span className="text-neutral-500">
                 Satış:{" "}
                 <span className="text-yellow-400 font-medium">
-                  {formatTRY(p.salePrice)}
+                  {formatPrice(p.salePrice, currency)}
                 </span>
               </span>
             </div>

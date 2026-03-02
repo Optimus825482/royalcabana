@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { ReservationStatus } from "@/types";
+import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
 import {
   Clock,
   CheckCircle2,
@@ -11,6 +12,8 @@ import {
   Ban,
   Pencil,
   Sparkles,
+  LogIn,
+  LogOut,
   Filter,
   CalendarDays,
   ChevronDown,
@@ -79,6 +82,16 @@ const STATUS_CONFIG: Record<
     Icon: Sparkles,
     badge: "bg-purple-950/50 border-purple-800/40 text-purple-400",
   },
+  [ReservationStatus.CHECKED_IN]: {
+    label: "Giriş Yapıldı",
+    Icon: LogIn,
+    badge: "bg-teal-950/50 border-teal-700/40 text-teal-400",
+  },
+  [ReservationStatus.CHECKED_OUT]: {
+    label: "Çıkış Yapıldı",
+    Icon: LogOut,
+    badge: "bg-slate-800 border-slate-700 text-slate-400",
+  },
 };
 
 const ALL_STATUSES = Object.values(ReservationStatus);
@@ -107,7 +120,10 @@ export default function CasinoReservationsPage() {
 
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "">("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
   const { data, isLoading, error } = useQuery({
     queryKey: ["my-reservations"],
     queryFn: fetchMyReservations,
@@ -130,7 +146,7 @@ export default function CasinoReservationsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-neutral-500 text-sm">Yükleniyor...</span>
@@ -141,7 +157,7 @@ export default function CasinoReservationsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <div className="bg-neutral-900 border border-red-800/40 rounded-xl px-8 py-6 text-center max-w-sm">
           <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
           <p className="text-red-400 text-sm">Rezervasyonlar yüklenemedi.</p>
@@ -151,7 +167,7 @@ export default function CasinoReservationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 sm:p-6">
+    <div className="text-neutral-100 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -251,7 +267,7 @@ export default function CasinoReservationsPage() {
                     </div>
                     {r.totalPrice != null && (
                       <span className="text-sm font-semibold text-amber-400 shrink-0">
-                        {r.totalPrice.toLocaleString("tr-TR")} ₺
+                        {formatPrice(r.totalPrice!, currency)}
                       </span>
                     )}
                     {isExpanded ? (

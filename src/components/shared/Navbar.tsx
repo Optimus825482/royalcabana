@@ -27,7 +27,6 @@ import {
   Shield,
   CalendarOff,
   UserCog,
-  Warehouse,
   QrCode,
   FileCode,
   ListOrdered,
@@ -37,169 +36,321 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-type NavLink = { href: string; label: string; icon?: LucideIcon };
-
-type NavGroup = {
+export type NavLink = {
+  href: string;
   label: string;
   icon?: LucideIcon;
+  color?: string;
+};
+
+export type NavGroup = {
+  label: string;
+  icon?: LucideIcon;
+  color?: string;
   children: NavLink[];
 };
 
-type NavItem = NavLink | NavGroup;
+export type NavItem = NavLink | NavGroup;
 
-function isGroup(item: NavItem): item is NavGroup {
+export function isGroup(item: NavItem): item is NavGroup {
   return "children" in item;
 }
 
 // ─── Grouped Navigation Config ──────────────────────────────────────────────
 
-const SYSTEM_ADMIN_NAV: NavItem[] = [
-  { href: "/system-admin", label: "Panel", icon: LayoutDashboard },
+export const SYSTEM_ADMIN_NAV: NavItem[] = [
+  {
+    href: "/system-admin",
+    label: "Panel",
+    icon: LayoutDashboard,
+    color: "text-sky-400",
+  },
   {
     label: "Tanımlar",
     icon: Layers,
+    color: "text-violet-400",
     children: [
       {
         href: "/system-admin/classes",
         label: "Kabana Sınıfları",
         icon: Layers,
+        color: "text-violet-400",
       },
-      { href: "/system-admin/concepts", label: "Konseptler", icon: Lightbulb },
-      { href: "/system-admin/products", label: "Ürünler", icon: Package },
       {
-        href: "/system-admin/products/stock",
-        label: "Stok Takibi",
-        icon: Warehouse,
+        href: "/system-admin/concepts",
+        label: "Konseptler",
+        icon: Lightbulb,
+        color: "text-yellow-400",
+      },
+      {
+        href: "/system-admin/products",
+        label: "Ürünler",
+        icon: Package,
+        color: "text-orange-400",
       },
       {
         href: "/system-admin/task-definitions",
         label: "Görev Tanımları",
         icon: ClipboardList,
+        color: "text-pink-400",
       },
     ],
   },
   {
     label: "Fiyatlandırma",
     icon: DollarSign,
+    color: "text-emerald-400",
     children: [
+      {
+        href: "/system-admin/pricing",
+        label: "Fiyat Görünümü",
+        icon: DollarSign,
+        color: "text-amber-400",
+      },
       {
         href: "/system-admin/products/pricing",
         label: "Fiyat İşlemleri",
         icon: DollarSign,
+        color: "text-emerald-400",
       },
       {
         href: "/system-admin/cancellation-policy",
         label: "İptal Politikası",
         icon: Shield,
+        color: "text-red-400",
       },
     ],
   },
   {
     label: "Kullanıcılar",
     icon: Users,
+    color: "text-blue-400",
     children: [
-      { href: "/system-admin/users", label: "Kullanıcı Yönetimi", icon: Users },
-      { href: "/system-admin/guests", label: "Misafirler", icon: UserIcon },
-      { href: "/system-admin/staff", label: "Personel", icon: UserCog },
+      {
+        href: "/system-admin/users",
+        label: "Kullanıcı Yönetimi",
+        icon: Users,
+        color: "text-blue-400",
+      },
+      {
+        href: "/system-admin/guests",
+        label: "Misafirler",
+        icon: UserIcon,
+        color: "text-cyan-400",
+      },
+      {
+        href: "/system-admin/staff",
+        label: "Personel",
+        icon: UserCog,
+        color: "text-indigo-400",
+      },
     ],
   },
-  { href: "/system-admin/map", label: "Harita", icon: Map },
+  {
+    href: "/system-admin/calendar",
+    label: "Takvim",
+    icon: CalendarDays,
+    color: "text-emerald-400",
+  },
+  {
+    href: "/system-admin/map",
+    label: "Harita",
+    icon: Map,
+    color: "text-teal-400",
+  },
   {
     label: "Sistem",
     icon: Settings,
+    color: "text-slate-400",
     children: [
       {
         href: "/system-admin/system-control",
         label: "Sistem Kontrolü",
         icon: Settings,
+        color: "text-slate-400",
       },
       {
         href: "/system-admin/blackout-dates",
         label: "Kapalı Tarihler",
         icon: CalendarOff,
+        color: "text-rose-400",
       },
-      { href: "/system-admin/qr-codes", label: "QR Kodlar", icon: QrCode },
+      {
+        href: "/system-admin/qr-codes",
+        label: "QR Kodlar",
+        icon: QrCode,
+        color: "text-fuchsia-400",
+      },
       {
         href: "/system-admin/audit-trail",
         label: "Audit Log",
         icon: ScrollText,
+        color: "text-amber-400",
       },
-      { href: "/system-admin/api-docs", label: "API Docs", icon: FileCode },
+      {
+        href: "/system-admin/api-docs",
+        label: "API Docs",
+        icon: FileCode,
+        color: "text-lime-400",
+      },
     ],
   },
-  { href: "/reports", label: "Raporlar", icon: BarChart3 },
+  {
+    href: "/reports",
+    label: "Raporlar",
+    icon: BarChart3,
+    color: "text-purple-400",
+  },
 ];
 
-const ADMIN_NAV: NavItem[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+export const ADMIN_NAV: NavItem[] = [
+  {
+    href: "/admin",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    color: "text-sky-400",
+  },
+  {
+    href: "/admin/calendar",
+    label: "Takvim",
+    icon: CalendarDays,
+    color: "text-amber-400",
+  },
   {
     label: "Operasyon",
     icon: ClipboardList,
+    color: "text-orange-400",
     children: [
-      { href: "/admin/requests", label: "Talepler", icon: ClipboardList },
-      { href: "/admin/users", label: "Kullanıcılar", icon: Users },
+      {
+        href: "/admin/requests",
+        label: "Talepler",
+        icon: ClipboardList,
+        color: "text-orange-400",
+      },
+      {
+        href: "/admin/users",
+        label: "Kullanıcılar",
+        icon: Users,
+        color: "text-blue-400",
+      },
     ],
   },
   {
     label: "Fiyatlandırma",
     icon: DollarSign,
+    color: "text-emerald-400",
     children: [
-      { href: "/admin/pricing", label: "Fiyat Yönetimi", icon: DollarSign },
+      {
+        href: "/admin/pricing",
+        label: "Fiyat Yönetimi",
+        icon: DollarSign,
+        color: "text-emerald-400",
+      },
       {
         href: "/admin/pricing/seasons",
         label: "Sezonluk Fiyatlar",
         icon: CalendarDays,
+        color: "text-teal-400",
       },
     ],
   },
 ];
 
-const CASINO_NAV: NavItem[] = [
-  { href: "/casino", label: "Panel", icon: LayoutDashboard },
+export const CASINO_NAV: NavItem[] = [
+  {
+    href: "/casino",
+    label: "Panel",
+    icon: LayoutDashboard,
+    color: "text-sky-400",
+  },
   {
     label: "Keşfet",
     icon: Map,
+    color: "text-teal-400",
     children: [
-      { href: "/casino/map", label: "Harita", icon: Map },
-      { href: "/casino/view", label: "3D Görünüm", icon: Cuboid },
-      { href: "/casino/calendar", label: "Takvim", icon: CalendarDays },
+      {
+        href: "/casino/map",
+        label: "Harita",
+        icon: Map,
+        color: "text-teal-400",
+      },
+      {
+        href: "/casino/view",
+        label: "3D Görünüm",
+        icon: Cuboid,
+        color: "text-violet-400",
+      },
+      {
+        href: "/casino/calendar",
+        label: "Takvim",
+        icon: CalendarDays,
+        color: "text-cyan-400",
+      },
     ],
   },
   {
     label: "Rezervasyonlar",
     icon: BookOpen,
+    color: "text-amber-400",
     children: [
       {
         href: "/casino/reservations",
         label: "Rezervasyonlarım",
         icon: BookOpen,
+        color: "text-amber-400",
       },
-      { href: "/casino/waitlist", label: "Bekleme Listesi", icon: ListOrdered },
-      { href: "/casino/recurring", label: "Tekrarlayan", icon: Repeat },
+      {
+        href: "/casino/waitlist",
+        label: "Bekleme Listesi",
+        icon: ListOrdered,
+        color: "text-orange-400",
+      },
+      {
+        href: "/casino/recurring",
+        label: "Tekrarlayan",
+        icon: Repeat,
+        color: "text-pink-400",
+      },
     ],
   },
   {
     label: "Deneyim",
     icon: Star,
+    color: "text-yellow-400",
     children: [
-      { href: "/casino/reviews", label: "Değerlendirmeler", icon: Star },
+      {
+        href: "/casino/reviews",
+        label: "Değerlendirmeler",
+        icon: Star,
+        color: "text-yellow-400",
+      },
     ],
   },
-  { href: "/reports", label: "Raporlar", icon: BarChart3 },
+  {
+    href: "/reports",
+    label: "Raporlar",
+    icon: BarChart3,
+    color: "text-purple-400",
+  },
 ];
 
-const FNB_NAV: NavItem[] = [
-  { href: "/fnb", label: "Panel", icon: UtensilsCrossed },
+export const FNB_NAV: NavItem[] = [
+  {
+    href: "/fnb",
+    label: "Panel",
+    icon: UtensilsCrossed,
+    color: "text-rose-400",
+  },
 ];
 
-const NAV_CONFIG: Record<string, NavItem[]> = {
+export const NAV_CONFIG: Record<string, NavItem[]> = {
   SYSTEM_ADMIN: SYSTEM_ADMIN_NAV,
   ADMIN: ADMIN_NAV,
   CASINO_USER: CASINO_NAV,
   FNB_USER: FNB_NAV,
 };
 
-const ROLE_HOME: Record<string, string> = {
+export const ROLE_HOME: Record<string, string> = {
   SYSTEM_ADMIN: "/system-admin",
   ADMIN: "/admin",
   CASINO_USER: "/casino",
