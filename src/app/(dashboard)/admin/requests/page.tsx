@@ -169,7 +169,11 @@ function DetailPanel({
   );
 
   useEffect(() => {
-    setTotalPrice(reservation.totalPrice ? String(reservation.totalPrice) : "");
+    void Promise.resolve().then(() =>
+      setTotalPrice(
+        reservation.totalPrice ? String(reservation.totalPrice) : "",
+      ),
+    );
   }, [reservation.id, reservation.totalPrice]);
 
   const isPending = reservation.status === ReservationStatus.PENDING;

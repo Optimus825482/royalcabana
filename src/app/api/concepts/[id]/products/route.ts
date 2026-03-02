@@ -13,6 +13,11 @@ const removeProductSchema = z.object({
   productId: z.string().min(1),
 });
 
+const updateQuantitySchema = z.object({
+  productId: z.string().min(1),
+  quantity: z.number().int().positive(),
+});
+
 export const POST = withAuth(
   [Role.SYSTEM_ADMIN],
   async (req, { params }) => {
@@ -50,6 +55,40 @@ export const POST = withAuth(
       include: { product: true },
     });
     return NextResponse.json(conceptProduct, { status: 201 });
+  },
+  { requiredPermissions: ["concept.update"] },
+);
+
+export const PATCH = withAuth(
+  [Role.SYSTEM_ADMIN],
+  async (req, { params }) => {
+    const id = params!.id;
+    const body = await req.json();
+    const parsed = updateQuantitySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Validation error", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const { productId, quantity } = parsed.data;
+    const entry = await prisma.conceptProduct.findUnique({
+      where: { conceptId_productId: { conceptId: id, productId } },
+    });
+    if (!entry) {
+      return NextResponse.json(
+        { message: "Bu ürün konsepte eklenmemiş." },
+        { status: 404 },
+      );
+    }
+
+    const updated = await prisma.conceptProduct.update({
+      where: { id: entry.id },
+      data: { quantity },
+      include: { product: true },
+    });
+    return NextResponse.json(updated);
   },
   { requiredPermissions: ["concept.update"] },
 );

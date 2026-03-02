@@ -20,6 +20,11 @@ import {
   selectCls,
   cancelBtnCls,
   submitBtnCls,
+  primaryBtnCls,
+  dangerBtnCls,
+  dangerSoftBtnCls,
+  editBtnCls,
+  ghostBtnCls,
 } from "@/components/shared/FormComponents";
 import PermissionGate from "@/components/shared/PermissionGate";
 
@@ -250,7 +255,7 @@ export default function TaskDefinitionsPage() {
         <PermissionGate permission="task.definition.create">
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
+            className={"flex items-center gap-2 " + primaryBtnCls}
           >
             <Plus className="w-4 h-4" />
             Yeni Görev Tanımı
@@ -364,7 +369,10 @@ export default function TaskDefinitionsPage() {
                   <button
                     onClick={() => openEdit(def)}
                     title="Düzenle"
-                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                    className={
+                      "p-2 min-w-[44px] flex items-center justify-center " +
+                      editBtnCls
+                    }
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
@@ -374,7 +382,10 @@ export default function TaskDefinitionsPage() {
                     <button
                       onClick={() => setDeleteTarget(def)}
                       title="Devre dışı bırak"
-                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                      className={
+                        "p-2 min-w-[44px] flex items-center justify-center " +
+                        dangerSoftBtnCls
+                      }
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -396,14 +407,22 @@ export default function TaskDefinitionsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={
+                "p-2 min-w-[44px] flex items-center justify-center " +
+                ghostBtnCls +
+                " disabled:opacity-40 disabled:cursor-not-allowed"
+              }
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={
+                "p-2 min-w-[44px] flex items-center justify-center " +
+                ghostBtnCls +
+                " disabled:opacity-40 disabled:cursor-not-allowed"
+              }
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -631,7 +650,7 @@ export default function TaskDefinitionsPage() {
             <button
               onClick={() => deleteMutation.mutate(deleteTarget.id)}
               disabled={deleteMutation.isPending}
-              className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+              className={dangerBtnCls}
             >
               {deleteMutation.isPending ? "İşleniyor..." : "Devre Dışı Bırak"}
             </button>

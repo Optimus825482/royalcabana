@@ -489,6 +489,10 @@ function AdminReservationModal({
         className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag handle for mobile */}
+        <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
+          <div className="w-10 h-1 rounded-full bg-neutral-700" />
+        </div>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
           <div>
@@ -501,7 +505,7 @@ function AdminReservationModal({
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors active:scale-95"
             aria-label="Kapat"
           >
             <X className="w-5 h-5" />

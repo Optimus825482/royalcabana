@@ -3785,9 +3785,12 @@ export default function CabanaMapInner({
 
       {/* Color Picker Modal */}
       {colorPickerCabana && (
-        <div className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setColorPickerCabana(null)}
+        >
           <div
-            className="bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-5 w-72"
+            className="bg-neutral-900 border border-neutral-700 rounded-t-xl sm:rounded-xl shadow-2xl p-5 w-full sm:w-72 max-w-[100vw] sm:max-w-none"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-sm font-semibold text-yellow-400 mb-3">
@@ -3843,9 +3846,12 @@ export default function CabanaMapInner({
 
       {/* Resize Modal */}
       {resizeCabana && (
-        <div className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setResizeCabana(null)}
+        >
           <div
-            className="bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-5 w-80"
+            className="bg-neutral-900 border border-neutral-700 rounded-t-xl sm:rounded-xl shadow-2xl p-5 w-full sm:w-80 max-w-[100vw] sm:max-w-none"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-sm font-semibold text-yellow-400 mb-4">
@@ -4202,13 +4208,17 @@ export default function CabanaMapInner({
       {/* Cabana Detail Modal */}
       {detailCabana && (
         <div
-          className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
           onClick={() => setDetailCabana(null)}
         >
           <div
-            className="bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-5 w-96 max-w-[90vw]"
+            className="bg-neutral-900 border border-neutral-700 rounded-t-xl sm:rounded-xl shadow-2xl p-5 w-full sm:w-96 max-w-[100vw] sm:max-w-[90vw]"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Drag handle for mobile */}
+            <div className="flex justify-center -mt-2 mb-3 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-neutral-700" />
+            </div>
             <div className="flex items-center gap-3 pb-3 border-b border-neutral-800 mb-4">
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center"

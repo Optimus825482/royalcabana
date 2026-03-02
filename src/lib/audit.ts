@@ -13,6 +13,7 @@ export type AuditAction =
   | "PROFILE_UPDATE"
   | "CONFIG_CHANGE"
   | "PRICE_UPDATE"
+  | "BATCH_PRICE_UPDATE"
   | "CANCEL_REQUEST"
   | "MODIFY_REQUEST"
   | "EXTRA_REQUEST"

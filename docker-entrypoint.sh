@@ -29,7 +29,7 @@ echo "🔄 Running migrations..."
 node_modules/.bin/prisma migrate deploy
 
 echo "🌱 Running seed..."
-node_modules/.bin/ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts || echo "⚠️  Seed skipped (already seeded)"
+npx tsx prisma/seed.ts || echo "⚠️  Seed skipped (already seeded)"
 
 echo "🚀 Starting Next.js..."
 exec node server.js

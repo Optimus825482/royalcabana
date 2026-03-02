@@ -9,6 +9,11 @@ import {
   inputCls,
   cancelBtnCls,
   submitBtnCls,
+  primaryBtnCls,
+  dangerBtnCls,
+  dangerSoftBtnCls,
+  editBtnCls,
+  ghostBtnCls,
 } from "@/components/shared/FormComponents";
 import PermissionGate from "@/components/shared/PermissionGate";
 
@@ -223,7 +228,7 @@ export default function ClassesPage() {
               setCreateError("");
               setCreateForm(defaultCreateForm);
             }}
-            className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            className={primaryBtnCls}
           >
             + Yeni Sınıf
           </button>
@@ -283,14 +288,14 @@ export default function ClassesPage() {
                     onClick={() =>
                       setExpandedId(expandedId === cls.id ? null : cls.id)
                     }
-                    className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-400 transition-colors"
+                    className={ghostBtnCls}
                   >
                     {expandedId === cls.id ? "Kapat" : "Özellikler"}
                   </button>
                   <PermissionGate permission="cabana.class.update">
                     <button
                       onClick={() => openEdit(cls)}
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                      className={editBtnCls}
                     >
                       Düzenle
                     </button>
@@ -301,7 +306,7 @@ export default function ClassesPage() {
                         setDeleteClass(cls);
                         setDeleteError("");
                       }}
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                      className={dangerSoftBtnCls}
                     >
                       Sil
                     </button>
@@ -385,7 +390,7 @@ export default function ClassesPage() {
                       <button
                         onClick={() => handleAddAttr(cls.id)}
                         disabled={attrLoading[cls.id]}
-                        className="min-h-[44px] text-xs px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-neutral-950 font-semibold transition-colors shrink-0"
+                        className={primaryBtnCls + " shrink-0"}
                       >
                         {attrLoading[cls.id] ? "..." : "Ekle"}
                       </button>
@@ -538,7 +543,7 @@ export default function ClassesPage() {
                 <button
                   onClick={handleDelete}
                   disabled={deleteLoading}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+                  className={dangerBtnCls}
                 >
                   {deleteLoading ? "Siliniyor..." : "Sil"}
                 </button>

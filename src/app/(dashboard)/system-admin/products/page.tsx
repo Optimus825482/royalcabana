@@ -10,6 +10,10 @@ import {
   selectCls,
   cancelBtnCls,
   submitBtnCls,
+  primaryBtnCls,
+  dangerBtnCls,
+  dangerSoftBtnCls,
+  editBtnCls,
 } from "@/components/shared/FormComponents";
 import {
   formatPrice,
@@ -382,7 +386,7 @@ export default function ProductsPage() {
                 setCreatePriceWarn(false);
                 setCreatePriceOk(false);
               }}
-              className="min-h-[44px] bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+              className={primaryBtnCls}
             >
               + Yeni Ürün
             </button>
@@ -430,7 +434,7 @@ export default function ProductsPage() {
                   <PermissionGate permission="product.update">
                     <button
                       onClick={() => openEditGroup(group)}
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                      className={editBtnCls}
                     >
                       Düzenle
                     </button>
@@ -441,7 +445,7 @@ export default function ProductsPage() {
                         setDeleteGroup(group);
                         setDeleteGroupError("");
                       }}
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                      className={dangerSoftBtnCls}
                     >
                       Sil
                     </button>
@@ -719,7 +723,7 @@ export default function ProductsPage() {
                 <button
                   onClick={handleDelete}
                   disabled={deleteLoading}
-                  className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+                  className={dangerBtnCls}
                 >
                   {deleteLoading ? "Siliniyor..." : "Sil"}
                 </button>
@@ -863,7 +867,7 @@ export default function ProductsPage() {
                 <button
                   onClick={handleDeleteGroup}
                   disabled={deleteGroupLoading}
-                  className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+                  className={dangerBtnCls}
                 >
                   {deleteGroupLoading ? "Siliniyor..." : "Sil"}
                 </button>
@@ -953,17 +957,14 @@ function ProductTable({
               <td className="px-5 py-3.5 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <PermissionGate permission="product.update">
-                    <button
-                      onClick={() => onEdit(p)}
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                    >
+                    <button onClick={() => onEdit(p)} className={editBtnCls}>
                       Düzenle
                     </button>
                   </PermissionGate>
                   <PermissionGate permission="product.delete">
                     <button
                       onClick={() => onDelete(p)}
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                      className={dangerSoftBtnCls}
                     >
                       Sil
                     </button>
@@ -1009,17 +1010,14 @@ function ProductTable({
             </div>
             <div className="flex items-center gap-2 pt-1">
               <PermissionGate permission="product.update">
-                <button
-                  onClick={() => onEdit(p)}
-                  className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                >
+                <button onClick={() => onEdit(p)} className={editBtnCls}>
                   Düzenle
                 </button>
               </PermissionGate>
               <PermissionGate permission="product.delete">
                 <button
                   onClick={() => onDelete(p)}
-                  className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                  className={dangerSoftBtnCls}
                 >
                   Sil
                 </button>

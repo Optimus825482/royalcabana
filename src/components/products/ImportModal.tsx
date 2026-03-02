@@ -396,8 +396,18 @@ export default function ImportModal({
   /* ================================================================ */
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-2xl sm:mx-4 max-h-[90vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={handleClose}
+    >
+      <div
+        className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-2xl sm:mx-4 max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle for mobile */}
+        <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
+          <div className="w-10 h-1 rounded-full bg-neutral-700" />
+        </div>
         {/* ---- Header ---- */}
         <div className="sticky top-0 z-10 bg-neutral-900 flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
           <div className="flex items-center gap-2">

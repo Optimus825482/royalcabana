@@ -13,6 +13,8 @@ const SECRET = JWT_SECRET ?? "dev-secret";
 const CLIENT_ORIGIN =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3006";
 
+const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET ?? SECRET;
+
 interface JwtPayload {
   sub: string;
   role: string;
@@ -42,6 +44,14 @@ function checkSocketRate(
 const httpServer = createServer((req, res) => {
   // Internal emit endpoint — used by Next.js API routes to push notifications
   if (req.method === "POST" && req.url === "/emit") {
+    // Verify internal API secret
+    const authHeader = req.headers["x-internal-secret"];
+    if (authHeader !== INTERNAL_SECRET) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
     let body = "";
     req.on("data", (chunk: Buffer) => {
       body += chunk.toString();

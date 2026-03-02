@@ -11,6 +11,11 @@ import {
   inputCls,
   cancelBtnCls,
   submitBtnCls,
+  primaryBtnCls,
+  dangerBtnCls,
+  dangerSoftBtnCls,
+  editBtnCls,
+  successBtnCls,
 } from "@/components/shared/FormComponents";
 import PermissionGate from "@/components/shared/PermissionGate";
 
@@ -311,7 +316,7 @@ export default function UsersPage() {
               setShowCreate(true);
               setCreateError("");
             }}
-            className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 min-h-[44px] rounded-lg transition-colors"
+            className={primaryBtnCls}
           >
             + Yeni Kullanıcı
           </button>
@@ -426,7 +431,7 @@ export default function UsersPage() {
                           <PermissionGate permission="user.update">
                             <button
                               onClick={() => openEdit(user)}
-                              className="text-xs px-3 min-h-[36px] rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                              className={editBtnCls}
                             >
                               Düzenle
                             </button>
@@ -435,7 +440,7 @@ export default function UsersPage() {
                             <PermissionGate permission="user.delete">
                               <button
                                 onClick={() => setDeactivateUser(user)}
-                                className="text-xs px-3 min-h-[36px] rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                                className={dangerSoftBtnCls}
                               >
                                 Devre Dışı
                               </button>
@@ -516,7 +521,7 @@ export default function UsersPage() {
                     <PermissionGate permission="user.update">
                       <button
                         onClick={() => openEdit(user)}
-                        className="flex-1 text-sm min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                        className={"flex-1 " + editBtnCls}
                       >
                         Düzenle
                       </button>
@@ -525,7 +530,7 @@ export default function UsersPage() {
                       <PermissionGate permission="user.delete">
                         <button
                           onClick={() => setDeactivateUser(user)}
-                          className="flex-1 text-sm min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                          className={"flex-1 " + dangerSoftBtnCls}
                         >
                           Devre Dışı
                         </button>
@@ -749,7 +754,7 @@ export default function UsersPage() {
             <button
               onClick={handleDeactivate}
               disabled={deactivateLoading}
-              className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+              className={dangerBtnCls}
             >
               {deactivateLoading ? "İşleniyor..." : "Devre Dışı Bırak"}
             </button>
@@ -789,7 +794,7 @@ export default function UsersPage() {
                 handleQuickRoleUpdate(roleConfirmUser);
                 setRoleConfirmUser(null);
               }}
-              className={submitBtnCls}
+              className={successBtnCls}
             >
               Onayla
             </button>

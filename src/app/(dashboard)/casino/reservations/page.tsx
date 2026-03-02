@@ -4,7 +4,12 @@ import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReservationStatus } from "@/types";
-import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
 import {
   Clock,
   CheckCircle2,
@@ -121,7 +126,8 @@ export default function CasinoReservationsPage() {
 
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "">("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editingReservation, setEditingReservation] = useState<ReservationItem | null>(null);
+  const [editingReservation, setEditingReservation] =
+    useState<ReservationItem | null>(null);
   const [editForm, setEditForm] = useState({
     guestName: "",
     startDate: "",
@@ -431,13 +437,17 @@ export default function CasinoReservationsPage() {
             className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Drag handle for mobile */}
+            <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-neutral-700" />
+            </div>
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
               <h2 className="text-base font-semibold text-amber-400">
                 Bekleyen Talebi Güncelle
               </h2>
               <button
                 onClick={() => setEditingReservation(null)}
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors active:scale-95"
                 aria-label="Kapat"
               >
                 <XCircle className="w-5 h-5" />
@@ -446,14 +456,19 @@ export default function CasinoReservationsPage() {
 
             <form onSubmit={handlePendingUpdate} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs text-neutral-400 mb-1.5">Misafir Adı</label>
+                <label className="block text-xs text-neutral-400 mb-1.5">
+                  Misafir Adı
+                </label>
                 <input
                   type="text"
                   minLength={2}
                   required
                   value={editForm.guestName}
                   onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, guestName: e.target.value }))
+                    setEditForm((prev) => ({
+                      ...prev,
+                      guestName: e.target.value,
+                    }))
                   }
                   title="Misafir adı"
                   className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
@@ -462,26 +477,36 @@ export default function CasinoReservationsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5">Başlangıç</label>
+                  <label className="block text-xs text-neutral-400 mb-1.5">
+                    Başlangıç
+                  </label>
                   <input
                     type="date"
                     required
                     value={editForm.startDate}
                     onChange={(e) =>
-                      setEditForm((prev) => ({ ...prev, startDate: e.target.value }))
+                      setEditForm((prev) => ({
+                        ...prev,
+                        startDate: e.target.value,
+                      }))
                     }
                     title="Başlangıç tarihi"
                     className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5">Bitiş</label>
+                  <label className="block text-xs text-neutral-400 mb-1.5">
+                    Bitiş
+                  </label>
                   <input
                     type="date"
                     required
                     value={editForm.endDate}
                     onChange={(e) =>
-                      setEditForm((prev) => ({ ...prev, endDate: e.target.value }))
+                      setEditForm((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
                     }
                     title="Bitiş tarihi"
                     className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
@@ -490,7 +515,9 @@ export default function CasinoReservationsPage() {
               </div>
 
               <div>
-                <label className="block text-xs text-neutral-400 mb-1.5">Notlar</label>
+                <label className="block text-xs text-neutral-400 mb-1.5">
+                  Notlar
+                </label>
                 <textarea
                   value={editForm.notes}
                   onChange={(e) =>

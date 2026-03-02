@@ -28,6 +28,12 @@ import {
   type CurrencyCode,
 } from "@/lib/currency";
 import PermissionGate from "@/components/shared/PermissionGate";
+import {
+  successBtnCls,
+  dangerBtnCls,
+  dangerSoftBtnCls,
+  infoBtnCls,
+} from "@/components/shared/FormComponents";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -451,7 +457,7 @@ function DetailPanel({
                     })
                   }
                   disabled={actionLoading || !approvePrice}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                  className={successBtnCls + " flex items-center gap-1.5"}
                 >
                   <CheckCircle className="w-4 h-4" />
                   Onayla
@@ -460,7 +466,10 @@ function DetailPanel({
               {!showReject ? (
                 <button
                   onClick={() => setShowReject(true)}
-                  className="w-full px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-sm rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                  className={
+                    "w-full flex items-center justify-center gap-1.5 " +
+                    dangerSoftBtnCls
+                  }
                 >
                   <XCircle className="w-4 h-4" />
                   Reddet
@@ -482,7 +491,7 @@ function DetailPanel({
                         })
                       }
                       disabled={actionLoading || !rejectReason.trim()}
-                      className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+                      className={"flex-1 " + dangerBtnCls}
                     >
                       Reddet
                     </button>
@@ -511,7 +520,9 @@ function DetailPanel({
               <button
                 onClick={() => onAction("check-in", reservation.id)}
                 disabled={actionLoading}
-                className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                className={
+                  "w-full flex items-center justify-center gap-2 " + infoBtnCls
+                }
               >
                 <LogIn className="w-4 h-4" />
                 Check-in Yap

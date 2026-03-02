@@ -6,7 +6,14 @@ import TransformControls from "@/components/map/TransformControls";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { inputCls, selectCls } from "@/components/shared/FormComponents";
+import {
+  inputCls,
+  selectCls,
+  primaryBtnCls,
+  dangerBtnCls,
+  dangerSoftBtnCls,
+  cancelBtnCls,
+} from "@/components/shared/FormComponents";
 
 interface CabanaClass {
   id: string;
@@ -356,7 +363,7 @@ export default function SystemAdminMapPage() {
               setAddError("");
               setPlacementCoords(null);
             }}
-            className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            className={primaryBtnCls}
             title="Veya haritada sağ tıklayarak ekleyin"
           >
             + Yeni Kabana
@@ -542,7 +549,7 @@ export default function SystemAdminMapPage() {
                   <button
                     onClick={handleUpdateCabana}
                     disabled={editLoading || !editClassId}
-                    className="w-full py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors"
+                    className={"w-full " + primaryBtnCls}
                   >
                     {editLoading ? "Kaydediliyor..." : "Kaydet"}
                   </button>
@@ -554,7 +561,7 @@ export default function SystemAdminMapPage() {
                 {!showDeleteConfirm ? (
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="w-full py-2 text-sm font-semibold rounded-lg bg-red-950/50 hover:bg-red-900/60 border border-red-800/40 text-red-400 transition-colors"
+                    className={"w-full " + dangerSoftBtnCls}
                   >
                     Kabana Sil
                   </button>
@@ -569,14 +576,14 @@ export default function SystemAdminMapPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setShowDeleteConfirm(false)}
-                        className="flex-1 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                        className={"flex-1 " + cancelBtnCls}
                       >
                         İptal
                       </button>
                       <button
                         onClick={handleDelete}
                         disabled={deleteLoading}
-                        className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+                        className={"flex-1 " + dangerBtnCls}
                       >
                         {deleteLoading ? "Siliniyor..." : "Sil"}
                       </button>
@@ -591,8 +598,21 @@ export default function SystemAdminMapPage() {
 
       {/* Add Cabana Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
+        <div
+          className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => {
+            setShowAddModal(false);
+            setPlacementCoords(null);
+          }}
+        >
+          <div
+            className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-md sm:mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle for mobile */}
+            <div className="flex justify-center pt-2 pb-0 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-neutral-700" />
+            </div>
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
               <h2 className="text-sm font-semibold text-yellow-400">
                 Yeni Kabana Ekle
@@ -724,14 +744,14 @@ export default function SystemAdminMapPage() {
                     setShowAddModal(false);
                     setPlacementCoords(null);
                   }}
-                  className="px-4 py-2 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                  className={cancelBtnCls}
                 >
                   İptal
                 </button>
                 <button
                   type="submit"
                   disabled={addLoading}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 transition-colors"
+                  className={primaryBtnCls}
                 >
                   {addLoading ? "Ekleniyor..." : "Ekle"}
                 </button>

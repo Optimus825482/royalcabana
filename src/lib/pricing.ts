@@ -65,6 +65,10 @@ export class PricingEngine {
             include: { product: true },
           }),
           this.prisma.conceptPrice.findMany({ where: { conceptId } }),
+          this.prisma.concept.findUnique({
+            where: { id: conceptId },
+            select: { serviceFee: true },
+          }),
         ])
       : Promise.resolve(null);
 
@@ -142,7 +146,7 @@ export class PricingEngine {
     let conceptTotal = 0;
 
     if (conceptData) {
-      const [conceptProducts, allConceptPrices] = conceptData;
+      const [conceptProducts, allConceptPrices, conceptInfo] = conceptData;
       const conceptPriceMap = new Map(
         allConceptPrices.map((cp) => [cp.productId, cp]),
       );
@@ -174,6 +178,24 @@ export class PricingEngine {
           unitPrice,
           total,
           source,
+        });
+      }
+    }
+
+    // Add service fee if present
+    if (conceptData) {
+      const [, , conceptInfo] = conceptData;
+      const serviceFee = toNum(conceptInfo?.serviceFee);
+      if (serviceFee > 0) {
+        const stayDays = Math.max(days, 1);
+        const serviceFeeTotal = serviceFee * stayDays;
+        conceptTotal += serviceFeeTotal;
+        items.push({
+          name: "Konsept Hizmet Ücreti",
+          quantity: stayDays,
+          unitPrice: serviceFee,
+          total: serviceFeeTotal,
+          source: "CONCEPT_SPECIFIC",
         });
       }
     }

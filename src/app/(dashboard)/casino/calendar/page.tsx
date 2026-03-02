@@ -347,8 +347,18 @@ export default function CasinoCalendarPage() {
 
       {/* Request Modal */}
       {requestModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md mx-0 sm:mx-4 p-6">
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setRequestModal(null)}
+        >
+          <div
+            className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md mx-0 sm:mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle for mobile */}
+            <div className="flex justify-center -mt-3 mb-3 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-neutral-700" />
+            </div>
             <h2 className="text-base font-semibold text-amber-400 mb-4">
               Rezervasyon Talebi
             </h2>
@@ -384,13 +394,17 @@ function ReservationDetailModal({
         className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag handle for mobile */}
+        <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
+          <div className="w-10 h-1 rounded-full bg-neutral-700" />
+        </div>
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
           <h2 className="text-base font-semibold text-amber-400">
             {reservation.guestName}
           </h2>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors active:scale-95"
             aria-label="Kapat"
           >
             <X className="w-5 h-5" />
@@ -501,13 +515,17 @@ function CabanaDetailModal({
         className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag handle for mobile */}
+        <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
+          <div className="w-10 h-1 rounded-full bg-neutral-700" />
+        </div>
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
           <h2 className="text-base font-semibold text-amber-400">
             {cabana.name}
           </h2>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors active:scale-95"
             aria-label="Kapat"
           >
             <X className="w-5 h-5" />

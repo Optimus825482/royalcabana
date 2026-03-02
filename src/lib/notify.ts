@@ -4,7 +4,12 @@
  */
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:3007";
+  process.env.SOCKET_INTERNAL_URL ??
+  process.env.NEXT_PUBLIC_SOCKET_URL ??
+  "http://localhost:3007";
+
+const INTERNAL_SECRET =
+  process.env.INTERNAL_API_SECRET ?? process.env.NEXTAUTH_SECRET ?? "";
 
 /**
  * Emit a real-time notification event to a specific user via Socket.IO.
@@ -17,7 +22,10 @@ export async function emitNotification(userId: string, data?: unknown) {
     // we use a lightweight internal HTTP endpoint on the socket server.
     await fetch(`${SOCKET_URL}/emit`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": INTERNAL_SECRET,
+      },
       body: JSON.stringify({ userId, event: "notification", data }),
       signal: AbortSignal.timeout(2000),
     }).catch(() => {

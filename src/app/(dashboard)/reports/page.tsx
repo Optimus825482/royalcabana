@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { Role, ReportType } from "@/types";
-import { Field, inputCls } from "@/components/shared/FormComponents";
+import {
+  Field,
+  inputCls,
+  ghostBtnCls,
+} from "@/components/shared/FormComponents";
 import { FileText, BarChart3, Presentation } from "lucide-react";
 
 const SlidevEditor = lazy(() => import("@/components/reports/SlidevEditor"));
@@ -381,7 +385,7 @@ export default function ReportsPage() {
               <button
                 onClick={handlePreview}
                 disabled={previewLoading}
-                className="text-xs px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-neutral-300 transition-colors"
+                className={ghostBtnCls + " disabled:opacity-50"}
               >
                 {previewLoading ? "Yükleniyor..." : "Önizle"}
               </button>
