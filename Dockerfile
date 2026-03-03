@@ -13,6 +13,10 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# NEXT_PUBLIC_* değişkenleri client bundle'a build-time'da bake edilir
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+
 # Prisma client generate (dummy DATABASE_URL sadece generate için gerekli)
 RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 

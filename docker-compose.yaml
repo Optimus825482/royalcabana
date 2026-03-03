@@ -18,6 +18,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+        - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -25,10 +28,17 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/royal_cabana
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: https://${SERVICE_FQDN_APP:-royalcabana.erkanerdem.net}
-      NEXT_PUBLIC_APP_URL: https://${SERVICE_FQDN_APP:-royalcabana.erkanerdem.net}
-      NEXT_PUBLIC_SOCKET_URL: http://${SERVICE_FQDN_SOCKET:-jowk8oogog8sg40cc4gwk4g8.77.42.68.4.sslip.io}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      AUTH_TRUST_HOST: "true"
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL}
       SOCKET_INTERNAL_URL: http://socket:3007
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-demo-secret-2026}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-Royal Cabana <noreply@royalcabana.com>}
       NODE_ENV: production
       PORT: 3006
       HOSTNAME: "0.0.0.0"
@@ -42,7 +52,8 @@ services:
     restart: unless-stopped
     environment:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXT_PUBLIC_APP_URL: https://${SERVICE_FQDN_APP:-royalcabana.erkanerdem.net}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-demo-secret-2026}
       SOCKET_PORT: 3007
       NODE_ENV: production
     ports:

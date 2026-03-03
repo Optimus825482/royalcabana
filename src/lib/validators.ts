@@ -5,6 +5,7 @@ import { z } from "zod";
 export const createReservationSchema = z.object({
   cabanaId: z.string().min(1, "Kabana seçimi zorunludur."),
   guestName: z.string().min(2, "Misafir adı en az 2 karakter olmalıdır."),
+  guestId: z.string().optional().nullable(),
   startDate: z.string().min(1, "Başlangıç tarihi zorunludur."),
   endDate: z.string().min(1, "Bitiş tarihi zorunludur."),
   notes: z.string().optional().nullable(),

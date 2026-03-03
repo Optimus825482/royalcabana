@@ -32,4 +32,6 @@ echo "🌱 Running seed..."
 npx tsx prisma/seed.ts || echo "⚠️  Seed skipped (already seeded)"
 
 echo "🚀 Starting Next.js..."
+echo "ℹ️  NEXTAUTH_URL=${NEXTAUTH_URL:-NOT SET}"
+echo "ℹ️  NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-NOT SET}"
 exec node server.js
