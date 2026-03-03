@@ -29,7 +29,10 @@ type ApiHandler = (
 export function withAuth(
   allowedRoles: Role[],
   handler: ApiHandler,
-  options?: { rateLimit?: { limit?: number; windowMs?: number } },
+  options?: {
+    rateLimit?: { limit?: number; windowMs?: number };
+    requiredPermissions?: string[];
+  },
 ) {
   return async (
     req: NextRequest,

@@ -31,6 +31,7 @@ services:
       SOCKET_INTERNAL_URL: http://socket:3007
       NODE_ENV: production
       PORT: 3006
+      HOSTNAME: "0.0.0.0"
     ports:
       - "3006:3006"
 

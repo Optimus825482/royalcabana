@@ -52,6 +52,7 @@ RUN chmod +x ./docker-entrypoint.sh
 USER nextjs
 
 ENV PORT=3006
+ENV HOSTNAME=0.0.0.0
 EXPOSE 3006
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
