@@ -79,7 +79,8 @@ export default function LoginPage() {
 
       const target =
         role && MODULE_ACCESS[role]?.length > 0 ? MODULE_ACCESS[role][0] : "/";
-      router.push(target);
+      // Full page redirect so the first dashboard request definitely sends the session cookie (avoids middleware missing token after client-side nav)
+      window.location.assign(target);
     } catch {
       setError("Bir hata oluştu. Lütfen tekrar deneyin.");
     } finally {

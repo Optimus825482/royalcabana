@@ -88,7 +88,10 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  const token = await getToken({ req: request });
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
 
   if (!token || token.expired) {
     return NextResponse.redirect(new URL("/login", request.url));
