@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
+  BellRing,
   ClipboardList,
   CheckCircle2,
   XCircle,
@@ -14,6 +15,12 @@ import {
   ShoppingBag,
   RefreshCw,
 } from "lucide-react";
+import {
+  isPushSupported,
+  subscribeToPush,
+  unsubscribeFromPush,
+  getExistingSubscription,
+} from "@/lib/push";
 
 interface Notification {
   id: string;
@@ -52,7 +59,19 @@ async function fetchUnread(): Promise<{
 }> {
   const res = await fetch("/api/notifications?unread=true");
   if (!res.ok) throw new Error("Bildirimler yüklenemedi.");
-  return res.json();
+  const payload: {
+    success: boolean;
+    data?: {
+      notifications?: Notification[];
+      total?: number;
+    };
+  } = await res.json();
+
+  const notifications = payload.data?.notifications ?? [];
+  return {
+    notifications,
+    total: payload.data?.total ?? notifications.length,
+  };
 }
 
 export default function NotificationPanel() {
@@ -68,7 +87,7 @@ export default function NotificationPanel() {
     refetchInterval: 30_000, // polling fallback — 30s
   });
 
-  const unreadCount = data?.notifications.filter((n) => !n.isRead).length ?? 0;
+  const unreadCount = data?.notifications?.filter((n) => !n.isRead).length ?? 0;
 
   // Socket.io real-time (lazy import to avoid SSR issues)
   useEffect(() => {
@@ -125,6 +144,37 @@ export default function NotificationPanel() {
     },
     [queryClient],
   );
+
+  const [pushState, setPushState] = useState<
+    "loading" | "unsupported" | "subscribed" | "unsubscribed"
+  >("loading");
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      if (!(await isPushSupported())) {
+        setPushState("unsupported");
+        return;
+      }
+      const sub = await getExistingSubscription();
+      setPushState(sub ? "subscribed" : "unsubscribed");
+    })();
+  }, []);
+
+  const togglePush = useCallback(async () => {
+    setPushBusy(true);
+    try {
+      if (pushState === "subscribed") {
+        await unsubscribeFromPush();
+        setPushState("unsubscribed");
+      } else {
+        const sub = await subscribeToPush();
+        setPushState(sub ? "subscribed" : "unsubscribed");
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  }, [pushState]);
 
   if (!session) return null;
 
@@ -210,6 +260,33 @@ export default function NotificationPanel() {
               ))
             )}
           </div>
+
+          {/* Push notification toggle */}
+          {pushState !== "unsupported" && (
+            <div className="px-4 py-2.5 border-t border-neutral-800 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-neutral-400">
+                <BellRing className="w-3.5 h-3.5" />
+                <span>Push Bildirim</span>
+              </div>
+              <button
+                onClick={togglePush}
+                disabled={pushBusy || pushState === "loading"}
+                className={`relative w-9 h-5 rounded-full transition-colors ${
+                  pushState === "subscribed"
+                    ? "bg-yellow-600"
+                    : "bg-neutral-700"
+                } ${pushBusy ? "opacity-50" : ""}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                    pushState === "subscribed"
+                      ? "translate-x-4"
+                      : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

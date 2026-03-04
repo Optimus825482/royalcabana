@@ -15,12 +15,12 @@ export default function LoadingSpinner({
   const [imgError, setImgError] = useState(false);
 
   const sizeMap = {
-    sm: { logo: 32, ring: "w-10 h-10", text: "text-xs" },
-    md: { logo: 48, ring: "w-16 h-16", text: "text-sm" },
-    lg: { logo: 64, ring: "w-20 h-20", text: "text-base" },
+    sm: { logo: 32, logoClass: "w-8 h-8", ring: "w-10 h-10", text: "text-xs" },
+    md: { logo: 48, logoClass: "w-12 h-12", ring: "w-16 h-16", text: "text-sm" },
+    lg: { logo: 64, logoClass: "w-16 h-16", ring: "w-20 h-20", text: "text-base" },
   };
 
-  const { logo, ring, text } = sizeMap[size];
+  const { logo, logoClass, ring, text } = sizeMap[size];
 
   return (
     <div className="flex flex-col items-center justify-center gap-4">
@@ -33,8 +33,7 @@ export default function LoadingSpinner({
         <div className="rounded-lg shadow-[0_0_12px_rgba(245,158,11,0.4)] animate-pulse">
           {imgError ? (
             <div
-              className="rounded-lg bg-neutral-800 flex items-center justify-center text-amber-400 font-bold"
-              style={{ width: logo, height: logo }}
+              className={`rounded-lg bg-neutral-800 flex items-center justify-center text-amber-400 font-bold ${logoClass}`}
             >
               RC
             </div>

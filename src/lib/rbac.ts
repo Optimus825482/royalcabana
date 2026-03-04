@@ -11,29 +11,29 @@ export interface PermissionTemplate {
 }
 
 export const PERMISSION_TEMPLATES: PermissionTemplate[] = [
-  // ── Kabana Sınıfları ──
+  // ── Cabana Sınıfları ──
   {
     key: "cabana.class.view",
-    name: "Kabana sınıflarını görüntüle",
-    module: "Kabana Sınıfları",
+    name: "Cabana sınıflarını görüntüle",
+    module: "Cabana Sınıfları",
     action: "view",
   },
   {
     key: "cabana.class.create",
-    name: "Kabana sınıfı oluştur",
-    module: "Kabana Sınıfları",
+    name: "Cabana sınıfı oluştur",
+    module: "Cabana Sınıfları",
     action: "create",
   },
   {
     key: "cabana.class.update",
-    name: "Kabana sınıfı güncelle",
-    module: "Kabana Sınıfları",
+    name: "Cabana sınıfı güncelle",
+    module: "Cabana Sınıfları",
     action: "update",
   },
   {
     key: "cabana.class.delete",
-    name: "Kabana sınıfı sil",
-    module: "Kabana Sınıfları",
+    name: "Cabana sınıfı sil",
+    module: "Cabana Sınıfları",
     action: "delete",
   },
   // ── Konseptler ──
@@ -220,7 +220,7 @@ export const PERMISSION_TEMPLATES: PermissionTemplate[] = [
   },
   {
     key: "map.update",
-    name: "Harita düzenle (kabana konumları)",
+    name: "Harita düzenle (Cabana konumları)",
     module: "Harita",
     action: "update",
   },
@@ -398,6 +398,7 @@ export const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "fnb.order.create",
     "fnb.order.update",
     "reservation.view",
+    "map.view",
   ],
 };
 

@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { parseBody, createGuestSchema } from "@/lib/validators";
 
 export const GET = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (req) => {
     const { searchParams } = req.nextUrl;
     const search = searchParams.get("search")?.trim() || undefined;
@@ -17,6 +17,7 @@ export const GET = withAuth(
     );
     const skip = (page - 1) * limit;
     const isBlacklisted = searchParams.get("isBlacklisted");
+    const vipLevel = searchParams.get("vipLevel");
 
     const where: Record<string, unknown> = { deletedAt: null };
 
@@ -24,6 +25,7 @@ export const GET = withAuth(
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
         { phone: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -31,30 +33,46 @@ export const GET = withAuth(
       where.isBlacklisted = isBlacklisted === "true";
     }
 
+    if (
+      vipLevel &&
+      ["STANDARD", "SILVER", "GOLD", "PLATINUM"].includes(vipLevel)
+    ) {
+      where.vipLevel = vipLevel;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = prisma as any;
     const [guests, total] = await Promise.all([
-      (prisma as any).guest.findMany({
+      db.guest.findMany({
         where,
+        include: {
+          _count: { select: { reservations: true } },
+        },
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      (prisma as any).guest.count({ where }),
+      db.guest.count({ where }),
     ]);
 
-    return NextResponse.json({ guests, total });
+    return NextResponse.json({ success: true, data: { guests, total } });
   },
 );
 
 export const POST = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (req, { session }) => {
     const body = await req.json();
     const parsed = parseBody(createGuestSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const guest = await (prisma as any).guest.create({
       data: parsed.data,
     });
@@ -67,6 +85,6 @@ export const POST = withAuth(
       newValue: parsed.data as Record<string, unknown>,
     });
 
-    return NextResponse.json(guest, { status: 201 });
+    return NextResponse.json({ success: true, data: guest }, { status: 201 });
   },
 );

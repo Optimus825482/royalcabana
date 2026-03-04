@@ -14,19 +14,18 @@ export const POST = withAuth(
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
 
-    // IDOR: sadece kendi rezervasyonu
     if (reservation.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     if (!["APPROVED", "PENDING"].includes(reservation.status)) {
       return NextResponse.json(
-        { error: "Bu rezervasyon için iptal talebi oluşturulamaz." },
+        { success: false, error: "Bu rezervasyon için iptal talebi oluşturulamaz." },
         { status: 400 },
       );
     }
@@ -35,7 +34,7 @@ export const POST = withAuth(
     const parsed = parseBody(cancellationRequestSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
 
     const { reason } = parsed.data;
@@ -91,7 +90,7 @@ export const POST = withAuth(
       newValue: { status: "MODIFICATION_PENDING", reason },
     });
 
-    return NextResponse.json(cancelRequest, { status: 201 });
+    return NextResponse.json({ success: true, data: cancelRequest }, { status: 201 });
   },
   { requiredPermissions: ["reservation.delete"] },
 );

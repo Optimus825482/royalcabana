@@ -16,6 +16,12 @@ interface AdminStats {
   rejectedThisMonth: number;
 }
 
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: Partial<T>;
+  error?: string;
+}
+
 function KpiSkeleton() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -39,7 +45,18 @@ export default function AdminDashboardPage() {
     queryFn: async () => {
       const res = await fetch("/api/admin/stats");
       if (!res.ok) throw new Error("Veri alınamadı");
-      return res.json();
+      const payload: ApiEnvelope<AdminStats> = await res.json();
+
+      return {
+        totalCabanas: payload.data?.totalCabanas ?? 0,
+        availableCabanas: payload.data?.availableCabanas ?? 0,
+        reservedCabanas: payload.data?.reservedCabanas ?? 0,
+        closedCabanas: payload.data?.closedCabanas ?? 0,
+        occupancyRate: payload.data?.occupancyRate ?? 0,
+        pendingRequests: payload.data?.pendingRequests ?? 0,
+        approvedThisMonth: payload.data?.approvedThisMonth ?? 0,
+        rejectedThisMonth: payload.data?.rejectedThisMonth ?? 0,
+      };
     },
   });
 
@@ -69,7 +86,10 @@ export default function AdminDashboardPage() {
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Doluluk Oranı */}
-              <div className="bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/30 rounded-xl p-5">
+                <Link
+                  href="/admin/reservations"
+                  className="group bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/30 hover:border-amber-400/60 rounded-xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-amber-500/10 cursor-pointer"
+                >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
                     <Percent className="w-5 h-5 text-amber-400" />
@@ -77,17 +97,21 @@ export default function AdminDashboardPage() {
                   <span className="text-xs text-amber-400 font-medium uppercase tracking-wider">
                     Doluluk
                   </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-amber-400/0 group-hover:text-amber-400/80 ml-auto transition-all group-hover:translate-x-0.5" />
                 </div>
                 <p className="text-3xl font-bold text-amber-400">
                   %{stats.occupancyRate.toFixed(1)}
                 </p>
                 <p className="text-xs text-neutral-500 mt-1">
-                  {stats.reservedCabanas}/{stats.totalCabanas} kabana
+                    {stats.reservedCabanas}/{stats.totalCabanas} Cabana
                 </p>
-              </div>
+                </Link>
 
               {/* Bekleyen Talepler */}
-              <div className="bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 rounded-xl p-5">
+                <Link
+                  href="/admin/requests"
+                  className="group bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-400/60 rounded-xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-orange-500/10 cursor-pointer"
+                >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
                     <Clock className="w-5 h-5 text-orange-400" />
@@ -95,15 +119,19 @@ export default function AdminDashboardPage() {
                   <span className="text-xs text-orange-400 font-medium uppercase tracking-wider">
                     Bekleyen
                   </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-orange-400/0 group-hover:text-orange-400/80 ml-auto transition-all group-hover:translate-x-0.5" />
                 </div>
                 <p className="text-3xl font-bold text-orange-400">
                   {stats.pendingRequests}
                 </p>
                 <p className="text-xs text-neutral-500 mt-1">Onay bekliyor</p>
-              </div>
+                </Link>
 
               {/* Bu Ay Onaylanan */}
-              <div className="bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 rounded-xl p-5">
+                <Link
+                  href="/admin/reservations?status=APPROVED"
+                  className="group bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 hover:border-green-400/60 rounded-xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-green-500/10 cursor-pointer"
+                >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
                     <CalendarCheck className="w-5 h-5 text-green-400" />
@@ -111,15 +139,19 @@ export default function AdminDashboardPage() {
                   <span className="text-xs text-green-400 font-medium uppercase tracking-wider">
                     Onaylanan
                   </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-green-400/0 group-hover:text-green-400/80 ml-auto transition-all group-hover:translate-x-0.5" />
                 </div>
                 <p className="text-3xl font-bold text-green-400">
                   {stats.approvedThisMonth}
                 </p>
                 <p className="text-xs text-neutral-500 mt-1">Bu ay</p>
-              </div>
+                </Link>
 
               {/* Bu Ay Reddedilen */}
-              <div className="bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/30 rounded-xl p-5">
+                <Link
+                  href="/admin/reservations?status=REJECTED"
+                  className="group bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/30 hover:border-red-400/60 rounded-xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/10 cursor-pointer"
+                >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
                     <X className="w-5 h-5 text-red-400" />
@@ -127,20 +159,21 @@ export default function AdminDashboardPage() {
                   <span className="text-xs text-red-400 font-medium uppercase tracking-wider">
                     Reddedilen
                   </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-red-400/0 group-hover:text-red-400/80 ml-auto transition-all group-hover:translate-x-0.5" />
                 </div>
                 <p className="text-3xl font-bold text-red-400">
                   {stats.rejectedThisMonth}
                 </p>
                 <p className="text-xs text-neutral-500 mt-1">Bu ay</p>
-              </div>
+                </Link>
             </div>
 
-            {/* Kabana Durum + Weather */}
+              {/* Cabana Durum + Weather */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Kabana Durum Dağılımı */}
+                {/* Cabana Durum Dağılımı */}
               <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
                 <h2 className="text-sm font-semibold text-neutral-300 mb-4">
-                  Kabana Durum Dağılımı
+                    Cabana Durum Dağılımı
                 </h2>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

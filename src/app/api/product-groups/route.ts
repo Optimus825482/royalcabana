@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { cached, invalidateCache } from "@/lib/cache";
 
 const allRoles = [
   Role.ADMIN,
@@ -20,11 +21,14 @@ const createSchema = z.object({
 export const GET = withAuth(
   allRoles,
   async () => {
-    const groups = await prisma.productGroup.findMany({
-      orderBy: { sortOrder: "asc" },
-      include: { _count: { select: { products: true } } },
+    const groups = await cached("product-groups:list:v1", 300, async () => {
+      return prisma.productGroup.findMany({
+        where: { isDeleted: false },
+        orderBy: { sortOrder: "asc" },
+        include: { _count: { select: { products: true } } },
+      });
     });
-    return NextResponse.json(groups);
+    return NextResponse.json({ success: true, data: groups });
   },
   { requiredPermissions: ["product.view"] },
 );
@@ -36,7 +40,11 @@ export const POST = withAuth(
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -50,7 +58,9 @@ export const POST = withAuth(
       newValue: parsed.data,
     });
 
-    return NextResponse.json(group, { status: 201 });
+    await invalidateCache("product-groups:list:v1");
+
+    return NextResponse.json({ success: true, data: group }, { status: 201 });
   },
   { requiredPermissions: ["product.create"] },
 );

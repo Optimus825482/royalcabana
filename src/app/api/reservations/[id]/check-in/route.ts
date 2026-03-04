@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/types";
+import { CabanaStatus, Role } from "@/types";
 import { logAudit } from "@/lib/audit";
 import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
 import { notificationService } from "@/services/notification.service";
 
 export const POST = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.FNB_USER],
   async (_req, { session, params }) => {
     const id = params!.id;
 
@@ -18,9 +18,9 @@ export const POST = withAuth(
       include: { cabana: { select: { name: true } } },
     });
 
-    if (!reservation) {
+    if (!reservation || reservation.deletedAt) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
@@ -28,6 +28,7 @@ export const POST = withAuth(
     if (reservation.status !== "APPROVED") {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Yalnızca onaylanmış rezervasyonlar için check-in yapılabilir.",
         },
@@ -54,6 +55,10 @@ export const POST = withAuth(
           toStatus: "CHECKED_IN" as any,
           changedBy: session.user.id,
         },
+      }),
+      prisma.cabana.update({
+        where: { id: reservation.cabanaId },
+        data: { status: CabanaStatus.OCCUPIED },
       }),
     ]);
 
@@ -82,12 +87,12 @@ export const POST = withAuth(
         userId: reservation.userId,
         type: "CHECK_IN" as any,
         title: "Check-in Yapıldı",
-        message: `${updated.guestName} için ${cabanaName} kabana check-in yapıldı.`,
+        message: `${updated.guestName} için ${cabanaName} Cabana check-in yapıldı.`,
         metadata: { reservationId: id, cabanaName },
       });
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["reservation.update"] },
 );

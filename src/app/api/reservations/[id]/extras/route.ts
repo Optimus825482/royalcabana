@@ -30,7 +30,7 @@ export const GET = withAuth(
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json(extras);
+    return NextResponse.json({ success: true, data: extras });
   },
   { requiredPermissions: ["reservation.view"] },
 );
@@ -43,14 +43,14 @@ export const POST = withAuth(
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
 
     if (reservation.status !== "APPROVED") {
       return NextResponse.json(
-        { error: "Yalnızca onaylı rezervasyonlara ekstra eklenebilir." },
+        { success: false, error: "Yalnızca onaylı rezervasyonlara ekstra eklenebilir." },
         { status: 400 },
       );
     }
@@ -60,7 +60,7 @@ export const POST = withAuth(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Geçersiz veri." },
+        { success: false, error: parsed.error.issues[0]?.message ?? "Geçersiz veri." },
         { status: 400 },
       );
     }
@@ -74,7 +74,7 @@ export const POST = withAuth(
 
     if (products.length !== productIds.length) {
       return NextResponse.json(
-        { error: "Bazı ürünler bulunamadı veya aktif değil." },
+        { success: false, error: "Bazı ürünler bulunamadı veya aktif değil." },
         { status: 400 },
       );
     }
@@ -148,7 +148,7 @@ export const POST = withAuth(
       newValue: { items },
     });
 
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json({ success: true, data: created }, { status: 201 });
   },
   { requiredPermissions: ["fnb.order.create"] },
 );

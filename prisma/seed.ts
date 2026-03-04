@@ -1,4 +1,11 @@
-import { PrismaClient, Role } from "@prisma/client";
+import {
+  PrismaClient,
+  Role,
+  ReservationStatus,
+  FnbOrderStatus,
+  NotificationType,
+  VipLevel,
+} from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { config } from "dotenv";
@@ -18,26 +25,26 @@ type PermissionTemplate = {
 const PERMISSION_TEMPLATES: PermissionTemplate[] = [
   {
     key: "cabana.class.view",
-    name: "Kabana sınıflarını görüntüle",
-    module: "Kabana Sınıfları",
+    name: "Cabana sınıflarını görüntüle",
+    module: "Cabana Sınıfları",
     action: "view",
   },
   {
     key: "cabana.class.create",
-    name: "Kabana sınıfı oluştur",
-    module: "Kabana Sınıfları",
+    name: "Cabana sınıfı oluştur",
+    module: "Cabana Sınıfları",
     action: "create",
   },
   {
     key: "cabana.class.update",
-    name: "Kabana sınıfı güncelle",
-    module: "Kabana Sınıfları",
+    name: "Cabana sınıfı güncelle",
+    module: "Cabana Sınıfları",
     action: "update",
   },
   {
     key: "cabana.class.delete",
-    name: "Kabana sınıfı sil",
-    module: "Kabana Sınıfları",
+    name: "Cabana sınıfı sil",
+    module: "Cabana Sınıfları",
     action: "delete",
   },
   {
@@ -427,35 +434,35 @@ async function main() {
     }
   }
 
-  // Örnek Kabana Sınıfları
+  // Örnek Cabana Sınıfları
   const standardClass = await prisma.cabanaClass.upsert({
-    where: { name: "Standart Kabana" },
+    where: { name: "Standart Cabana" },
     update: {},
     create: {
-      name: "Standart Kabana",
-      description: "Temel konfor ve hizmetler sunan standart kabana sınıfı",
+      name: "Standart Cabana",
+      description: "Temel konfor ve hizmetler sunan standart cabana sınıfı",
       defaults: JSON.stringify({ capacity: 2, view: "sea" }),
     },
   });
 
   const premiumClass = await prisma.cabanaClass.upsert({
-    where: { name: "Premium Kabana" },
+    where: { name: "Premium Cabana" },
     update: {},
     create: {
-      name: "Premium Kabana",
+      name: "Premium Cabana",
       description:
-        "Üst düzey konfor ve özel hizmetler sunan premium kabana sınıfı",
+        "Üst düzey konfor ve özel hizmetler sunan premium cabana sınıfı",
       defaults: JSON.stringify({ capacity: 4, view: "sea", privatePool: true }),
     },
   });
 
   const vipClass = await prisma.cabanaClass.upsert({
-    where: { name: "VIP Kabana" },
+    where: { name: "VIP Cabana" },
     update: {},
     create: {
-      name: "VIP Kabana",
+      name: "VIP Cabana",
       description:
-        "En üst düzey lüks ve kişiselleştirilmiş hizmet sunan VIP kabana",
+        "En üst düzey lüks ve kişiselleştirilmiş hizmet sunan VIP cabana",
       defaults: JSON.stringify({
         capacity: 6,
         view: "panoramic",
@@ -466,12 +473,12 @@ async function main() {
   });
 
   const familyClass = await prisma.cabanaClass.upsert({
-    where: { name: "Aile Kabana" },
+    where: { name: "Aile Cabana" },
     update: {},
     create: {
-      name: "Aile Kabana",
+      name: "Aile Cabana",
       description:
-        "Aileler için geniş alan ve çocuk dostu hizmetler sunan kabana",
+        "Aileler için geniş alan ve çocuk dostu hizmetler sunan cabana",
       defaults: JSON.stringify({ capacity: 8, view: "garden", kidsArea: true }),
     },
   });
@@ -884,16 +891,16 @@ async function main() {
     },
   });
 
-  // ===== KABANALAR — Görseldeki yerleşim planına göre =====
+  // ===== CABANALAR — Görseldeki yerleşim planına göre =====
   // Harita boyutu: 1040×678 piksel (sonnn.png)
   // Koordinatlar (coordX, coordY) = piksel cinsinden (0,0 sol-üst köşe)
   // Hava fotoğrafı + kroki eşleşmesine göre düzenlenmiştir.
 
   const cabanas = [
-    // ─── SOL DENİZ PLATFORMU — L-şekil, 8 kabana (2×2 üst + 2×2 alt) ──
+    // ─── SOL DENİZ PLATFORMU — L-şekil, 8 cabana (2×2 üst + 2×2 alt) ──
     // Üst sol çift
     {
-      name: "Kabana-01",
+      name: "Cabana-01",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 454.05,
@@ -903,7 +910,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-02",
+      name: "Cabana-02",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 412.69,
@@ -914,7 +921,7 @@ async function main() {
     },
     // Üst sağ çift
     {
-      name: "Kabana-07",
+      name: "Cabana-07",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 376.98,
@@ -924,7 +931,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-08",
+      name: "Cabana-08",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 359.14,
@@ -935,7 +942,7 @@ async function main() {
     },
     // Alt sol çift (platformun alt kolu)
     {
-      name: "Kabana-03",
+      name: "Cabana-03",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 372.5,
@@ -945,7 +952,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-04",
+      name: "Cabana-04",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 470.66,
@@ -956,7 +963,7 @@ async function main() {
     },
     // Alt sağ çift (platformun alt kolu)
     {
-      name: "Kabana-05",
+      name: "Cabana-05",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 455.83,
@@ -966,7 +973,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-06",
+      name: "Cabana-06",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 438.52,
@@ -976,9 +983,9 @@ async function main() {
       scaleY: 1.5,
     },
 
-    // ─── KIYI BOYUNCA — 4 standart kabana, kıyı hattında sıralı ───────
+    // ─── KIYI BOYUNCA — 4 standart cabana, kıyı hattında sıralı ───────
     {
-      name: "Kabana-09",
+      name: "Cabana-09",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 343.4,
@@ -988,7 +995,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-10",
+      name: "Cabana-10",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 510.31,
@@ -998,7 +1005,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-11",
+      name: "Cabana-11",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 525.7,
@@ -1008,7 +1015,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-12",
+      name: "Cabana-12",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 541.24,
@@ -1020,7 +1027,7 @@ async function main() {
 
     // ─── ORTA KISIM — 13, 14, 15 ──────────────────────────────────────
     {
-      name: "Kabana-13",
+      name: "Cabana-13",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 538.98,
@@ -1030,7 +1037,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-14",
+      name: "Cabana-14",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 523.16,
@@ -1040,7 +1047,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-15",
+      name: "Cabana-15",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 505.28,
@@ -1050,10 +1057,10 @@ async function main() {
       scaleY: 1.5,
     },
 
-    // ─── ANA DENİZ PLATFORMU (artı/+ şekli) — 10 kabana ──────────────
+    // ─── ANA DENİZ PLATFORMU (artı/+ şekli) — 10 cabana ──────────────
     // Sol kol (yukarıdan aşağı): 16 → 17 → 18
     {
-      name: "Kabana-16",
+      name: "Cabana-16",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 846.99,
@@ -1063,7 +1070,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-17",
+      name: "Cabana-17",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 845.93,
@@ -1073,7 +1080,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-18",
+      name: "Cabana-18",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 846.08,
@@ -1084,7 +1091,7 @@ async function main() {
     },
     // Sağ kol (yukarıdan aşağı): 25 → 24 → 23
     {
-      name: "Kabana-25",
+      name: "Cabana-25",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 933.57,
@@ -1094,7 +1101,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-24",
+      name: "Cabana-24",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 935.03,
@@ -1104,7 +1111,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "Kabana-23",
+      name: "Cabana-23",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 935.36,
@@ -1115,7 +1122,7 @@ async function main() {
     },
     // Alt sol köşe: 19 (üst), 20 (alt)
     {
-      name: "Kabana-19",
+      name: "Cabana-19",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 787.79,
@@ -1125,7 +1132,7 @@ async function main() {
       scaleY: 2.4,
     },
     {
-      name: "Kabana-20",
+      name: "Cabana-20",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 787.72,
@@ -1136,7 +1143,7 @@ async function main() {
     },
     // Alt sağ köşe: 22 (üst), 21 (alt)
     {
-      name: "Kabana-22",
+      name: "Cabana-22",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 991.57,
@@ -1146,7 +1153,7 @@ async function main() {
       scaleY: 2.3,
     },
     {
-      name: "Kabana-21",
+      name: "Cabana-21",
       classId: standardClass.id,
       conceptId: basicConcept.id,
       coordX: 992.26,
@@ -1156,9 +1163,9 @@ async function main() {
       scaleY: 2.2,
     },
 
-    // ─── VIP KABANALAR — Kıyıda, merkez iskele yakını, büyük ─────────
+    // ─── VIP CABANALAR — Kıyıda, merkez iskele yakını, büyük ─────────
     {
-      name: "VIP Kabana-26",
+      name: "VIP Cabana-26",
       classId: vipClass.id,
       conceptId: premiumConcept.id,
       coordX: 539.08,
@@ -1168,7 +1175,7 @@ async function main() {
       scaleY: 1.5,
     },
     {
-      name: "VIP Kabana-27",
+      name: "VIP Cabana-27",
       classId: vipClass.id,
       conceptId: premiumConcept.id,
       coordX: 578.53,
@@ -1213,6 +1220,13 @@ async function main() {
     where: { key: "system_currency" },
     update: {},
     create: { key: "system_currency", value: "TRY" },
+  });
+
+  // Default (Standart) Konsept — konsept seçilmezse otomatik atanır
+  await prisma.systemConfig.upsert({
+    where: { key: "default_concept_id" },
+    update: { value: basicConcept.id },
+    create: { key: "default_concept_id", value: basicConcept.id },
   });
 
   // Bar positions (map buildings)
@@ -1286,101 +1300,284 @@ async function main() {
     },
   });
 
-  // ===== ÖRNEK KABANA FİYATLARI =====
-  // Bugünden itibaren 30 gün için örnek günlük fiyatlar
+  // Fiyatlandırma basitleştirildi — CabanaPrice ve CabanaPriceRange kaldırıldı
+  // Fiyatlandırma basitleştirildi — ConceptPrice kaldırıldı
+  // Yeni model: conceptPrice = Σ(product.salePrice × qty) + serviceFee
+
+  // ===== TEST VERİLERİ =====
+
+  // ── Guests (10 adet) ──
+  const guestData = [
+    { name: "Ahmet Yılmaz", phone: "+905321234567", email: "ahmet.yilmaz@email.com", vipLevel: VipLevel.STANDARD },
+    { name: "Elif Kaya", phone: "+905339876543", email: "elif.kaya@email.com", vipLevel: VipLevel.SILVER },
+    { name: "Mehmet Demir", phone: "+905441112233", email: "mehmet.demir@email.com", vipLevel: VipLevel.GOLD },
+    { name: "Zeynep Çelik", phone: "+905552223344", email: "zeynep.celik@email.com", vipLevel: VipLevel.PLATINUM },
+    { name: "Burak Şahin", phone: "+905363334455", email: "burak.sahin@email.com", vipLevel: VipLevel.STANDARD },
+    { name: "Ayşe Öztürk", phone: "+905424445566", email: "ayse.ozturk@email.com", vipLevel: VipLevel.SILVER },
+    { name: "Emre Arslan", phone: "+905515556677", email: "emre.arslan@email.com", vipLevel: VipLevel.GOLD },
+    { name: "Fatma Doğan", phone: "+905376667788", email: "fatma.dogan@email.com", vipLevel: VipLevel.STANDARD },
+    { name: "Can Yıldırım", phone: "+905487778899", email: "can.yildirim@email.com", vipLevel: VipLevel.PLATINUM },
+    { name: "Selin Koç", phone: "+905398889900", email: "selin.koc@email.com", vipLevel: VipLevel.SILVER },
+  ];
+
+  const guests = [];
+  for (const g of guestData) {
+    const guest = await prisma.guest.upsert({
+      where: { id: `guest-seed-${g.email}` },
+      update: { vipLevel: g.vipLevel },
+      create: {
+        id: `guest-seed-${g.email}`,
+        name: g.name,
+        phone: g.phone,
+        email: g.email,
+        vipLevel: g.vipLevel,
+      },
+    });
+    guests.push(guest);
+  }
+
+  // ── Fetch cabana IDs for reservations ──
   const allCabanas = await prisma.cabana.findMany({
-    where: { deletedAt: null },
+    select: { id: true, name: true },
+    take: 15,
   });
+
+  // ── Reservations (15 adet) ──
   const today = new Date();
+  const dayMs = 86400000;
 
-  // Sınıf bazlı günlük fiyat haritası
-  const classBasePrices: Record<string, number> = {
-    [standardClass.id]: 5000,
-    [premiumClass.id]: 8500,
-    [vipClass.id]: 15000,
-    [familyClass.id]: 7000,
-  };
+  const reservationConfigs = [
+    // 3 PENDING
+    { guestIdx: 0, cabIdx: 0, status: ReservationStatus.PENDING, daysFromNow: 5, duration: 2, price: null },
+    { guestIdx: 1, cabIdx: 1, status: ReservationStatus.PENDING, daysFromNow: 7, duration: 3, price: null },
+    { guestIdx: 4, cabIdx: 4, status: ReservationStatus.PENDING, daysFromNow: 10, duration: 1, price: null },
+    // 4 APPROVED
+    { guestIdx: 2, cabIdx: 2, status: ReservationStatus.APPROVED, daysFromNow: 1, duration: 2, price: 2500 },
+    { guestIdx: 3, cabIdx: 3, status: ReservationStatus.APPROVED, daysFromNow: 2, duration: 3, price: 4500 },
+    { guestIdx: 5, cabIdx: 5, status: ReservationStatus.APPROVED, daysFromNow: 3, duration: 1, price: 1800 },
+    { guestIdx: 6, cabIdx: 6, status: ReservationStatus.APPROVED, daysFromNow: 4, duration: 2, price: 3200 },
+    // 2 CHECKED_IN
+    { guestIdx: 7, cabIdx: 7, status: ReservationStatus.CHECKED_IN, daysFromNow: 0, duration: 2, price: 2200 },
+    { guestIdx: 8, cabIdx: 8, status: ReservationStatus.CHECKED_IN, daysFromNow: -1, duration: 3, price: 5000 },
+    // 3 CHECKED_OUT
+    { guestIdx: 9, cabIdx: 9, status: ReservationStatus.CHECKED_OUT, daysFromNow: -5, duration: 2, price: 1900 },
+    { guestIdx: 0, cabIdx: 10, status: ReservationStatus.CHECKED_OUT, daysFromNow: -7, duration: 1, price: 1200 },
+    { guestIdx: 1, cabIdx: 11, status: ReservationStatus.CHECKED_OUT, daysFromNow: -10, duration: 3, price: 4000 },
+    // 2 CANCELLED
+    { guestIdx: 2, cabIdx: 12, status: ReservationStatus.CANCELLED, daysFromNow: 8, duration: 2, price: null },
+    { guestIdx: 3, cabIdx: 13, status: ReservationStatus.CANCELLED, daysFromNow: 12, duration: 1, price: null },
+    // 1 REJECTED
+    { guestIdx: 4, cabIdx: 14 % allCabanas.length, status: ReservationStatus.REJECTED, daysFromNow: 6, duration: 2, price: null },
+  ];
 
-  for (const cab of allCabanas) {
-    const basePrice = classBasePrices[cab.classId] ?? 5000;
-    for (let d = 0; d < 30; d++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + d);
-      const dateStr = date.toISOString().split("T")[0];
-      // Hafta sonu %20 artış
-      const dayOfWeek = date.getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      const dailyPrice = isWeekend ? basePrice * 1.2 : basePrice;
+  const reservations = [];
+  for (let i = 0; i < reservationConfigs.length; i++) {
+    const cfg = reservationConfigs[i];
+    const guest = guests[cfg.guestIdx];
+    const cabana = allCabanas[cfg.cabIdx % allCabanas.length];
+    const startDate = new Date(today.getTime() + cfg.daysFromNow * dayMs);
+    const endDate = new Date(startDate.getTime() + cfg.duration * dayMs);
+    const resId = `res-seed-${i.toString().padStart(2, "0")}`;
 
-      await prisma.cabanaPrice.upsert({
-        where: { cabanaId_date: { cabanaId: cab.id, date: new Date(dateStr) } },
-        update: { dailyPrice },
-        create: { cabanaId: cab.id, date: new Date(dateStr), dailyPrice },
+    const reservation = await prisma.reservation.upsert({
+      where: { id: resId },
+      update: {
+        status: cfg.status,
+        totalPrice: cfg.price,
+      },
+      create: {
+        id: resId,
+        cabanaId: cabana.id,
+        userId: casinoUser.id,
+        guestId: guest.id,
+        guestName: guest.name,
+        startDate,
+        endDate,
+        status: cfg.status,
+        totalPrice: cfg.price,
+        notes: i % 3 === 0 ? "VIP misafir, özel ilgi gösterilmeli" : null,
+        rejectionReason: cfg.status === ReservationStatus.REJECTED ? "Cabana bakımda, alternatif önerildi" : null,
+        checkInAt: cfg.status === ReservationStatus.CHECKED_IN || cfg.status === ReservationStatus.CHECKED_OUT
+          ? new Date(startDate.getTime() + 10 * 3600000)
+          : null,
+        checkOutAt: cfg.status === ReservationStatus.CHECKED_OUT
+          ? new Date(endDate.getTime() + 16 * 3600000)
+          : null,
+        conceptId: basicConcept.id,
+      },
+    });
+    reservations.push(reservation);
+
+    // Add status history
+    const historyId = `rsh-seed-${i.toString().padStart(2, "0")}`;
+    const existing = await prisma.reservationStatusHistory.findFirst({
+      where: { id: historyId },
+    });
+    if (!existing) {
+      await prisma.reservationStatusHistory.create({
+        data: {
+          id: historyId,
+          reservationId: reservation.id,
+          fromStatus: null,
+          toStatus: ReservationStatus.PENDING,
+          changedBy: casinoUser.id,
+        },
       });
     }
   }
 
-  // Kabana fiyat aralıkları (sezonluk)
-  const currentYear = today.getFullYear();
-  // Önce mevcut sezonluk fiyat aralıklarını temizle
-  await prisma.cabanaPriceRange.deleteMany({
-    where: {
-      cabanaId: { in: allCabanas.map((c) => c.id) },
-      startDate: { gte: new Date(`${currentYear}-01-01`) },
-    },
-  });
+  // ── FnbOrders (8 adet — APPROVED veya CHECKED_IN rezlere bağlı) ──
+  const activeReservations = reservations.filter(
+    (r) => r.status === ReservationStatus.APPROVED || r.status === ReservationStatus.CHECKED_IN,
+  );
 
-  for (const cab of allCabanas) {
-    const basePrice = classBasePrices[cab.classId] ?? 5000;
+  const fnbStatuses: FnbOrderStatus[] = [
+    FnbOrderStatus.PREPARING,
+    FnbOrderStatus.PREPARING,
+    FnbOrderStatus.DELIVERED,
+    FnbOrderStatus.DELIVERED,
+    FnbOrderStatus.DELIVERED,
+    FnbOrderStatus.PREPARING,
+    FnbOrderStatus.DELIVERED,
+    FnbOrderStatus.PREPARING,
+  ];
 
-    // Yaz sezonu: Haziran - Ağustos (%30 artış, priority yüksek)
-    await prisma.cabanaPriceRange.create({
-      data: {
-        cabanaId: cab.id,
-        startDate: new Date(`${currentYear}-06-01`),
-        endDate: new Date(`${currentYear}-08-31`),
-        dailyPrice: basePrice * 1.3,
-        label: "Yaz Sezonu",
-        priority: 10,
-      },
+  const fnbProductIds = [
+    "product-welcome-drink",
+    "product-soft-drink",
+    "product-fresh-juice",
+    "product-fruit-platter",
+    "product-cheese-platter",
+    "product-sandwich",
+    "product-cake-slice",
+    "product-snack-basket",
+    "product-champagne",
+    "product-water-package",
+  ];
+
+  for (let i = 0; i < 8; i++) {
+    const rez = activeReservations[i % activeReservations.length];
+    const orderId = `fnb-seed-${i.toString().padStart(2, "0")}`;
+
+    const existingOrder = await prisma.fnbOrder.findFirst({
+      where: { id: orderId },
     });
+    if (existingOrder) continue;
 
-    // Bahar kampanyası: Nisan - Mayıs (%10 indirim)
-    await prisma.cabanaPriceRange.create({
+    const itemCount = 2 + (i % 3); // 2, 3, or 4 items
+    const orderItems = [];
+    for (let j = 0; j < itemCount; j++) {
+      const prodId = fnbProductIds[(i * 3 + j) % fnbProductIds.length];
+      const product = await prisma.product.findUnique({
+        where: { id: prodId },
+        select: { salePrice: true },
+      });
+      if (product) {
+        orderItems.push({
+          productId: prodId,
+          quantity: 1 + (j % 3),
+          unitPrice: product.salePrice,
+        });
+      }
+    }
+
+    await prisma.fnbOrder.create({
       data: {
-        cabanaId: cab.id,
-        startDate: new Date(`${currentYear}-04-01`),
-        endDate: new Date(`${currentYear}-05-31`),
-        dailyPrice: basePrice * 0.9,
-        label: "Bahar Kampanyası",
-        priority: 5,
+        id: orderId,
+        reservationId: rez.id,
+        cabanaId: rez.cabanaId,
+        status: fnbStatuses[i],
+        notes: i % 2 === 0 ? "Lütfen soğuk servis yapın" : null,
+        createdBy: fnbUser.id,
+        items: { create: orderItems },
       },
     });
   }
 
-  // ===== ÖRNEK KONSEPT FİYATLARI =====
-  // Her konseptin ürünlerine özel fiyatlar
-  const conceptProducts = await prisma.conceptProduct.findMany({
-    include: { product: true },
-  });
+  // ── Notifications (5 adet) ──
+  const notificationData = [
+    {
+      type: NotificationType.NEW_REQUEST,
+      title: "Yeni Rezervasyon Talebi",
+      message: `${guests[0].name} adına yeni rezervasyon talebi oluşturuldu.`,
+    },
+    {
+      type: NotificationType.APPROVED,
+      title: "Rezervasyon Onaylandı",
+      message: `${guests[2].name} rezervasyonu onaylandı.`,
+    },
+    {
+      type: NotificationType.CHECK_IN,
+      title: "Check-in Yapıldı",
+      message: `${guests[7].name} check-in yaptı.`,
+    },
+    {
+      type: NotificationType.FNB_ORDER,
+      title: "Yeni F&B Siparişi",
+      message: "Cabana-08 için yeni sipariş oluşturuldu.",
+    },
+    {
+      type: NotificationType.STATUS_CHANGED,
+      title: "Durum Değişikliği",
+      message: `${guests[9].name} rezervasyonu check-out olarak güncellendi.`,
+    },
+  ];
 
-  for (const cp of conceptProducts) {
-    // Konsept fiyatı = ürünün satış fiyatının %85'i (konsept indirimi)
-    const conceptPrice = Number(cp.product.salePrice) * 0.85;
-    await prisma.conceptPrice.upsert({
-      where: {
-        conceptId_productId: {
-          conceptId: cp.conceptId,
-          productId: cp.productId,
+  for (let i = 0; i < notificationData.length; i++) {
+    const notifId = `notif-seed-${i.toString().padStart(2, "0")}`;
+    const existing = await prisma.notification.findFirst({
+      where: { id: notifId },
+    });
+    if (!existing) {
+      await prisma.notification.create({
+        data: {
+          id: notifId,
+          userId: admin.id,
+          ...notificationData[i],
         },
-      },
-      update: { price: conceptPrice },
+      });
+    }
+  }
+
+  // ── ExtraServices (5 adet) + ExtraServicePrice ──
+  const extraServiceData = [
+    { name: "Masaj (60 dk)", category: "MASSAGE", price: 1000 },
+    { name: "Havlu Seti", category: "TOWEL", price: 150 },
+    { name: "Şezlong Kiralama", category: "SUNBED", price: 200 },
+    { name: "Şnorkeling Ekipmanı", category: "SNORKELING", price: 350 },
+    { name: "Profesyonel Fotoğrafçı", category: "PHOTOGRAPHER", price: 1500 },
+  ];
+
+  for (let i = 0; i < extraServiceData.length; i++) {
+    const svc = extraServiceData[i];
+    const esId = `extra-svc-seed-${i.toString().padStart(2, "0")}`;
+
+    const extraService = await (prisma as any).extraService.upsert({
+      where: { name: svc.name },
+      update: { category: svc.category },
       create: {
-        conceptId: cp.conceptId,
-        productId: cp.productId,
-        price: conceptPrice,
+        id: esId,
+        name: svc.name,
+        description: `${svc.name} hizmeti`,
+        category: svc.category,
+        isActive: true,
       },
     });
+
+    const espId = `esp-seed-${i.toString().padStart(2, "0")}`;
+    const existingPrice = await (prisma as any).extraServicePrice.findFirst({
+      where: { id: espId },
+    });
+    if (!existingPrice) {
+      await (prisma as any).extraServicePrice.create({
+        data: {
+          id: espId,
+          extraServiceId: extraService.id,
+          price: svc.price,
+          changedBy: systemAdmin.id,
+        },
+      });
+    }
   }
 
   console.log("Seeding completed!");
@@ -1393,6 +1590,11 @@ async function main() {
   );
   console.log(`Created 18 products across 5 groups`);
   console.log(`Created ${cabanas.length} cabanas`);
+  console.log(`Created ${guests.length} guests`);
+  console.log(`Created ${reservations.length} reservations`);
+  console.log(`Created 8 FnB orders`);
+  console.log(`Created 5 notifications`);
+  console.log(`Created 5 extra services with prices`);
 }
 
 main()

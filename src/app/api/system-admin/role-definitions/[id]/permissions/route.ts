@@ -204,7 +204,7 @@ export const PUT = withAuth(
     });
 
     // Permission cache'i invalidate et — değişiklik anında yansısın
-    invalidatePermissionCache(roleDef.role as Role);
+    await invalidatePermissionCache(roleDef.role as Role);
 
     const updatedLinks = await db.rolePermission.findMany({
       where: {

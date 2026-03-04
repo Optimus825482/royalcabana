@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ImportModal from "@/components/products/ImportModal";
-import PriceHistoryModal from "@/components/products/PriceHistoryModal";
+
 import {
   Modal,
   Field,
@@ -39,7 +39,7 @@ export default function PricingPage() {
     queryFn: fetchSystemCurrency,
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["products-and-groups"],
     queryFn: async () => {
       const [pRes, gRes] = await Promise.all([
@@ -56,17 +56,13 @@ export default function PricingPage() {
   const products = data?.products ?? [];
 
   const [showImport, setShowImport] = useState(false);
-  const [priceHistoryProduct, setPriceHistoryProduct] =
-    useState<Product | null>(null);
+
   const [search, setSearch] = useState("");
   const [success, setSuccess] = useState("");
 
   // Manual price edit state
   const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [editForm, setEditForm] = useState({
-    purchasePrice: "",
-    salePrice: "",
-  });
+  const [editForm, setEditForm] = useState({ salePrice: "" });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
 
@@ -83,10 +79,7 @@ export default function PricingPage() {
 
   function openPriceEdit(p: Product) {
     setEditProduct(p);
-    setEditForm({
-      purchasePrice: String(p.purchasePrice),
-      salePrice: String(p.salePrice),
-    });
+    setEditForm({ salePrice: String(p.salePrice) });
     setEditError("");
   }
 
@@ -100,13 +93,12 @@ export default function PricingPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          purchasePrice: parseFloat(editForm.purchasePrice),
           salePrice: parseFloat(editForm.salePrice),
         }),
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.message || "Fiyat güncellenemedi.");
+        throw new Error(d.error || d.message || "Fiyat güncellenemedi.");
       }
       setEditProduct(null);
       showSuccessMsg(`${editProduct.name} fiyatı güncellendi.`);
@@ -118,11 +110,6 @@ export default function PricingPage() {
     }
   }
 
-  const costWarning =
-    editForm.purchasePrice &&
-    editForm.salePrice &&
-    parseFloat(editForm.purchasePrice) > parseFloat(editForm.salePrice);
-
   return (
     <div className="text-neutral-100 p-4 sm:p-6">
       {/* Header */}
@@ -132,7 +119,7 @@ export default function PricingPage() {
             Fiyat İşlemleri
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
-            Manuel fiyat güncelleme, toplu içe aktarma ve fiyat geçmişi
+            Manuel fiyat güncelleme ve toplu içe aktarma
           </p>
         </div>
         <PermissionGate permission="pricing.create">
@@ -166,6 +153,13 @@ export default function PricingPage() {
         <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
           Yükleniyor...
         </div>
+      ) : isError ? (
+        <div className="text-center py-12">
+          <p className="text-red-400 text-sm">
+            {(error as Error)?.message ??
+              "Veriler yüklenirken bir hata oluştu."}
+          </p>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
           {search ? "Eşleşen ürün bulunamadı." : "Henüz ürün yok."}
@@ -178,24 +172,14 @@ export default function PricingPage() {
               <tr className="border-b border-neutral-800 text-neutral-500 text-xs uppercase tracking-wide">
                 <th className="text-left px-5 py-3 font-medium">Ürün Adı</th>
                 <th className="text-left px-5 py-3 font-medium">Grup</th>
-                <th className="text-right px-5 py-3 font-medium">Maliyet</th>
                 <th className="text-right px-5 py-3 font-medium">
                   Satış Fiyatı
                 </th>
-                <th className="text-right px-5 py-3 font-medium">Kâr Marjı</th>
                 <th className="text-right px-5 py-3 font-medium">İşlemler</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((p, i) => {
-                const margin =
-                  p.salePrice > 0
-                    ? (
-                        ((p.salePrice - p.purchasePrice) / p.salePrice) *
-                        100
-                      ).toFixed(1)
-                    : "0.0";
-                const isLoss = p.purchasePrice > p.salePrice;
                 return (
                   <tr
                     key={p.id}
@@ -211,16 +195,8 @@ export default function PricingPage() {
                     <td className="px-5 py-3.5 text-neutral-400 text-xs">
                       {p.group?.name ?? "—"}
                     </td>
-                    <td className="px-5 py-3.5 text-right text-neutral-300">
-                      {formatPrice(p.purchasePrice, currency)}
-                    </td>
                     <td className="px-5 py-3.5 text-right text-yellow-400 font-medium">
                       {formatPrice(p.salePrice, currency)}
-                    </td>
-                    <td
-                      className={`px-5 py-3.5 text-right text-xs font-medium ${isLoss ? "text-red-400" : "text-emerald-400"}`}
-                    >
-                      %{margin}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -232,12 +208,6 @@ export default function PricingPage() {
                             Fiyat Güncelle
                           </button>
                         </PermissionGate>
-                        <button
-                          onClick={() => setPriceHistoryProduct(p)}
-                          className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                        >
-                          Geçmiş
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -249,14 +219,6 @@ export default function PricingPage() {
           {/* Mobile cards */}
           <div className="md:hidden divide-y divide-neutral-800">
             {filtered.map((p) => {
-              const margin =
-                p.salePrice > 0
-                  ? (
-                      ((p.salePrice - p.purchasePrice) / p.salePrice) *
-                      100
-                    ).toFixed(1)
-                  : "0.0";
-              const isLoss = p.purchasePrice > p.salePrice;
               return (
                 <div key={p.id} className="px-4 py-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
@@ -270,24 +232,8 @@ export default function PricingPage() {
                         </span>
                       )}
                     </div>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${isLoss ? "bg-red-950/40 text-red-400" : "bg-emerald-950/40 text-emerald-400"}`}
-                    >
-                      %{margin}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="text-neutral-500">
-                      Maliyet:{" "}
-                      <span className="text-neutral-300">
-                        {formatPrice(p.purchasePrice, currency)}
-                      </span>
-                    </span>
-                    <span className="text-neutral-500">
-                      Satış:{" "}
-                      <span className="text-yellow-400 font-medium">
-                        {formatPrice(p.salePrice, currency)}
-                      </span>
+                    <span className="text-sm text-yellow-400 font-medium">
+                      {formatPrice(p.salePrice, currency)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 pt-1">
@@ -299,12 +245,6 @@ export default function PricingPage() {
                         Fiyat Güncelle
                       </button>
                     </PermissionGate>
-                    <button
-                      onClick={() => setPriceHistoryProduct(p)}
-                      className="min-h-[44px] text-xs px-3 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                    >
-                      Geçmiş
-                    </button>
                   </div>
                 </div>
               );
@@ -322,21 +262,6 @@ export default function PricingPage() {
           <form onSubmit={handlePriceUpdate} className="space-y-4">
             {editError && <ErrorMsg msg={editError} />}
 
-            <Field label={`Maliyet (${currencySymbol(currency)})`}>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                value={editForm.purchasePrice}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, purchasePrice: e.target.value }))
-                }
-                className={inputCls}
-                placeholder="0.00"
-              />
-            </Field>
-
             <Field label={`Satış Fiyatı (${currencySymbol(currency)})`}>
               <input
                 type="number"
@@ -351,12 +276,6 @@ export default function PricingPage() {
                 placeholder="0.00"
               />
             </Field>
-
-            {costWarning && (
-              <p className="text-xs text-red-400 bg-red-950/30 border border-red-800/30 rounded-lg px-3 py-2">
-                ⚠ Maliyet, satış fiyatından yüksek — zarar oluşacak.
-              </p>
-            )}
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
@@ -384,11 +303,6 @@ export default function PricingPage() {
         onComplete={() =>
           queryClient.invalidateQueries({ queryKey: ["products-and-groups"] })
         }
-      />
-
-      <PriceHistoryModal
-        product={priceHistoryProduct}
-        onClose={() => setPriceHistoryProduct(null)}
       />
     </div>
   );

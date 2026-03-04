@@ -17,7 +17,7 @@ const LABEL_MAP: Record<string, string> = {
   users: "Kullanıcılar",
   guests: "Misafirler",
   staff: "Personel",
-  classes: "Kabana Sınıfları",
+  classes: "Cabana Sınıfları",
   concepts: "Konseptler",
   products: "Ürünler",
   pricing: "Fiyat İşlemleri",

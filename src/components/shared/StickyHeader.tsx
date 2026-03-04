@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { User as UserIcon, LogOut, Menu, X, ChevronDown } from "lucide-react";
 import NotificationPanel from "./NotificationPanel";
 import Breadcrumb from "./Breadcrumb";
@@ -23,7 +23,7 @@ const TURKISH_MONTHS = [
   "Ara",
 ];
 
-function DigitalClock() {
+const MemoizedDigitalClock = React.memo(function DigitalClock() {
   const [time, setTime] = useState<string>("");
   const [date, setDate] = useState({ day: 0, weekday: "", month: "" });
 
@@ -69,7 +69,7 @@ function DigitalClock() {
       </div>
     </div>
   );
-}
+});
 
 export default function StickyHeader({
   onToggleSidebar,
@@ -87,7 +87,7 @@ export default function StickyHeader({
         {/* Mobile hamburger */}
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg hover:bg-neutral-800 transition-colors"
+          className="lg:hidden flex items-center justify-center w-11 h-11 rounded-lg hover:bg-neutral-800 transition-colors"
           aria-label={sidebarOpen ? "Menüyü kapat" : "Menüyü aç"}
         >
           {sidebarOpen ? (
@@ -102,7 +102,7 @@ export default function StickyHeader({
 
         {/* Digital Clock & Calendar - desktop only */}
         <div className="hidden md:block">
-          <DigitalClock />
+          <MemoizedDigitalClock />
         </div>
 
         {/* Notifications */}

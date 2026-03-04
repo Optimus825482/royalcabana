@@ -3,12 +3,24 @@ import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseUserAgent } from "@/lib/ua-parser";
 import { logAudit } from "@/lib/audit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const rl = await checkRateLimit(`login-track:${session.user.id}`, 5, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Rate limit aşıldı." },
+        { status: 429 },
+      );
     }
 
     const body = await req.json().catch(() => ({}));
@@ -90,9 +102,43 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ sessionId: loginSession.id });
+    // Check for unpriced custom requests — only for ADMIN and SYSTEM_ADMIN
+    const userRole = session.user.role;
+    if (userRole === "ADMIN" || userRole === "SYSTEM_ADMIN") {
+      const unpricedCount = await prisma.reservation.count({
+        where: {
+          customRequests: { not: null },
+          customRequestPriced: false,
+          deletedAt: null,
+          status: { in: ["APPROVED", "PENDING"] },
+        },
+      });
+
+      if (unpricedCount > 0) {
+        await prisma.notification.create({
+          data: {
+            userId: session.user.id,
+            type: "STATUS_CHANGED",
+            title: "Fiyatlandırılmamış Liste Dışı Talepler",
+            message: `${unpricedCount} adet fiyatlandırılmamış liste dışı talep bulunmaktadır.`,
+            metadata: {
+              type: "unpriced_custom_requests",
+              count: unpricedCount,
+            },
+          },
+        });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { sessionId: loginSession.id },
+    });
   } catch (error) {
     console.error("[login-track] Error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Server error" },
+      { status: 500 },
+    );
   }
 }

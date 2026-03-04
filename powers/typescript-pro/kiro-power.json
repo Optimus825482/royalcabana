@@ -1,0 +1,13 @@
+{
+  "name": "typescript-pro",
+  "displayName": "TypeScript Pro Patterns",
+  "description": "Advanced TypeScript patterns for production applications. Generics, utility types, strict error handling, type guards, branded types, and module patterns.",
+  "keywords": [
+    "typescript",
+    "generics",
+    "type-safety",
+    "utility-types",
+    "type-guard"
+  ],
+  "author": "Erkan"
+}

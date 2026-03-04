@@ -3,6 +3,7 @@ export const SSE_EVENTS = {
   RESERVATION_APPROVED: "reservation:approved",
   RESERVATION_REJECTED: "reservation:rejected",
   RESERVATION_CANCELLED: "reservation:cancelled",
+  RESERVATION_UPDATED: "reservation:updated",
   RESERVATION_CHECKED_IN: "reservation:checked-in",
   RESERVATION_CHECKED_OUT: "reservation:checked-out",
   NOTIFICATION_NEW: "notification:new",

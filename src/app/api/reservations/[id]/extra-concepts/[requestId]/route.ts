@@ -131,6 +131,22 @@ export const PATCH = withAuth(
           reservationId,
           type: "extra_concept_rejected",
         });
+
+        // Auto-refresh: broadcast to all users except the updater if startDate >= 1 day from now
+        const msUntilStart =
+          new Date(reservation.startDate).getTime() - Date.now();
+        if (msUntilStart >= 24 * 60 * 60 * 1000) {
+          sseManager.broadcastExcludeUser(
+            session.user.id,
+            SSE_EVENTS.RESERVATION_UPDATED,
+            {
+              reservationId,
+              cabanaName: reservation.cabana?.name ?? "",
+              guestName: reservation.guestName,
+              updatedBy: session.user.id,
+            },
+          );
+        }
       });
 
       return NextResponse.json({ success: true, data: updatedRequest });
@@ -258,6 +274,22 @@ export const PATCH = withAuth(
         type: "extra_concept_approved",
         totalPrice: result.finalPrice,
       });
+
+      // Auto-refresh: broadcast to all users except the updater if startDate >= 1 day from now
+      const msUntilStart =
+        new Date(reservation.startDate).getTime() - Date.now();
+      if (msUntilStart >= 24 * 60 * 60 * 1000) {
+        sseManager.broadcastExcludeUser(
+          session.user.id,
+          SSE_EVENTS.RESERVATION_UPDATED,
+          {
+            reservationId,
+            cabanaName: reservation.cabana?.name ?? "",
+            guestName: reservation.guestName,
+            updatedBy: session.user.id,
+          },
+        );
+      }
     });
 
     return NextResponse.json({

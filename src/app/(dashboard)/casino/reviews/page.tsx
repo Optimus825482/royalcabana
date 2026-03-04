@@ -106,15 +106,20 @@ export default function ReviewsPage() {
   const [error, setError] = useState("");
 
   // Fetch reviews
-  const { data: reviewsData, isLoading: reviewsLoading } =
-    useQuery<ReviewsResponse>({
-      queryKey: ["my-reviews"],
-      queryFn: async () => {
-        const res = await fetch("/api/reviews");
-        if (!res.ok) throw new Error("Fetch failed");
-        return res.json();
-      },
-    });
+  const {
+    data: reviewsData,
+    isLoading: reviewsLoading,
+    isError: reviewsIsError,
+    error: reviewsError,
+  } = useQuery<ReviewsResponse>({
+    queryKey: ["my-reviews"],
+    queryFn: async () => {
+      const res = await fetch("/api/reviews");
+      if (!res.ok) throw new Error("Fetch failed");
+      const json = await res.json();
+      return json.data ?? json;
+    },
+  });
 
   // Fetch checked-out reservations (for creating new reviews)
   const { data: reservations = [] } = useQuery<CheckedOutReservation[]>({
@@ -123,11 +128,14 @@ export default function ReviewsPage() {
       const res = await fetch("/api/reservations?status=CHECKED_OUT&limit=100");
       if (!res.ok) throw new Error("Fetch failed");
       const json = await res.json();
-      return json.reservations || json.items || json.data || json;
+      const resolved = json.data ?? json;
+      const items = resolved.reservations ?? resolved.items ?? resolved;
+      return Array.isArray(items) ? items : [];
     },
   });
 
-  const reviews = reviewsData?.data || [];
+  const rawReviews = reviewsData?.data ?? reviewsData;
+  const reviews = Array.isArray(rawReviews) ? rawReviews : [];
   const reviewedIds = new Set(reviews.map((r) => r.reservationId));
   const unreviewedReservations = reservations.filter(
     (r) => !reviewedIds.has(r.id),
@@ -149,7 +157,8 @@ export default function ReviewsPage() {
         const err = await res.json();
         throw new Error(err.error || "Hata oluştu.");
       }
-      return res.json();
+      const json = await res.json();
+      return json.data ?? json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-reviews"] });
@@ -178,7 +187,8 @@ export default function ReviewsPage() {
         const err = await res.json();
         throw new Error(err.error || "Hata oluştu.");
       }
-      return res.json();
+      const json = await res.json();
+      return json.data ?? json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-reviews"] });
@@ -303,6 +313,15 @@ export default function ReviewsPage() {
         <h2 className="text-sm font-medium text-neutral-300 mb-3">
           Değerlendirmelerim ({reviews.length})
         </h2>
+
+        {reviewsIsError && (
+          <div className="text-center py-12">
+            <p className="text-red-400 text-sm">
+              {(reviewsError as Error)?.message ??
+                "Değerlendirmeler yüklenirken bir hata oluştu."}
+            </p>
+          </div>
+        )}
 
         {reviewsLoading ? (
           <div className="space-y-2">

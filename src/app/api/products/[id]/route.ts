@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { PricingEngine } from "@/lib/pricing";
 
 const allRoles = [
   Role.ADMIN,
@@ -31,10 +32,13 @@ export const GET = withAuth(
     });
 
     if (!product) {
-      return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Ürün bulunamadı." },
+        { status: 404 },
+      );
     }
 
-    return NextResponse.json(product);
+    return NextResponse.json({ success: true, data: product });
   },
   { requiredPermissions: ["product.view"] },
 );
@@ -46,14 +50,21 @@ export const PATCH = withAuth(
 
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
-      return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Ürün bulunamadı." },
+        { status: 404 },
+      );
     }
 
     const body = await req.json();
     const parsed = updateProductSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -62,30 +73,6 @@ export const PATCH = withAuth(
       where: { id },
       data: parsed.data,
     });
-
-    // Record price history if prices changed
-    if (
-      parsed.data.purchasePrice !== undefined ||
-      parsed.data.salePrice !== undefined
-    ) {
-      const newPurchase =
-        parsed.data.purchasePrice ?? Number(product.purchasePrice);
-      const newSale = parsed.data.salePrice ?? Number(product.salePrice);
-      const oldPurchase = Number(product.purchasePrice);
-      const oldSale = Number(product.salePrice);
-
-      if (newPurchase !== oldPurchase || newSale !== oldSale) {
-        await (prisma as any).productPriceHistory.create({
-          data: {
-            productId: id,
-            purchasePrice: newPurchase,
-            salePrice: newSale,
-            source: "MANUAL",
-            changedBy: session.user.id,
-          },
-        });
-      }
-    }
 
     logAudit({
       userId: session.user.id,
@@ -102,7 +89,17 @@ export const PATCH = withAuth(
       newValue: parsed.data,
     });
 
-    return NextResponse.json(updated);
+    if (
+      parsed.data.salePrice !== undefined &&
+      parsed.data.salePrice !== Number(product.salePrice)
+    ) {
+      after(async () => {
+        const engine = new PricingEngine();
+        await engine.recalculateReservationsByProductId(id);
+      });
+    }
+
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["product.update"] },
 );
@@ -122,17 +119,26 @@ export const DELETE = withAuth(
     });
 
     if (!product) {
-      return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Ürün bulunamadı." },
+        { status: 404 },
+      );
     }
 
     if (product._count.conceptProducts > 0) {
       return NextResponse.json(
-        { error: "Bu ürün aktif bir konseptte kullanılıyor, silinemez." },
+        {
+          success: false,
+          error: "Bu ürün aktif bir konseptte kullanılıyor, silinemez.",
+        },
         { status: 409 },
       );
     }
 
-    await prisma.product.delete({ where: { id } });
+    await prisma.product.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     logAudit({
       userId: session.user.id,
@@ -142,7 +148,7 @@ export const DELETE = withAuth(
       oldValue: { name: product.name },
     });
 
-    return NextResponse.json({ message: "Ürün silindi." });
+    return NextResponse.json({ success: true, data: null });
   },
   { requiredPermissions: ["product.delete"] },
 );

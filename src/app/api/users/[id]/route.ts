@@ -8,10 +8,18 @@ import { Prisma } from "@prisma/client";
 
 const ADMIN_ALLOWED_ROLES = [Role.CASINO_USER, Role.FNB_USER];
 
+const passwordSchema = z
+  .string()
+  .min(8, "Şifre en az 8 karakter olmalı.")
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
+    "Şifre en az 1 büyük harf, 1 küçük harf ve 1 rakam içermelidir.",
+  );
+
 const updateUserSchema = z.object({
   username: z.string().min(3).optional(),
   email: z.string().email().optional(),
-  password: z.string().min(6).optional(),
+  password: passwordSchema.optional(),
   role: z.nativeEnum(Role).optional(),
   isActive: z.boolean().optional(),
 });
@@ -33,7 +41,10 @@ export const PATCH = withAuth(
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 },
+      );
     }
 
     const isAdmin = session.user.role === Role.ADMIN;
@@ -41,7 +52,7 @@ export const PATCH = withAuth(
     // ADMIN can only edit CASINO_USER and FNB_USER
     if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
       return NextResponse.json(
-        { error: "Bu kullanıcıyı düzenleme yetkiniz yok." },
+        { success: false, error: "Bu kullanıcıyı düzenleme yetkiniz yok." },
         { status: 403 },
       );
     }
@@ -51,7 +62,11 @@ export const PATCH = withAuth(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -63,7 +78,10 @@ export const PATCH = withAuth(
       !ADMIN_ALLOWED_ROLES.includes(parsed.data.role)
     ) {
       return NextResponse.json(
-        { error: "Admin yalnızca Casino ve F&B rolü atayabilir." },
+        {
+          success: false,
+          error: "Admin yalnızca Casino ve F&B rolü atayabilir.",
+        },
         { status: 403 },
       );
     }
@@ -71,7 +89,7 @@ export const PATCH = withAuth(
     const { password, ...restData } = parsed.data;
     const updateData: Record<string, unknown> = { ...restData };
     if (password) {
-      updateData.passwordHash = await bcrypt.hash(password, 10);
+      updateData.passwordHash = await bcrypt.hash(password, 12);
     }
 
     const updated = await prisma.user.update({
@@ -111,7 +129,7 @@ export const PATCH = withAuth(
       });
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["user.update"] },
 );
@@ -133,14 +151,20 @@ export const DELETE = withAuth(
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 },
+      );
     }
 
     const isAdmin = session.user.role === Role.ADMIN;
 
     if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(user.role as Role)) {
       return NextResponse.json(
-        { error: "Bu kullanıcıyı devre dışı bırakma yetkiniz yok." },
+        {
+          success: false,
+          error: "Bu kullanıcıyı devre dışı bırakma yetkiniz yok.",
+        },
         { status: 403 },
       );
     }
@@ -163,7 +187,10 @@ export const DELETE = withAuth(
       });
     });
 
-    return NextResponse.json({ message: "User deactivated" });
+    return NextResponse.json({
+      success: true,
+      data: { message: "User deactivated" },
+    });
   },
   { requiredPermissions: ["user.delete"] },
 );

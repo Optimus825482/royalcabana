@@ -1,9 +1,26 @@
 import { z } from "zod";
 
+// ===== Reservation Extra Request Item =====
+
+export const extraRequestItemSchema = z.object({
+  type: z.enum(["PRODUCT", "CUSTOM"]),
+  productId: z.string().min(1).optional().nullable(),
+  customName: z.string().min(1, "Talep adı zorunludur.").optional().nullable(),
+  customDesc: z.string().optional().nullable(),
+  quantity: z.number().int().positive("Miktar pozitif olmalıdır.").default(1),
+}).refine(
+  (d) => {
+    if (d.type === "PRODUCT") return !!d.productId;
+    if (d.type === "CUSTOM") return !!d.customName;
+    return false;
+  },
+  { message: "PRODUCT tipinde productId, CUSTOM tipinde customName zorunludur." },
+);
+
 // ===== Reservation =====
 
 export const createReservationSchema = z.object({
-  cabanaId: z.string().min(1, "Kabana seçimi zorunludur."),
+  cabanaId: z.string().min(1, "Cabana seçimi zorunludur."),
   guestName: z.string().min(2, "Misafir adı en az 2 karakter olmalıdır."),
   guestId: z.string().optional().nullable(),
   startDate: z.string().min(1, "Başlangıç tarihi zorunludur."),
@@ -11,6 +28,17 @@ export const createReservationSchema = z.object({
   notes: z.string().optional().nullable(),
   isGuestPrivate: z.boolean().optional().default(false),
   conceptId: z.string().optional().nullable(),
+  extraItems: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        quantity: z.number().int().positive(),
+      }),
+    )
+    .optional()
+    .default([]),
+  customRequests: z.string().optional().nullable(),
+  extraRequests: z.array(extraRequestItemSchema).optional().default([]),
 });
 
 export const approveReservationSchema = z.object({
@@ -46,6 +74,21 @@ export const modificationRequestSchema = z
 export const cancellationRequestSchema = z.object({
   reason: z.string().min(1, "İptal nedeni zorunludur."),
 });
+
+// ===== Reservation Extra Request Price/Action =====
+
+export const extraRequestPriceSchema = z.object({
+  action: z.enum(["approve", "reject", "price"]),
+  unitPrice: z.number().nonnegative("Fiyat negatif olamaz.").optional(),
+  rejectionReason: z.string().min(1, "Red nedeni zorunludur.").optional(),
+}).refine(
+  (d) => {
+    if (d.action === "reject") return !!d.rejectionReason;
+    if (d.action === "price") return d.unitPrice !== undefined && d.unitPrice !== null;
+    return true;
+  },
+  { message: "Reject için neden, price için fiyat zorunludur." },
+);
 
 // ===== Extra Concept Request (JSON field validation) =====
 
@@ -107,7 +150,7 @@ export const updateGuestSchema = createGuestSchema.partial();
 
 export const createFnbOrderSchema = z.object({
   reservationId: z.string().min(1, "Rezervasyon seçimi zorunludur."),
-  cabanaId: z.string().min(1, "Kabana seçimi zorunludur."),
+  cabanaId: z.string().min(1, "Cabana seçimi zorunludur."),
   notes: z.string().optional().nullable(),
   items: z
     .array(
@@ -118,17 +161,6 @@ export const createFnbOrderSchema = z.object({
       }),
     )
     .min(1, "En az bir ürün gereklidir."),
-});
-
-// ===== CabanaPriceRange =====
-
-export const createPriceRangeSchema = z.object({
-  cabanaId: z.string().min(1, "Kabana seçimi zorunludur."),
-  startDate: z.string().min(1, "Başlangıç tarihi zorunludur."),
-  endDate: z.string().min(1, "Bitiş tarihi zorunludur."),
-  dailyPrice: z.number().positive("Günlük fiyat pozitif olmalıdır."),
-  label: z.string().optional().nullable(),
-  priority: z.number().int().min(0).optional(),
 });
 
 // ===== BlackoutDate =====
@@ -143,7 +175,7 @@ export const createBlackoutDateSchema = z.object({
 // ===== Waitlist =====
 
 export const createWaitlistSchema = z.object({
-  cabanaId: z.string().min(1, "Kabana seçimi zorunludur."),
+  cabanaId: z.string().min(1, "Cabana seçimi zorunludur."),
   guestName: z.string().min(2, "Misafir adı en az 2 karakter olmalıdır."),
   desiredStart: z.string().min(1, "Başlangıç tarihi zorunludur."),
   desiredEnd: z.string().min(1, "Bitiş tarihi zorunludur."),
@@ -153,7 +185,7 @@ export const createWaitlistSchema = z.object({
 // ===== RecurringBooking =====
 
 export const createRecurringBookingSchema = z.object({
-  cabanaId: z.string().min(1, "Kabana seçimi zorunludur."),
+  cabanaId: z.string().min(1, "Cabana seçimi zorunludur."),
   guestName: z.string().min(2, "Misafir adı en az 2 karakter olmalıdır."),
   pattern: z.enum(["WEEKLY", "BIWEEKLY", "MONTHLY"]),
   dayOfWeek: z.number().int().min(0).max(6).optional().nullable(),
@@ -177,7 +209,7 @@ export const createStaffSchema = z.object({
 
 export const createStaffAssignmentSchema = z.object({
   staffId: z.string().min(1, "Personel seçimi zorunludur."),
-  cabanaId: z.string().min(1, "Kabana seçimi zorunludur."),
+  cabanaId: z.string().min(1, "Cabana seçimi zorunludur."),
   date: z.string().min(1, "Tarih zorunludur."),
   shift: z.string().optional().nullable(),
 });

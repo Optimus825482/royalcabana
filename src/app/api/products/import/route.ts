@@ -245,7 +245,7 @@ export const POST = withAuth(
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json(
-        { error: "Dosya yüklenmedi. 'file' alanı gerekli." },
+        { success: false, error: "Dosya yüklenmedi. 'file' alanı gerekli." },
         { status: 400 },
       );
     }
@@ -258,6 +258,7 @@ export const POST = withAuth(
     ) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Desteklenmeyen dosya formatı. .xlsx, .xls veya .csv yükleyin.",
         },
@@ -272,6 +273,7 @@ export const POST = withAuth(
     } catch (err) {
       return NextResponse.json(
         {
+          success: false,
           error: `Dosya okunamadı: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`,
         },
         { status: 400 },
@@ -280,7 +282,7 @@ export const POST = withAuth(
 
     if (parsedRows.length === 0) {
       return NextResponse.json(
-        { error: "Dosyada geçerli ürün satırı bulunamadı." },
+        { success: false, error: "Dosyada geçerli ürün satırı bulunamadı." },
         { status: 400 },
       );
     }
@@ -294,7 +296,7 @@ export const POST = withAuth(
           decisions = JSON.parse(decisionsStr);
         } catch {
           return NextResponse.json(
-            { error: "Geçersiz decisions JSON formatı." },
+            { success: false, error: "Geçersiz decisions JSON formatı." },
             { status: 400 },
           );
         }
@@ -376,7 +378,7 @@ export const POST = withAuth(
 
     // Preview mode — return analysis only
     if (isPreview) {
-      return NextResponse.json({ items, summary });
+      return NextResponse.json({ success: true, data: { items, summary } });
     }
 
     // Apply mode — write to DB
@@ -394,16 +396,6 @@ export const POST = withAuth(
             data: {
               purchasePrice: item.purchasePrice,
               salePrice: item.salePrice,
-            },
-          });
-
-          await (prisma as any).productPriceHistory.create({
-            data: {
-              productId: item.matchedProduct.id,
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-              source: "IMPORT",
-              changedBy: session.user.id,
             },
           });
 
@@ -435,16 +427,6 @@ export const POST = withAuth(
                 name: item.name,
                 purchasePrice: item.purchasePrice,
                 salePrice: item.salePrice,
-              },
-            });
-
-            await (prisma as any).productPriceHistory.create({
-              data: {
-                productId: newProduct.id,
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
-                source: "IMPORT",
-                changedBy: session.user.id,
               },
             });
 
@@ -482,16 +464,6 @@ export const POST = withAuth(
               },
             });
 
-            await (prisma as any).productPriceHistory.create({
-              data: {
-                productId: decision.linkProductId,
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
-                source: "IMPORT",
-                changedBy: session.user.id,
-              },
-            });
-
             logAudit({
               userId: session.user.id,
               action: "PRICE_UPDATE",
@@ -521,16 +493,6 @@ export const POST = withAuth(
               },
             });
 
-            await (prisma as any).productPriceHistory.create({
-              data: {
-                productId: newProduct.id,
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
-                source: "IMPORT",
-                changedBy: session.user.id,
-              },
-            });
-
             logAudit({
               userId: session.user.id,
               action: "CREATE",
@@ -557,7 +519,7 @@ export const POST = withAuth(
     summary.created = createdCount;
     summary.errors = items.filter((i) => !!i.error).length;
 
-    return NextResponse.json({ items, summary });
+    return NextResponse.json({ success: true, data: { items, summary } });
   },
   { requiredPermissions: ["product.create"] },
 );

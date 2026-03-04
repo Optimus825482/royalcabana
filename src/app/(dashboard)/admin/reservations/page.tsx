@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Search,
   Filter,
@@ -34,10 +39,12 @@ import {
   dangerSoftBtnCls,
   infoBtnCls,
 } from "@/components/shared/FormComponents";
+import { useSSE } from "@/hooks/useSSE";
+import { SSE_EVENTS } from "@/lib/sse-events";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Reservation {
+interface ReservationListItem {
   id: string;
   guestName: string;
   startDate: string;
@@ -52,6 +59,16 @@ interface Reservation {
   updatedAt: string;
   cabana: { id: string; name: string };
   user: { id: string; username: string; email: string };
+  _count?: {
+    statusHistory: number;
+    modifications: number;
+    cancellations: number;
+    extraConcepts: number;
+    extraItems: number;
+  };
+}
+
+interface ReservationDetail extends ReservationListItem {
   statusHistory?: StatusHistoryItem[];
   modifications?: {
     id: string;
@@ -71,6 +88,11 @@ interface StatusHistoryItem {
   changedBy: string;
   reason: string | null;
   createdAt: string;
+}
+
+interface ReservationListResponse {
+  reservations: ReservationListItem[];
+  total: number;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -167,6 +189,39 @@ function getDayCount(start: string, end: string) {
   return Math.max(1, Math.ceil((e.getTime() - s.getTime()) / 86400000));
 }
 
+// ─── Fetchers ─────────────────────────────────────────────────────────────────
+
+async function fetchReservationList(
+  page: number,
+  statusFilter: string,
+  search: string,
+): Promise<ReservationListResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(PAGE_SIZE),
+  });
+  if (statusFilter) params.set("status", statusFilter);
+  if (search) params.set("search", search);
+
+  const res = await fetch(`/api/reservations?${params}`);
+  if (!res.ok) throw new Error("Rezervasyonlar yüklenemedi.");
+  const data = await res.json();
+  const resolved = data.data ?? data;
+  return {
+    reservations: resolved.reservations ?? [],
+    total: resolved.total ?? 0,
+  };
+}
+
+async function fetchReservationDetailApi(
+  id: string,
+): Promise<ReservationDetail> {
+  const res = await fetch(`/api/reservations/${id}`);
+  if (!res.ok) throw new Error("Detay yüklenemedi.");
+  const json = await res.json();
+  return json.data ?? json;
+}
+
 // ─── Components ───────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
@@ -235,7 +290,7 @@ function DetailPanel({
   actionLoading,
   currency,
 }: {
-  reservation: Reservation;
+  reservation: ReservationDetail;
   onClose: () => void;
   onAction: (
     action: string,
@@ -297,7 +352,7 @@ function DetailPanel({
             <MapPin className="w-4 h-4 text-neutral-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[10px] text-neutral-500 uppercase tracking-wide">
-                Kabana
+                Cabana
               </p>
               <p className="text-sm text-neutral-200">
                 {reservation.cabana.name}
@@ -564,15 +619,12 @@ function DetailPanel({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminReservationsPage() {
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [selected, setSelected] = useState<Reservation | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<"createdAt" | "startDate">(
     "createdAt",
   );
@@ -580,55 +632,76 @@ export default function AdminReservationsPage() {
     text: string;
     type: "success" | "error";
   } | null>(null);
-  const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
 
-  useEffect(() => {
-    fetchSystemCurrency()
-      .then(setCurrency)
-      .catch(() => {});
+  const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
+    queryKey: ["system-currency"],
+    queryFn: fetchSystemCurrency,
+  });
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["admin-reservations", page, statusFilter, search],
+    queryFn: () => fetchReservationList(page, statusFilter, search),
+  });
+
+  const reservations = data?.reservations ?? [];
+  const total = data?.total ?? 0;
+
+  const { data: selectedDetail, isLoading: detailLoading } = useQuery({
+    queryKey: ["admin-reservation-detail", selectedId],
+    queryFn: () => fetchReservationDetailApi(selectedId!),
+    enabled: !!selectedId,
+  });
+
+  // SSE: invalidate on reservation updates
+  const invalidateRef = useRef(() => {
+    queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+    if (selectedId) {
+      queryClient.invalidateQueries({
+        queryKey: ["admin-reservation-detail", selectedId],
+      });
+    }
+  });
+  invalidateRef.current = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+    if (selectedId) {
+      queryClient.invalidateQueries({
+        queryKey: ["admin-reservation-detail", selectedId],
+      });
+    }
+  };
+
+  const handleSSEEvent = useCallback((event: string) => {
+    if (
+      event === SSE_EVENTS.RESERVATION_UPDATED ||
+      event === SSE_EVENTS.RESERVATION_CREATED ||
+      event === SSE_EVENTS.RESERVATION_APPROVED ||
+      event === SSE_EVENTS.RESERVATION_REJECTED ||
+      event === SSE_EVENTS.RESERVATION_CANCELLED ||
+      event === SSE_EVENTS.RESERVATION_CHECKED_IN ||
+      event === SSE_EVENTS.RESERVATION_CHECKED_OUT
+    ) {
+      invalidateRef.current();
+    }
   }, []);
 
-  const fetchReservations = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: String(PAGE_SIZE),
-    });
-    if (statusFilter) params.set("status", statusFilter);
-    if (search) params.set("search", search);
-
-    try {
-      const res = await fetch(`/api/reservations?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setReservations(data.reservations ?? []);
-        setTotal(data.total ?? 0);
-      }
-    } catch {
-      // ignore
-    }
-    setLoading(false);
-  }, [page, statusFilter, search]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchReservations();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchReservations]);
+  useSSE({ onEvent: handleSSEEvent as (event: string, data: unknown) => void });
 
   // Debounced search
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(t);
-  }, [searchInput]);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearchInput = useCallback(
+    (value: string) => {
+      setSearchInput(value);
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = setTimeout(() => {
+        setSearch(value);
+        setPage(1);
+      }, 400);
+    },
+    [],
+  );
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // Client-side sort
   const sorted = useMemo(() => {
     const arr = [...reservations];
     arr.sort((a, b) => {
@@ -639,74 +712,116 @@ export default function AdminReservationsPage() {
     return arr;
   }, [reservations, sortField]);
 
-  // Action handler
-  const handleAction = useCallback(
-    async (action: string, id: string, data?: Record<string, unknown>) => {
-      setActionLoading(true);
-      setMessage(null);
-      let url = "";
-      let body: Record<string, unknown> | undefined;
+  // Action mutation with optimistic updates
+  const actionMutation = useMutation({
+    mutationFn: async ({
+      action,
+      id,
+      body,
+    }: {
+      action: string;
+      id: string;
+      body?: Record<string, unknown>;
+    }) => {
+      const urlMap: Record<string, string> = {
+        approve: `/api/reservations/${id}/approve`,
+        reject: `/api/reservations/${id}/reject`,
+        "check-in": `/api/reservations/${id}/check-in`,
+        "check-out": `/api/reservations/${id}/check-out`,
+      };
+      const url = urlMap[action];
+      if (!url) throw new Error("Geçersiz işlem");
 
-      switch (action) {
-        case "approve":
-          url = `/api/reservations/${id}/approve`;
-          body = data;
-          break;
-        case "reject":
-          url = `/api/reservations/${id}/reject`;
-          body = data;
-          break;
-        case "check-in":
-          url = `/api/reservations/${id}/check-in`;
-          break;
-        case "check-out":
-          url = `/api/reservations/${id}/check-out`;
-          break;
-        default:
-          setActionLoading(false);
-          return;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        ...(body && { body: JSON.stringify(body) }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error ?? "İşlem başarısız.");
       }
-
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          ...(body && { body: JSON.stringify(body) }),
-        });
-        if (res.ok) {
-          const labels: Record<string, string> = {
-            approve: "Rezervasyon onaylandı.",
-            reject: "Rezervasyon reddedildi.",
-            "check-in": "Check-in başarılı.",
-            "check-out": "Check-out başarılı.",
-          };
-          setMessage({
-            text: labels[action] ?? "İşlem başarılı.",
-            type: "success",
-          });
-          await fetchReservations();
-          setSelected(null);
-        } else {
-          const err = await res.json().catch(() => ({}));
-          setMessage({
-            text: (err as { error?: string }).error ?? "İşlem başarısız.",
-            type: "error",
-          });
-        }
-      } catch {
-        setMessage({ text: "Bağlantı hatası.", type: "error" });
-      }
-      setActionLoading(false);
+      return { action };
     },
-    [fetchReservations],
+    onMutate: async ({ action, id }) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-reservations"] });
+      const previousData = queryClient.getQueriesData<ReservationListResponse>({
+        queryKey: ["admin-reservations"],
+      });
+
+      const statusMap: Record<string, string> = {
+        approve: "APPROVED",
+        reject: "REJECTED",
+        "check-in": "CHECKED_IN",
+        "check-out": "CHECKED_OUT",
+      };
+      const newStatus = statusMap[action];
+      if (newStatus) {
+        queryClient.setQueriesData<ReservationListResponse>(
+          { queryKey: ["admin-reservations"] },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              reservations: old.reservations.map((r) =>
+                r.id === id ? { ...r, status: newStatus as ReservationStatus } : r,
+              ),
+            };
+          },
+        );
+      }
+
+      return { previousData };
+    },
+    onSuccess: (result) => {
+      const labels: Record<string, string> = {
+        approve: "Rezervasyon onaylandı.",
+        reject: "Rezervasyon reddedildi.",
+        "check-in": "Check-in başarılı.",
+        "check-out": "Check-out başarılı.",
+      };
+      setMessage({
+        text: labels[result.action] ?? "İşlem başarılı.",
+        type: "success",
+      });
+      setSelectedId(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reservation-detail"] });
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previousData) {
+        for (const [key, value] of context.previousData) {
+          queryClient.setQueryData(key, value);
+        }
+      }
+      setMessage({
+        text: error instanceof Error ? error.message : "İşlem başarısız.",
+        type: "error",
+      });
+    },
+  });
+
+  const handleAction = useCallback(
+    (action: string, id: string, data?: Record<string, unknown>) => {
+      actionMutation.mutate({ action, id, body: data });
+    },
+    [actionMutation],
   );
 
   // Auto-dismiss messages
-  useEffect(() => {
-    if (!message) return;
-    const t = setTimeout(() => setMessage(null), 4000);
-    return () => clearTimeout(t);
-  }, [message]);
+  const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  if (message && !msgTimerRef.current) {
+    msgTimerRef.current = setTimeout(() => {
+      setMessage(null);
+      msgTimerRef.current = null;
+    }, 4000);
+  }
+  if (!message && msgTimerRef.current) {
+    clearTimeout(msgTimerRef.current);
+    msgTimerRef.current = null;
+  }
+
+  const loading = isLoading;
 
   return (
     <div className="text-neutral-100 flex flex-col h-full">
@@ -731,11 +846,17 @@ export default function AdminReservationsPage() {
             </div>
           )}
           <button
-            onClick={fetchReservations}
+            onClick={() =>
+              queryClient.invalidateQueries({
+                queryKey: ["admin-reservations"],
+              })
+            }
             className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-neutral-200"
             title="Yenile"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`}
+            />
           </button>
         </div>
       </div>
@@ -749,8 +870,8 @@ export default function AdminReservationsPage() {
             <input
               type="text"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Misafir adı veya kabana ara..."
+              onChange={(e) => handleSearchInput(e.target.value)}
+              placeholder="Misafir adı veya Cabana ara..."
               className="w-full pl-10 pr-4 py-2 bg-neutral-800/60 border border-neutral-700 rounded-lg text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50"
             />
           </div>
@@ -777,7 +898,7 @@ export default function AdminReservationsPage() {
               onClick={() => {
                 setStatusFilter(tab.value);
                 setPage(1);
-                setSelected(null);
+                setSelectedId(null);
               }}
               className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors ${
                 statusFilter === tab.value
@@ -796,13 +917,13 @@ export default function AdminReservationsPage() {
         {/* Table / List */}
         <div
           className={`flex-1 flex flex-col overflow-hidden ${
-            selected ? "hidden lg:flex" : "flex"
+            selectedDetail || detailLoading ? "hidden lg:flex" : "flex"
           }`}
         >
           {/* Table Header (desktop) */}
           <div className="hidden md:grid grid-cols-[2fr_1.5fr_2fr_1fr_1.2fr_80px] gap-3 px-5 py-2.5 border-b border-neutral-800 text-[10px] text-neutral-500 uppercase tracking-wider">
             <span>Misafir</span>
-            <span>Kabana</span>
+            <span>Cabana</span>
             <span>Tarih</span>
             <span>Fiyat</span>
             <span>Durum</span>
@@ -826,9 +947,9 @@ export default function AdminReservationsPage() {
                 return (
                   <button
                     key={r.id}
-                    onClick={() => setSelected(r)}
+                    onClick={() => setSelectedId(r.id)}
                     className={`w-full text-left px-5 py-3.5 border-b border-neutral-800/60 hover:bg-neutral-800/40 transition-colors ${
-                      selected?.id === r.id ? "bg-neutral-800/60" : ""
+                      selectedId === r.id ? "bg-neutral-800/60" : ""
                     }`}
                   >
                     {/* Mobile layout */}
@@ -923,15 +1044,21 @@ export default function AdminReservationsPage() {
         {/* Detail Sidebar */}
         <div
           className={`absolute inset-0 lg:relative lg:inset-auto lg:w-[480px] lg:border-l border-neutral-800 bg-neutral-950 lg:bg-transparent overflow-hidden ${
-            selected ? "flex flex-col" : "hidden lg:flex lg:flex-col"
+            selectedDetail || detailLoading
+              ? "flex flex-col"
+              : "hidden lg:flex lg:flex-col"
           }`}
         >
-          {selected ? (
+          {detailLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <RefreshCw className="w-5 h-5 text-neutral-500 animate-spin" />
+            </div>
+          ) : selectedDetail ? (
             <DetailPanel
-              reservation={selected}
-              onClose={() => setSelected(null)}
+              reservation={selectedDetail}
+              onClose={() => setSelectedId(null)}
               onAction={handleAction}
-              actionLoading={actionLoading}
+              actionLoading={actionMutation.isPending}
               currency={currency}
             />
           ) : (

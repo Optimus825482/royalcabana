@@ -16,7 +16,7 @@ export const DELETE = withAuth(
 
     if (!entry) {
       return NextResponse.json(
-        { error: "Bekleme listesi kaydı bulunamadı." },
+        { success: false, error: "Bekleme listesi kaydı bulunamadı." },
         { status: 404 },
       );
     }
@@ -29,19 +29,22 @@ export const DELETE = withAuth(
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
-        { error: "Bu kaydı silme yetkiniz yok." },
+        { success: false, error: "Bu kaydı silme yetkiniz yok." },
         { status: 403 },
       );
     }
 
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM waitlist_entries WHERE id = $1`,
-      id,
-    );
+    await (prisma as any).waitlistEntry.update({
+      where: { id },
+      data: {
+        isNotified: true,
+        notifiedAt: new Date(),
+      },
+    });
 
     logAudit({
       userId: session.user.id,
-      action: "DELETE",
+      action: "SOFT_DELETE",
       entity: "WaitlistEntry",
       entityId: id,
       oldValue: {
@@ -49,10 +52,14 @@ export const DELETE = withAuth(
         guestName: entry.guestName,
         desiredStart: entry.desiredStart,
         desiredEnd: entry.desiredEnd,
+        isNotified: entry.isNotified,
+      },
+      newValue: {
+        isNotified: true,
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: null });
   },
   { requiredPermissions: ["reservation.delete"] },
 );

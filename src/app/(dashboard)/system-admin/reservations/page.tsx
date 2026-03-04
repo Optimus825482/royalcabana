@@ -31,7 +31,7 @@ import PermissionGate from "@/components/shared/PermissionGate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Reservation {
+interface ReservationListItem {
   id: string;
   guestName: string;
   startDate: string;
@@ -46,6 +46,16 @@ interface Reservation {
   updatedAt: string;
   cabana: { id: string; name: string };
   user: { id: string; username: string; email: string };
+  _count?: {
+    statusHistory: number;
+    modifications: number;
+    cancellations: number;
+    extraConcepts: number;
+    extraItems: number;
+  };
+}
+
+interface ReservationDetail extends ReservationListItem {
   statusHistory?: StatusHistoryItem[];
   modifications?: {
     id: string;
@@ -229,7 +239,7 @@ function DetailPanel({
   actionLoading,
   currency,
 }: {
-  reservation: Reservation;
+  reservation: ReservationDetail;
   onClose: () => void;
   onAction: (
     action: string,
@@ -291,7 +301,7 @@ function DetailPanel({
             <MapPin className="w-4 h-4 text-neutral-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[10px] text-neutral-500 uppercase tracking-wide">
-                Kabana
+                Cabana
               </p>
               <p className="text-sm text-neutral-200">
                 {reservation.cabana.name}
@@ -553,14 +563,15 @@ function DetailPanel({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SystemAdminReservationsPage() {
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservations, setReservations] = useState<ReservationListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [selected, setSelected] = useState<Reservation | null>(null);
+  const [selected, setSelected] = useState<ReservationDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [sortField, setSortField] = useState<"createdAt" | "startDate">(
     "createdAt",
@@ -577,6 +588,20 @@ export default function SystemAdminReservationsPage() {
       .catch(() => {});
   }, []);
 
+  const fetchReservationDetail = useCallback(async (id: string) => {
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`/api/reservations/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        setSelected(json.data ?? json);
+      }
+    } catch {
+      // ignore
+    }
+    setDetailLoading(false);
+  }, []);
+
   const fetchReservations = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({
@@ -589,12 +614,18 @@ export default function SystemAdminReservationsPage() {
     try {
       const res = await fetch(`/api/reservations?${params}`);
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data ?? json;
         setReservations(data.reservations ?? []);
         setTotal(data.total ?? 0);
+      } else {
+        setMessage({
+          text: "Rezervasyonlar yüklenirken bir hata oluştu.",
+          type: "error",
+        });
       }
     } catch {
-      // ignore
+      setMessage({ text: "Sunucuya bağlanılamadı.", type: "error" });
     }
     setLoading(false);
   }, [page, statusFilter, search]);
@@ -673,8 +704,8 @@ export default function SystemAdminReservationsPage() {
             text: labels[action] ?? "İşlem başarılı.",
             type: "success",
           });
-          await fetchReservations();
           setSelected(null);
+          await fetchReservations();
         } else {
           const err = await res.json().catch(() => ({}));
           setMessage({
@@ -740,7 +771,7 @@ export default function SystemAdminReservationsPage() {
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Misafir adı veya kabana ara..."
+              placeholder="Misafir adı veya Cabana ara..."
               className="w-full pl-10 pr-4 py-2 bg-neutral-800/60 border border-neutral-700 rounded-lg text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50"
             />
           </div>
@@ -768,6 +799,7 @@ export default function SystemAdminReservationsPage() {
                 setStatusFilter(tab.value);
                 setPage(1);
                 setSelected(null);
+                setDetailLoading(false);
               }}
               className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors ${
                 statusFilter === tab.value
@@ -786,13 +818,13 @@ export default function SystemAdminReservationsPage() {
         {/* Table / List */}
         <div
           className={`flex-1 flex flex-col overflow-hidden ${
-            selected ? "hidden lg:flex" : "flex"
+            selected || detailLoading ? "hidden lg:flex" : "flex"
           }`}
         >
           {/* Table Header (desktop) */}
           <div className="hidden md:grid grid-cols-[2fr_1.5fr_2fr_1fr_1.2fr_80px] gap-3 px-5 py-2.5 border-b border-neutral-800 text-[10px] text-neutral-500 uppercase tracking-wider">
             <span>Misafir</span>
-            <span>Kabana</span>
+            <span>Cabana</span>
             <span>Tarih</span>
             <span>Fiyat</span>
             <span>Durum</span>
@@ -816,7 +848,7 @@ export default function SystemAdminReservationsPage() {
                 return (
                   <button
                     key={r.id}
-                    onClick={() => setSelected(r)}
+                    onClick={() => fetchReservationDetail(r.id)}
                     className={`w-full text-left px-5 py-3.5 border-b border-neutral-800/60 hover:bg-neutral-800/40 transition-colors ${
                       selected?.id === r.id ? "bg-neutral-800/60" : ""
                     }`}
@@ -913,10 +945,14 @@ export default function SystemAdminReservationsPage() {
         {/* Detail Sidebar */}
         <div
           className={`absolute inset-0 lg:relative lg:inset-auto lg:w-[480px] lg:border-l border-neutral-800 bg-neutral-950 lg:bg-transparent overflow-hidden ${
-            selected ? "flex flex-col" : "hidden lg:flex lg:flex-col"
+            selected || detailLoading ? "flex flex-col" : "hidden lg:flex lg:flex-col"
           }`}
         >
-          {selected ? (
+          {detailLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <RefreshCw className="w-5 h-5 text-neutral-500 animate-spin" />
+            </div>
+          ) : selected ? (
             <DetailPanel
               reservation={selected}
               onClose={() => setSelected(null)}

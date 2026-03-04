@@ -56,7 +56,9 @@ async function fetchUsers(roleFilter?: string): Promise<UserRow[]> {
   const url = roleFilter ? `/api/users?role=${roleFilter}` : "/api/users";
   const res = await fetch(url);
   if (!res.ok) throw new Error("Kullanıcılar yüklenemedi.");
-  return res.json();
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
 }
 
 async function createUser(data: CreateForm): Promise<UserRow> {
@@ -67,9 +69,10 @@ async function createUser(data: CreateForm): Promise<UserRow> {
   });
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err.message || "Kullanıcı oluşturulamadı.");
+    throw new Error(err.message || err.error || "Kullanıcı oluşturulamadı.");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function updateUser(
@@ -86,9 +89,10 @@ async function updateUser(
   });
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err.message || "Kullanıcı güncellenemedi.");
+    throw new Error(err.message || err.error || "Kullanıcı güncellenemedi.");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function deactivateUser(id: string): Promise<void> {
@@ -123,10 +127,11 @@ export default function AdminUsersPage() {
 
   const queryKey = ["admin-users", roleFilter];
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: rawUsers, isLoading } = useQuery({
     queryKey,
     queryFn: () => fetchUsers(roleFilter !== "ALL" ? roleFilter : undefined),
   });
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
 
   const createMutation = useMutation({
     mutationFn: createUser,

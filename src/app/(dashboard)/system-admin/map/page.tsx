@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import CabanaMap from "@/components/map/CabanaMap";
 import TransformControls from "@/components/map/TransformControls";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
@@ -35,10 +36,13 @@ const defaultAddForm = {
 
 export default function SystemAdminMapPage() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const placeCabanaId = searchParams.get("placeCabana");
 
   const {
     data: mapData,
     isLoading: loading,
+    isError,
     error: queryError,
   } = useQuery({
     queryKey: ["map-admin-data"],
@@ -48,7 +52,7 @@ export default function SystemAdminMapPage() {
         fetch("/api/classes"),
         fetch("/api/concepts"),
       ]);
-      if (!cabanasRes.ok) throw new Error("Kabanalar yüklenemedi.");
+      if (!cabanasRes.ok) throw new Error("Cabanalar yüklenemedi.");
       if (!classesRes.ok) throw new Error("Sınıflar yüklenemedi.");
       if (!conceptsRes.ok) throw new Error("Konseptler yüklenemedi.");
       const [cabanasData, classesData, conceptsData] = await Promise.all([
@@ -73,6 +77,23 @@ export default function SystemAdminMapPage() {
   const cabanas = mapData?.cabanas ?? [];
   const classes = mapData?.classes ?? [];
   const concepts = mapData?.concepts ?? [];
+
+  // Placement mode: filter to only the target cabana and auto-select it
+  const displayCabanas = placeCabanaId
+    ? cabanas.filter((c) => c.id === placeCabanaId)
+    : cabanas;
+
+  // Auto-select the placement cabana when data loads
+  useEffect(() => {
+    if (placeCabanaId && cabanas.length > 0 && !selectedCabana) {
+      const target = cabanas.find((c) => c.id === placeCabanaId);
+      if (target) {
+        setSelectedCabana(target);
+        setEditClassId(target.classId);
+        setEditConceptId(target.conceptId ?? "");
+      }
+    }
+  }, [placeCabanaId, cabanas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [error, setError] = useState(queryError ? String(queryError) : "");
   const [success, setSuccess] = useState("");
@@ -221,12 +242,12 @@ export default function SystemAdminMapPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Kabana oluşturulamadı.");
+        throw new Error(data.message || "Cabana oluşturulamadı.");
       }
       setShowAddModal(false);
       setAddForm(defaultAddForm);
       setPlacementCoords(null);
-      showSuccessMsg("Kabana başarıyla eklendi.");
+      showSuccessMsg("Cabana başarıyla eklendi.");
       queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
     } catch (e: unknown) {
       setAddError(e instanceof Error ? e.message : "Bir hata oluştu.");
@@ -251,9 +272,9 @@ export default function SystemAdminMapPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Kabana güncellenemedi.");
+        throw new Error(data.message || "Cabana güncellenemedi.");
       }
-      showSuccessMsg("Kabana güncellendi.");
+      showSuccessMsg("Cabana güncellendi.");
       await queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
       // Refresh selected cabana
       const updated = cabanas.find((c) => c.id === selectedCabana.id);
@@ -280,9 +301,9 @@ export default function SystemAdminMapPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Kabana silinemedi.");
+        throw new Error(data.message || "Cabana silinemedi.");
       }
-      showSuccessMsg("Kabana silindi.");
+      showSuccessMsg("Cabana silindi.");
       setSelectedCabana(null);
       setShowDeleteConfirm(false);
       queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
@@ -318,9 +339,9 @@ export default function SystemAdminMapPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Kabana silinemedi.");
+        throw new Error(data.message || "Cabana silinemedi.");
       }
-      showSuccessMsg("Kabana silindi.");
+      showSuccessMsg("Cabana silindi.");
       if (selectedCabana?.id === cabanaId) {
         setSelectedCabana(null);
         setShowDeleteConfirm(false);
@@ -334,12 +355,14 @@ export default function SystemAdminMapPage() {
   const statusLabel: Record<CabanaStatus, string> = {
     [CabanaStatus.AVAILABLE]: "Müsait",
     [CabanaStatus.RESERVED]: "Rezerve",
+    [CabanaStatus.OCCUPIED]: "Dolu",
     [CabanaStatus.CLOSED]: "Kapalı",
   };
 
   const statusColor: Record<CabanaStatus, string> = {
     [CabanaStatus.AVAILABLE]: "text-green-400",
     [CabanaStatus.RESERVED]: "text-red-400",
+    [CabanaStatus.OCCUPIED]: "text-amber-400",
     [CabanaStatus.CLOSED]: "text-neutral-500",
   };
 
@@ -349,13 +372,22 @@ export default function SystemAdminMapPage() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
-            Kabana Haritası
+            {placeCabanaId
+              ? `${displayCabanas[0]?.name ?? "Cabana"} — Yerleşim`
+              : "Cabana Haritası"}
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
-            Kabanaları harita üzerinde yönetin
+            {placeCabanaId
+              ? "Bu cabana'yı sürükleyerek haritada konumlandırın"
+              : "Cabanaları harita üzerinde yönetin"}
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {placeCabanaId && (
+            <a href="/system-admin/map" className={cancelBtnCls}>
+              Tümünü Göster
+            </a>
+          )}
           <button
             onClick={() => {
               setShowAddModal(true);
@@ -366,7 +398,7 @@ export default function SystemAdminMapPage() {
             className={primaryBtnCls}
             title="Veya haritada sağ tıklayarak ekleyin"
           >
-            + Yeni Kabana
+            + Yeni Cabana
           </button>
         </div>
       </div>
@@ -393,12 +425,19 @@ export default function SystemAdminMapPage() {
         <div className="flex-1 p-4 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center h-full min-h-[300px]">
-              <LoadingSpinner message="Kabanalar yükleniyor..." />
+              <LoadingSpinner message="Cabanalar yükleniyor..." />
+            </div>
+          ) : isError ? (
+            <div className="flex items-center justify-center h-full min-h-[300px]">
+              <p className="text-red-400 text-sm">
+                {(queryError as Error)?.message ??
+                  "Harita verileri yüklenirken bir hata oluştu."}
+              </p>
             </div>
           ) : (
             <div className="h-full min-h-[300px] md:min-h-[500px]">
               <CabanaMap
-                cabanas={cabanas}
+                cabanas={displayCabanas}
                 editable={true}
                 onCabanaClick={handleCabanaClick}
                 onLocationUpdate={handleLocationUpdate}
@@ -563,7 +602,7 @@ export default function SystemAdminMapPage() {
                     onClick={() => setShowDeleteConfirm(true)}
                     className={"w-full " + dangerSoftBtnCls}
                   >
-                    Kabana Sil
+                    Cabana Sil
                   </button>
                 ) : (
                   <div className="space-y-2">
@@ -615,7 +654,7 @@ export default function SystemAdminMapPage() {
             </div>
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
               <h2 className="text-sm font-semibold text-yellow-400">
-                Yeni Kabana Ekle
+                Yeni Cabana Ekle
               </h2>
               <button
                 onClick={() => {
@@ -630,7 +669,7 @@ export default function SystemAdminMapPage() {
             <form onSubmit={handleAdd} className="px-5 py-5 space-y-4">
               <div>
                 <label className="block text-xs text-neutral-400 mb-1.5">
-                  Kabana Adı
+                  Cabana Adı
                 </label>
                 <input
                   type="text"
@@ -641,7 +680,7 @@ export default function SystemAdminMapPage() {
                     setAddForm((f) => ({ ...f, name: e.target.value }))
                   }
                   className={inputCls}
-                  placeholder="Örn: Kabana 1"
+                  placeholder="Örn: Cabana 1"
                 />
               </div>
 

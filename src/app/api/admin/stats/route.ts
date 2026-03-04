@@ -46,16 +46,19 @@ export const GET = withAuth(
       totalCabanas > 0 ? (reservedCabanas / totalCabanas) * 100 : 0;
 
     return NextResponse.json({
-      totalCabanas,
-      availableCabanas,
-      reservedCabanas,
-      closedCabanas,
-      occupancyRate: Math.round(occupancyRate * 10) / 10,
-      pendingRequests,
-      approvedThisMonth,
-      rejectedThisMonth,
-      totalRevenue: Number(revenueResult._sum.totalPrice ?? 0),
-      revenueThisMonth: Number(revenueThisMonthResult._sum.totalPrice ?? 0),
+      success: true,
+      data: {
+        totalCabanas,
+        availableCabanas,
+        reservedCabanas,
+        closedCabanas,
+        occupancyRate: Math.round(occupancyRate * 10) / 10,
+        pendingRequests,
+        approvedThisMonth,
+        rejectedThisMonth,
+        totalRevenue: Number(revenueResult._sum.totalPrice ?? 0),
+        revenueThisMonth: Number(revenueThisMonthResult._sum.totalPrice ?? 0),
+      },
     });
   },
   { requiredPermissions: ["report.view"] },

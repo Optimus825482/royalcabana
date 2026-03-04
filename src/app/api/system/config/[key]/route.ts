@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
+import { logAudit } from "@/lib/audit";
 import { Role } from "@/types";
 
 const allRoles = [
@@ -29,13 +30,12 @@ export const GET = withAuth(
       data: config ? { key: config.key, value: config.value } : null,
     });
   },
-  { requiredPermissions: ["system.config.view"] },
 );
 
 // PUT /api/system/config/[key]
 export const PUT = withAuth(
   [Role.SYSTEM_ADMIN, Role.ADMIN],
-  async (req, { params }) => {
+  async (req, { session, params }) => {
     const key = params?.key;
     if (!key) {
       return NextResponse.json(
@@ -54,10 +54,21 @@ export const PUT = withAuth(
       );
     }
 
+    const oldConfig = await prisma.systemConfig.findUnique({ where: { key } });
+
     const config = await prisma.systemConfig.upsert({
       where: { key },
       update: { value },
       create: { key, value },
+    });
+
+    logAudit({
+      userId: session.user.id,
+      action: "CONFIG_CHANGE",
+      entity: "SystemConfig",
+      entityId: key,
+      oldValue: oldConfig ? { value: oldConfig.value } : null,
+      newValue: { value },
     });
 
     return NextResponse.json({

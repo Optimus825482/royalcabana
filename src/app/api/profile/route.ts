@@ -27,12 +27,12 @@ export const GET = withAuth(ALL_ROLES, async (_req, { session }) => {
 
   if (!user) {
     return NextResponse.json(
-      { error: "Kullanıcı bulunamadı" },
+      { success: false, error: "Kullanıcı bulunamadı" },
       { status: 404 },
     );
   }
 
-  return NextResponse.json(user);
+  return NextResponse.json({ success: true, data: user });
 });
 
 /** PATCH /api/profile — kullanıcı bilgilerini güncelle */
@@ -50,7 +50,7 @@ export const PATCH = withAuth(
     // En az bir alan değişmeli
     if (!username && !email && !newPassword) {
       return NextResponse.json(
-        { error: "Güncellenecek en az bir alan gerekli." },
+        { success: false, error: "Güncellenecek en az bir alan gerekli." },
         { status: 400 },
       );
     }
@@ -61,7 +61,7 @@ export const PATCH = withAuth(
 
     if (!user) {
       return NextResponse.json(
-        { error: "Kullanıcı bulunamadı" },
+        { success: false, error: "Kullanıcı bulunamadı" },
         { status: 404 },
       );
     }
@@ -70,20 +70,28 @@ export const PATCH = withAuth(
     if (newPassword) {
       if (!currentPassword) {
         return NextResponse.json(
-          { error: "Şifre değiştirmek için mevcut şifrenizi girin." },
+          {
+            success: false,
+            error: "Şifre değiştirmek için mevcut şifrenizi girin.",
+          },
           { status: 400 },
         );
       }
       const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
       if (!isValid) {
         return NextResponse.json(
-          { error: "Mevcut şifre hatalı." },
+          { success: false, error: "Mevcut şifre hatalı." },
           { status: 400 },
         );
       }
-      if (newPassword.length < 6) {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+      if (!passwordRegex.test(newPassword)) {
         return NextResponse.json(
-          { error: "Yeni şifre en az 6 karakter olmalı." },
+          {
+            success: false,
+            error:
+              "Şifre en az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam içermelidir.",
+          },
           { status: 400 },
         );
       }
@@ -94,7 +102,7 @@ export const PATCH = withAuth(
       const existing = await prisma.user.findUnique({ where: { username } });
       if (existing) {
         return NextResponse.json(
-          { error: "Bu kullanıcı adı zaten kullanılıyor." },
+          { success: false, error: "Bu kullanıcı adı zaten kullanılıyor." },
           { status: 409 },
         );
       }
@@ -104,7 +112,7 @@ export const PATCH = withAuth(
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) {
         return NextResponse.json(
-          { error: "Bu e-posta adresi zaten kullanılıyor." },
+          { success: false, error: "Bu e-posta adresi zaten kullanılıyor." },
           { status: 409 },
         );
       }
@@ -119,7 +127,10 @@ export const PATCH = withAuth(
     }
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ message: "Değişiklik yok." });
+      return NextResponse.json({
+        success: true,
+        data: { message: "Değişiklik yok." },
+      });
     }
 
     const updated = await prisma.user.update({
@@ -148,6 +159,6 @@ export const PATCH = withAuth(
       newValue: changedFields,
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
 );

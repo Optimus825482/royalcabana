@@ -70,16 +70,29 @@ const formatDate = (dateStr: string) =>
 
 async function fetchCabanas(): Promise<CabanaOption[]> {
   const res = await fetch("/api/cabanas");
-  if (!res.ok) throw new Error("Kabana listesi yüklenemedi.");
-  const data = await res.json();
-  return data.cabanas ?? data;
+  if (!res.ok) throw new Error("Cabana listesi yüklenemedi.");
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
 }
 
 async function fetchWaitlist(): Promise<WaitlistRow[]> {
   const res = await fetch("/api/waitlist");
   if (!res.ok) throw new Error("Bekleme listesi yüklenemedi.");
-  const data = await res.json();
-  return data.items ?? data.waitlist ?? data;
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  if (Array.isArray(resolved)) return resolved;
+  return resolved.items ?? resolved.waitlist ?? [];
+}
+
+function normalizeWaitlistRows(data: unknown): WaitlistRow[] {
+  if (Array.isArray(data)) return data as WaitlistRow[];
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as WaitlistRow[];
+    if (Array.isArray(obj.waitlist)) return obj.waitlist as WaitlistRow[];
+  }
+  return [];
 }
 
 async function createWaitlistEntry(data: WaitlistForm): Promise<WaitlistRow> {
@@ -98,7 +111,8 @@ async function createWaitlistEntry(data: WaitlistForm): Promise<WaitlistRow> {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Bekleme listesine eklenemedi.");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function deleteWaitlistEntry(id: string): Promise<void> {
@@ -133,10 +147,17 @@ export default function WaitlistPage() {
     queryFn: fetchCabanas,
   });
 
-  const { data: allRows = [], isLoading } = useQuery({
+  const {
+    data: rawRows = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery<unknown, Error, WaitlistRow[]>({
     queryKey: ["waitlist"],
     queryFn: fetchWaitlist,
+    select: normalizeWaitlistRows,
   });
+  const allRows = rawRows;
 
   const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
   const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -171,7 +192,7 @@ export default function WaitlistPage() {
             Bekleme Listesi
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
-            Kabana müsait olduğunda bildirim almak için bekleme listesine
+            Cabana müsait olduğunda bildirim almak için bekleme listesine
             ekleyin
           </p>
         </div>
@@ -197,6 +218,16 @@ export default function WaitlistPage() {
         </div>
       )}
 
+      {/* Error */}
+      {isError && (
+        <div className="text-center py-12">
+          <p className="text-red-400 text-sm">
+            {(error as Error)?.message ??
+              "Veriler yüklenirken bir hata oluştu."}
+          </p>
+        </div>
+      )}
+
       {/* Desktop Table */}
       <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         {isLoading ? (
@@ -217,7 +248,7 @@ export default function WaitlistPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-800 text-neutral-400 text-left">
-                <th className="px-4 py-3 font-medium">Kabana</th>
+                    <th className="px-4 py-3 font-medium">Cabana</th>
                 <th className="px-4 py-3 font-medium">Misafir</th>
                 <th className="px-4 py-3 font-medium">İstenen Tarih</th>
                 <th className="px-4 py-3 font-medium">Notlar</th>
@@ -368,7 +399,7 @@ export default function WaitlistPage() {
             }}
             className="space-y-4"
           >
-            <Field label="Kabana">
+            <Field label="Cabana">
               <select
                 required
                 value={createForm.cabanaId}
@@ -377,7 +408,7 @@ export default function WaitlistPage() {
                 }
                 className={selectCls}
               >
-                <option value="">Kabana seçin</option>
+                <option value="">Cabana seçin</option>
                 {cabanas.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}

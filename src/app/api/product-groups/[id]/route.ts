@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { invalidateCache } from "@/lib/cache";
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -17,7 +18,7 @@ export const PATCH = withAuth(
     const group = await prisma.productGroup.findUnique({ where: { id } });
     if (!group) {
       return NextResponse.json(
-        { message: "Grup bulunamadı." },
+        { success: false, error: "Grup bulunamadı." },
         { status: 404 },
       );
     }
@@ -26,7 +27,7 @@ export const PATCH = withAuth(
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error" },
+        { success: false, error: "Validation error" },
         { status: 400 },
       );
     }
@@ -45,7 +46,9 @@ export const PATCH = withAuth(
       newValue: parsed.data,
     });
 
-    return NextResponse.json(updated);
+    await invalidateCache("product-groups:list:v1");
+
+    return NextResponse.json({ success: true, data: updated });
   },
 );
 
@@ -56,7 +59,7 @@ export const DELETE = withAuth(
     const group = await prisma.productGroup.findUnique({ where: { id } });
     if (!group) {
       return NextResponse.json(
-        { message: "Grup bulunamadı." },
+        { success: false, error: "Grup bulunamadı." },
         { status: 404 },
       );
     }
@@ -65,7 +68,10 @@ export const DELETE = withAuth(
       where: { groupId: id },
       data: { groupId: null },
     });
-    await prisma.productGroup.delete({ where: { id } });
+    await prisma.productGroup.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
 
     logAudit({
       userId: session.user.id,
@@ -75,6 +81,8 @@ export const DELETE = withAuth(
       oldValue: { name: group.name, sortOrder: group.sortOrder },
     });
 
-    return NextResponse.json({ message: "Grup silindi." });
+    await invalidateCache("product-groups:list:v1");
+
+    return NextResponse.json({ success: true, data: null });
   },
 );

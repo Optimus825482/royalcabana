@@ -948,6 +948,10 @@ function StatusBadge({ cabana }: { cabana: CabanaWithStatus }) {
       label: "Rezerve",
       cls: "bg-red-950/50 border border-red-800/40 text-red-400",
     },
+    [CabanaStatus.OCCUPIED]: {
+      label: "Dolu",
+      cls: "bg-amber-950/50 border border-amber-700/40 text-amber-400",
+    },
     [CabanaStatus.CLOSED]: {
       label: "Kapalı",
       cls: "bg-neutral-800 border border-neutral-700 text-neutral-500",
@@ -1145,9 +1149,9 @@ export default function CabanaThreeViewInner({
                   {hoveredCabana.name}
                 </span>
               ) : editable && cameraLocked ? (
-                "Kabanaları sürükleyin veya zemine tıklayarak yeni ekleyin"
+                "Cabanaları sürükleyin veya zemine tıklayarak yeni ekleyin"
               ) : (
-                "Kabana üzerine gelin veya tıklayın"
+                "Cabana üzerine gelin veya tıklayın"
               )}
             </span>
             {/* [FIX L16] Accessibility — screen reader announcement for hovered cabana */}
@@ -1209,7 +1213,7 @@ export default function CabanaThreeViewInner({
         <div
           className="flex-1 relative"
           role="application"
-          aria-label="3D Kabana Haritası"
+          aria-label="3D Cabana Haritası"
         >
           {/* [FIX M12] Canvas GL config: toneMapping, colorSpace, pixelRatio limit */}
           <Canvas
@@ -1244,7 +1248,7 @@ export default function CabanaThreeViewInner({
 
           {cabanas.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <p className="text-neutral-600 text-sm">Kabana verisi yok</p>
+              <p className="text-neutral-600 text-sm">Cabana verisi yok</p>
             </div>
           )}
         </div>

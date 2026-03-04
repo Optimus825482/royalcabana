@@ -8,14 +8,14 @@ import ReservationTimeline from "@/components/calendar/ReservationTimeline";
 import { ReservationStatus } from "@/types";
 import {
   AlertTriangle,
-  X,
-  Check,
-  Ban,
-  LogIn,
-  LogOut,
-  DollarSign,
   LayoutList,
   CalendarDays,
+  X,
+  Ban,
+  DollarSign,
+  Check,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import type { TimelineReservation } from "@/hooks/useReservationCalendar";
 import type {
@@ -29,76 +29,32 @@ import {
   type CurrencyCode,
   DEFAULT_CURRENCY,
 } from "@/lib/currency";
+import ReservationDetailModal, {
+  type ReservationDetailData,
+} from "@/components/calendar/ReservationDetailModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ReservationDetail {
-  id: string;
-  cabanaId: string;
-  guestName: string;
-  startDate: string;
-  endDate: string;
-  status: ReservationStatus;
-  notes?: string;
-  totalPrice?: number;
-  cabana: { id: string; name: string };
-  user?: { id: string; username: string };
-  statusHistory: Array<{
-    toStatus: string;
-    changedBy: string;
-    createdAt: string;
-    reason?: string;
-  }>;
-}
-
 interface ReservationListResponse {
-  reservations: ReservationDetail[];
+  reservations: ReservationDetailData[];
   total: number;
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const STATUS_LABEL: Record<ReservationStatus, string> = {
-  [ReservationStatus.PENDING]: "Bekliyor",
-  [ReservationStatus.APPROVED]: "Onaylı",
-  [ReservationStatus.REJECTED]: "Reddedildi",
-  [ReservationStatus.CANCELLED]: "İptal",
-  [ReservationStatus.MODIFICATION_PENDING]: "Değişiklik Bekliyor",
-  [ReservationStatus.EXTRA_PENDING]: "Ek Konsept Bekliyor",
-  [ReservationStatus.CHECKED_IN]: "Giriş Yapıldı",
-  [ReservationStatus.CHECKED_OUT]: "Çıkış Yapıldı",
-};
-
-const STATUS_BADGE: Record<ReservationStatus, string> = {
-  [ReservationStatus.PENDING]:
-    "bg-yellow-950/60 border-yellow-700/40 text-yellow-400",
-  [ReservationStatus.APPROVED]:
-    "bg-green-950/60 border-green-700/40 text-green-400",
-  [ReservationStatus.REJECTED]: "bg-red-950/50 border-red-800/40 text-red-400",
-  [ReservationStatus.CANCELLED]:
-    "bg-neutral-800 border-neutral-700 text-neutral-500",
-  [ReservationStatus.MODIFICATION_PENDING]:
-    "bg-orange-950/50 border-orange-800/40 text-orange-400",
-  [ReservationStatus.EXTRA_PENDING]:
-    "bg-purple-950/50 border-purple-800/40 text-purple-400",
-  [ReservationStatus.CHECKED_IN]:
-    "bg-teal-950/50 border-teal-700/40 text-teal-400",
-  [ReservationStatus.CHECKED_OUT]:
-    "bg-slate-800 border-slate-700 text-slate-400",
-};
 
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
 
 async function fetchReservations(): Promise<ReservationListResponse> {
   const res = await fetch("/api/reservations");
   if (!res.ok) throw new Error("Rezervasyonlar yüklenemedi.");
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function fetchCabanas(): Promise<CabanaWithStatus[]> {
   const res = await fetch("/api/cabanas");
-  if (!res.ok) throw new Error("Kabanalar yüklenemedi.");
-  return res.json();
+  if (!res.ok) throw new Error("Cabanalar yüklenemedi.");
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
 }
 
 async function fetchSystemConfig(): Promise<{
@@ -106,7 +62,8 @@ async function fetchSystemConfig(): Promise<{
 }> {
   const res = await fetch("/api/system/config");
   if (!res.ok) return { system_open_for_reservation: true };
-  const data = await res.json();
+  const raw = await res.json();
+  const data = raw.data ?? raw;
   // API returns { isOpen: boolean }
   if (typeof data.isOpen !== "undefined") {
     return {
@@ -136,19 +93,29 @@ export default function SysAdminCalendarPage() {
   const [classFilter, setClassFilter] = useState<string>("");
   const [viewType, setViewType] = useState<"timeline" | "calendar">("timeline");
   const [selectedReservation, setSelectedReservation] =
-    useState<ReservationDetail | null>(null);
+    useState<ReservationDetailData | null>(null);
 
   const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
     queryKey: ["system-currency"],
     queryFn: fetchSystemCurrency,
   });
 
-  const { data: reservationData, isLoading: resLoading } = useQuery({
+  const {
+    data: reservationData,
+    isLoading: resLoading,
+    isError: resIsError,
+    error: resError,
+  } = useQuery({
     queryKey: ["reservations"],
     queryFn: fetchReservations,
   });
 
-  const { data: cabanas = [], isLoading: cabanasLoading } = useQuery({
+  const {
+    data: cabanas = [],
+    isLoading: cabanasLoading,
+    isError: cabanasIsError,
+    error: cabanasError,
+  } = useQuery({
     queryKey: ["cabanas"],
     queryFn: fetchCabanas,
   });
@@ -237,6 +204,17 @@ export default function SysAdminCalendarPage() {
         </div>
       )}
 
+      {/* Error banner */}
+      {(resIsError || cabanasIsError) && (
+        <div className="px-4 sm:px-6 py-3 bg-red-950/40 border-b border-red-800/40 shrink-0">
+          <p className="text-sm text-red-400">
+            {(resError as Error)?.message ??
+              (cabanasError as Error)?.message ??
+              "Veriler yüklenirken bir hata oluştu."}
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-neutral-800 shrink-0">
         <div className="flex items-center gap-3">
@@ -246,7 +224,7 @@ export default function SysAdminCalendarPage() {
             </h1>
             <p className="text-sm text-neutral-400 mt-0.5">
               {viewType === "timeline"
-                ? "Tüm kabanaların gerçek zamanlı takibi – tam yönetim"
+                ? "Tüm Cabanaların gerçek zamanlı takibi – tam yönetim"
                 : "Tüm rezervasyonları yönetin — onaylayın, reddedin, check-in / check-out yapın"}
             </p>
           </div>
@@ -278,7 +256,7 @@ export default function SysAdminCalendarPage() {
           <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
-            aria-label="Kabana sınıfına göre filtrele"
+            aria-label="Cabana sınıfına göre filtrele"
             className="px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-amber-500 min-h-[44px]"
           >
             <option value="">Tüm Sınıflar</option>
@@ -296,39 +274,11 @@ export default function SysAdminCalendarPage() {
         {viewType === "timeline" ? (
           <ReservationTimeline
             classFilter={classFilter || undefined}
-            isAdmin
             onReservationClick={(r: TimelineReservation) => {
               const detail = reservationData?.reservations.find(
                 (res) => res.id === r.id,
               );
               if (detail) setSelectedReservation(detail);
-            }}
-            onQuickAction={async (reservationId, action) => {
-              try {
-                const endpoint =
-                  action === "approve"
-                    ? "approve"
-                    : action === "reject"
-                      ? "reject"
-                      : action === "check-in"
-                        ? "check-in"
-                        : "check-out";
-                const res = await fetch(
-                  `/api/reservations/${reservationId}/${endpoint}`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(
-                      action === "reject"
-                        ? { reason: "Sistem yöneticisi tarafından reddedildi" }
-                        : {},
-                    ),
-                  },
-                );
-                if (res.ok) refreshData();
-              } catch {
-                /* error handled in timeline */
-              }
             }}
           />
         ) : isLoading ? (
@@ -349,13 +299,14 @@ export default function SysAdminCalendarPage() {
         )}
       </div>
 
-      {/* Reservation Detail + Actions Modal */}
+      {/* Reservation Detail Modal */}
       {selectedReservation && (
-        <AdminReservationModal
+        <ReservationDetailModal
           reservation={selectedReservation}
-          currency={currency}
           onClose={() => setSelectedReservation(null)}
           onAction={refreshData}
+          currency={currency}
+          showActions
         />
       )}
     </div>
@@ -364,13 +315,42 @@ export default function SysAdminCalendarPage() {
 
 // ─── Admin Reservation Modal ──────────────────────────────────────────────────
 
+const STATUS_LABEL: Record<ReservationStatus, string> = {
+  [ReservationStatus.PENDING]: "Bekliyor",
+  [ReservationStatus.APPROVED]: "Onaylandı",
+  [ReservationStatus.REJECTED]: "Reddedildi",
+  [ReservationStatus.CANCELLED]: "İptal",
+  [ReservationStatus.MODIFICATION_PENDING]: "Değişiklik Bekliyor",
+  [ReservationStatus.EXTRA_PENDING]: "Ek Konsept Bekliyor",
+  [ReservationStatus.CHECKED_IN]: "Giriş Yapıldı",
+  [ReservationStatus.CHECKED_OUT]: "Çıkış Yapıldı",
+};
+
+const STATUS_BADGE: Record<ReservationStatus, string> = {
+  [ReservationStatus.PENDING]:
+    "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+  [ReservationStatus.APPROVED]:
+    "bg-green-500/20 text-green-300 border-green-500/30",
+  [ReservationStatus.REJECTED]: "bg-red-500/20 text-red-300 border-red-500/30",
+  [ReservationStatus.CANCELLED]:
+    "bg-neutral-500/20 text-neutral-400 border-neutral-500/30",
+  [ReservationStatus.MODIFICATION_PENDING]:
+    "bg-orange-500/20 text-orange-300 border-orange-500/30",
+  [ReservationStatus.EXTRA_PENDING]:
+    "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  [ReservationStatus.CHECKED_IN]:
+    "bg-teal-500/20 text-teal-300 border-teal-500/30",
+  [ReservationStatus.CHECKED_OUT]:
+    "bg-slate-500/20 text-slate-300 border-slate-500/30",
+};
+
 function AdminReservationModal({
   reservation,
   currency,
   onClose,
   onAction,
 }: {
-  reservation: ReservationDetail;
+  reservation: ReservationDetailData;
   currency: CurrencyCode;
   onClose: () => void;
   onAction: () => void;
@@ -549,24 +529,29 @@ function AdminReservationModal({
                 Durum Geçmişi
               </p>
               <div className="space-y-2">
-                {reservation.statusHistory.map((h, i) => (
-                  <div
-                    key={i}
-                    className="text-xs bg-neutral-800/60 rounded-lg px-3 py-2.5"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-neutral-200 font-medium">
-                        {h.toStatus}
-                      </span>
-                      <span className="text-neutral-500">
-                        {new Date(h.createdAt).toLocaleDateString("tr-TR")}
-                      </span>
+                {reservation.statusHistory.map(
+                  (
+                    h: { toStatus: string; createdAt: string; reason?: string },
+                    i: number,
+                  ) => (
+                    <div
+                      key={i}
+                      className="text-xs bg-neutral-800/60 rounded-lg px-3 py-2.5"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-200 font-medium">
+                          {h.toStatus}
+                        </span>
+                        <span className="text-neutral-500">
+                          {new Date(h.createdAt).toLocaleDateString("tr-TR")}
+                        </span>
+                      </div>
+                      {h.reason && (
+                        <p className="text-neutral-400 mt-0.5">{h.reason}</p>
+                      )}
                     </div>
-                    {h.reason && (
-                      <p className="text-neutral-400 mt-0.5">{h.reason}</p>
-                    )}
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             </div>
           )}

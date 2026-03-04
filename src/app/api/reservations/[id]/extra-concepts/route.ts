@@ -14,19 +14,19 @@ export const POST = withAuth(
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
 
-    // IDOR: sadece kendi rezervasyonu
     if (reservation.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     if (reservation.status !== "APPROVED") {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Yalnızca onaylı rezervasyonlar için ek konsept talebi oluşturulabilir.",
         },
@@ -38,7 +38,7 @@ export const POST = withAuth(
     const parsed = parseBody(extraConceptRequestSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
 
     const { items } = parsed.data;
@@ -93,7 +93,7 @@ export const POST = withAuth(
       newValue: { status: "EXTRA_PENDING", items },
     });
 
-    return NextResponse.json(extraRequest, { status: 201 });
+    return NextResponse.json({ success: true, data: extraRequest }, { status: 201 });
   },
   { requiredPermissions: ["reservation.update"] },
 );

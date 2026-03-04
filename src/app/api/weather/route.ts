@@ -139,16 +139,15 @@ const allRoles = [
 ];
 
 export const GET = withAuth(allRoles, async () => {
-  // Check cache
   if (weatherCache && Date.now() < weatherCache.expiresAt) {
-    return NextResponse.json(weatherCache.data);
+    return NextResponse.json({ success: true, data: weatherCache.data });
   }
 
   try {
     const res = await fetch(OPEN_METEO_URL, { next: { revalidate: 0 } });
 
     if (!res.ok) {
-      return NextResponse.json(FALLBACK);
+      return NextResponse.json({ success: true, data: FALLBACK });
     }
 
     const json = await res.json();
@@ -168,8 +167,8 @@ export const GET = withAuth(allRoles, async () => {
 
     weatherCache = { data, expiresAt: Date.now() + CACHE_TTL };
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, data });
   } catch {
-    return NextResponse.json(FALLBACK);
+    return NextResponse.json({ success: true, data: FALLBACK });
   }
 });

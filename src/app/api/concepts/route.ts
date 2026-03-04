@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { cached, invalidateCache } from "@/lib/cache";
 
 const allRoles = [
   Role.ADMIN,
@@ -23,15 +24,27 @@ const createConceptSchema = z.object({
 export const GET = withAuth(
   allRoles,
   async () => {
-    const concepts = await prisma.concept.findMany({
-      include: {
-        products: { include: { product: true } },
-        cabanaClass: { select: { id: true, name: true } },
-        _count: { select: { cabanas: true } },
-      },
-      orderBy: { createdAt: "desc" },
+    const concepts = await cached("concepts:list:v1", 120, async () => {
+      return prisma.concept.findMany({
+        where: { isDeleted: false },
+        include: {
+          products: { include: { product: true } },
+          extraServices: {
+            include: {
+              extraService: {
+                include: {
+                  prices: { orderBy: { effectiveFrom: "desc" }, take: 1 },
+                },
+              },
+            },
+          },
+          cabanaClass: { select: { id: true, name: true } },
+          _count: { select: { cabanas: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
     });
-    return NextResponse.json(concepts);
+    return NextResponse.json({ success: true, data: concepts });
   },
   { requiredPermissions: ["concept.view"] },
 );
@@ -43,7 +56,11 @@ export const POST = withAuth(
     const parsed = createConceptSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -53,12 +70,12 @@ export const POST = withAuth(
     const existing = await prisma.concept.findUnique({ where: { name } });
     if (existing) {
       return NextResponse.json(
-        { message: "Bu isimde bir konsept zaten mevcut." },
+        { success: false, error: "Bu isimde bir konsept zaten mevcut." },
         { status: 409 },
       );
     }
 
-    const concept = await (prisma as any).concept.create({
+    const concept = await prisma.concept.create({
       data: {
         name,
         description,
@@ -94,7 +111,9 @@ export const POST = withAuth(
       },
     });
 
-    return NextResponse.json(concept, { status: 201 });
+    await invalidateCache("concepts:list:v1");
+
+    return NextResponse.json({ success: true, data: concept }, { status: 201 });
   },
   { requiredPermissions: ["concept.create"] },
 );

@@ -39,11 +39,23 @@ export const GET = withAuth(
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
+        include: {
+          assignments: {
+            include: { cabana: { select: { name: true } } },
+            orderBy: { date: "desc" },
+            take: 1,
+          },
+          servicePointAssignments: {
+            include: { servicePoint: { select: { name: true, type: true } } },
+            orderBy: { date: "desc" },
+            take: 1,
+          },
+        },
       }),
       (prisma as any).staff.count({ where }),
     ]);
 
-    return NextResponse.json({ items, total });
+    return NextResponse.json({ success: true, data: { items, total } });
   },
   { requiredPermissions: ["staff.view"] },
 );
@@ -56,7 +68,10 @@ export const POST = withAuth(
     const parsed = parseBody(createStaffSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const item = await (prisma as any).staff.create({
@@ -76,7 +91,7 @@ export const POST = withAuth(
       newValue: parsed.data as Record<string, unknown>,
     });
 
-    return NextResponse.json(item, { status: 201 });
+    return NextResponse.json({ success: true, data: item }, { status: 201 });
   },
   { requiredPermissions: ["staff.create"] },
 );

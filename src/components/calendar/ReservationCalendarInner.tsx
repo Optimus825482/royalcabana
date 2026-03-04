@@ -743,7 +743,7 @@ function DayDetailModal({
                             <div className="px-4 pb-3 pt-0 border-t border-neutral-700/40 space-y-2">
                               <div className="flex items-center gap-2 pt-2 text-xs text-neutral-400">
                                 <span>
-                                  Kabana:{" "}
+                                  Cabana:{" "}
                                   <span className="text-neutral-200">
                                     {resource?.title}
                                   </span>

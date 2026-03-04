@@ -1,0 +1,1 @@
+{"version":3,"file":"GetElevationResult.d.ts","sourceRoot":"","sources":["../../../src/core/GetElevationResult.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,KAAK,eAAe,MAAM,mBAAmB,CAAC;AACrD,OAAO,KAAK,WAAW,MAAM,0BAA0B,CAAC;AAExD,UAAU,kBAAkB;IACxB;;OAEG;IACH,WAAW,EAAE,WAAW,CAAC;IACzB;;OAEG;IACH,OAAO,EAAE,eAAe,EAAE,CAAC;CAC9B;AAED,eAAe,kBAAkB,CAAC"}

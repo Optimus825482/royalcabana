@@ -17,7 +17,7 @@ export const POST = withAuth(
     const parsed = parseBody(rejectReservationSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
 
     const { reason } = parsed.data;
@@ -29,14 +29,14 @@ export const POST = withAuth(
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
 
     if (reservation.status !== "PENDING") {
       return NextResponse.json(
-        { error: "Yalnızca bekleyen rezervasyonlar reddedilebilir." },
+        { success: false, error: "Yalnızca bekleyen rezervasyonlar reddedilebilir." },
         { status: 400 },
       );
     }
@@ -85,11 +85,27 @@ export const POST = withAuth(
         reason: reason.trim(),
       });
 
+      // Auto-refresh: broadcast to all users except the updater if startDate >= 1 day from now
+      const msUntilStart =
+        new Date(reservation.startDate).getTime() - Date.now();
+      if (msUntilStart >= 24 * 60 * 60 * 1000) {
+        sseManager.broadcastExcludeUser(
+          session.user.id,
+          SSE_EVENTS.RESERVATION_UPDATED,
+          {
+            reservationId: id,
+            cabanaName,
+            guestName: updated.guestName,
+            updatedBy: session.user.id,
+          },
+        );
+      }
+
       await notificationService.send({
         userId: reservation.userId,
         type: NotificationType.REJECTED,
         title: "Rezervasyon Reddedildi",
-        message: `${updated.guestName} için ${cabanaName} kabana rezervasyonu reddedildi. Neden: ${reason.trim()}`,
+        message: `${updated.guestName} için ${cabanaName} Cabana rezervasyonu reddedildi. Neden: ${reason.trim()}`,
         metadata: { reservationId: id, cabanaName, reason: reason.trim() },
       });
 
@@ -106,7 +122,7 @@ export const POST = withAuth(
       }
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["reservation.update"] },
 );

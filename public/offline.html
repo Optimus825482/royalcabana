@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f59e0b" />
+    <title>Bağlantı Kesildi — Royal Cabana</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background-color: #0a0a0a;
+        color: #e5e5e5;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        text-align: center;
+      }
+
+      .container {
+        max-width: 420px;
+        width: 100%;
+      }
+
+      .logo {
+        margin-bottom: 2rem;
+      }
+
+      .logo svg {
+        width: 48px;
+        height: 48px;
+      }
+
+      .logo-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #f59e0b;
+        margin-top: 0.75rem;
+        letter-spacing: 0.025em;
+      }
+
+      .icon {
+        margin-bottom: 1.5rem;
+      }
+
+      .icon svg {
+        width: 64px;
+        height: 64px;
+        color: #f59e0b;
+        opacity: 0.8;
+      }
+
+      h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #fafafa;
+        margin-bottom: 0.75rem;
+      }
+
+      p {
+        font-size: 0.938rem;
+        color: #a3a3a3;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+      }
+
+      .retry-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background-color: #f59e0b;
+        color: #0a0a0a;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.938rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      .retry-btn:hover {
+        background-color: #d97706;
+      }
+
+      .retry-btn:focus-visible {
+        outline: 2px solid #f59e0b;
+        outline-offset: 2px;
+      }
+
+      .retry-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .status {
+        margin-top: 2rem;
+        font-size: 0.813rem;
+        color: #525252;
+      }
+
+      .status.online {
+        color: #22c55e;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .spinning svg {
+        animation: spin 1s linear infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">
+        <svg
+          viewBox="0 0 48 48"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <rect
+            width="48"
+            height="48"
+            rx="12"
+            fill="#f59e0b"
+            fill-opacity="0.15"
+          />
+          <path
+            d="M14 34V18l10-6 10 6v16l-10 4-10-4z"
+            stroke="#f59e0b"
+            stroke-width="2"
+            stroke-linejoin="round"
+          />
+          <path d="M24 12v26" stroke="#f59e0b" stroke-width="2" />
+          <path
+            d="M14 18l10 4 10-4"
+            stroke="#f59e0b"
+            stroke-width="2"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <div class="logo-text">Royal Cabana</div>
+      </div>
+
+      <div class="icon">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <line x1="1" y1="1" x2="23" y2="23" />
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+          <path d="M10.71 5.05A16 16 0 0 1 22.56 9" />
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+          <line x1="12" y1="20" x2="12.01" y2="20" />
+        </svg>
+      </div>
+
+      <h1>Bağlantı Kesildi</h1>
+      <p>
+        İnternet bağlantınız şu anda kullanılamıyor. Bağlantı sağlandığında
+        sayfa otomatik olarak yeniden yüklenecektir.
+      </p>
+
+      <button
+        class="retry-btn"
+        id="retryBtn"
+        type="button"
+        aria-label="Tekrar dene"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <polyline points="23 4 23 10 17 10" />
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+        </svg>
+        Tekrar Dene
+      </button>
+
+      <div class="status" id="status">Bağlantı bekleniyor…</div>
+    </div>
+
+    <script>
+      (function () {
+        var statusEl = document.getElementById("status");
+        var retryBtn = document.getElementById("retryBtn");
+
+        function checkAndReload() {
+          if (navigator.onLine) {
+            statusEl.textContent = "Bağlantı sağlandı, yeniden yükleniyor…";
+            statusEl.className = "status online";
+            window.location.reload();
+          }
+        }
+
+        window.addEventListener("online", checkAndReload);
+
+        retryBtn.addEventListener("click", function () {
+          retryBtn.classList.add("spinning");
+          retryBtn.disabled = true;
+
+          if (navigator.onLine) {
+            window.location.reload();
+          } else {
+            setTimeout(function () {
+              retryBtn.classList.remove("spinning");
+              retryBtn.disabled = false;
+              statusEl.textContent =
+                "Hâlâ bağlantı yok. Lütfen tekrar deneyin.";
+            }, 1500);
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

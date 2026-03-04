@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Modal,
@@ -66,6 +66,7 @@ export default function ProductsPage() {
   const {
     data: productsAndGroups,
     isLoading: loading,
+    isError,
     error: queryError,
   } = useQuery({
     queryKey: ["products-and-groups"],
@@ -76,10 +77,12 @@ export default function ProductsPage() {
       ]);
       if (!pRes.ok) throw new Error("Ürünler yüklenemedi.");
       if (!gRes.ok) throw new Error("Gruplar yüklenemedi.");
-      const [products, groups] = await Promise.all([pRes.json(), gRes.json()]);
+      const [pJson, gJson] = await Promise.all([pRes.json(), gRes.json()]);
+      const pResolved = pJson.data ?? pJson;
+      const gResolved = gJson.data ?? gJson;
       return {
-        products: products as Product[],
-        groups: groups as ProductGroup[],
+        products: Array.isArray(pResolved) ? pResolved as Product[] : [],
+        groups: Array.isArray(gResolved) ? gResolved as ProductGroup[] : [],
       };
     },
   });
@@ -140,6 +143,20 @@ export default function ProductsPage() {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  // Default: all accordions collapsed on load
+  const collapsedInitRef = useRef(false);
+  useEffect(() => {
+    if (collapsedInitRef.current) return;
+    if (groups.length > 0) {
+      collapsedInitRef.current = true;
+      const init: Record<string, boolean> = { __ungrouped: true };
+      groups.forEach((g: { id: string }) => {
+        init[g.id] = true;
+      });
+      setCollapsed(init);
+    }
+  }, [groups]);
+
   // --- Product CRUD ---
   function handleCreateChange(field: string, value: string) {
     const next = { ...createForm, [field]: value };
@@ -169,7 +186,7 @@ export default function ProductsPage() {
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.message || "Ürün oluşturulamadı.");
+        throw new Error(d.error || d.message || "Ürün oluşturulamadı.");
       }
       setShowCreate(false);
       setCreateForm(defaultProductForm);
@@ -230,7 +247,7 @@ export default function ProductsPage() {
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.message || "Güncellenemedi.");
+        throw new Error(d.error || d.message || "Güncellenemedi.");
       }
       setEditProduct(null);
       showSuccess("Ürün güncellendi.");
@@ -251,7 +268,7 @@ export default function ProductsPage() {
         method: "DELETE",
       });
       const d = await res.json();
-      if (!res.ok) throw new Error(d.message || "Silinemedi.");
+      if (!res.ok) throw new Error(d.error || d.message || "Silinemedi.");
       setDeleteProduct(null);
       showSuccess("Ürün silindi.");
       queryClient.invalidateQueries({ queryKey: ["products-and-groups"] });
@@ -278,7 +295,7 @@ export default function ProductsPage() {
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.message || "Grup oluşturulamadı.");
+        throw new Error(d.error || d.message || "Grup oluşturulamadı.");
       }
       setShowCreateGroup(false);
       setGroupForm(defaultGroupForm);
@@ -313,7 +330,7 @@ export default function ProductsPage() {
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.message || "Güncellenemedi.");
+        throw new Error(d.error || d.message || "Güncellenemedi.");
       }
       setEditGroup(null);
       showSuccess("Grup güncellendi.");
@@ -334,7 +351,7 @@ export default function ProductsPage() {
         method: "DELETE",
       });
       const d = await res.json();
-      if (!res.ok) throw new Error(d.message || "Silinemedi.");
+      if (!res.ok) throw new Error(d.error || d.message || "Silinemedi.");
       setDeleteGroup(null);
       showSuccess("Grup silindi.");
       queryClient.invalidateQueries({ queryKey: ["products-and-groups"] });
@@ -408,6 +425,13 @@ export default function ProductsPage() {
       {loading ? (
         <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
           Yükleniyor...
+        </div>
+      ) : isError ? (
+        <div className="text-center py-12">
+          <p className="text-red-400 text-sm">
+            {(queryError as Error)?.message ??
+              "Veriler yüklenirken bir hata oluştu."}
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

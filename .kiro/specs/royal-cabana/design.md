@@ -2,7 +2,7 @@
 
 ## Genel Bakış (Overview)
 
-Royal Cabana, bir otel/casino tatil köyünün sahil bölgesindeki lüks kabana alanlarını yöneten, talep tabanlı rezervasyon iş akışına sahip premium bir web uygulamasıdır. Sistem 5 ana modülden oluşur ve her modül rol tabanlı erişim kontrolü (RBAC) ile korunur.
+Royal Cabana, bir otel/casino tatil köyünün sahil bölgesindeki lüks Cabana alanlarını yöneten, talep tabanlı rezervasyon iş akışına sahip premium bir web uygulamasıdır. Sistem 5 ana modülden oluşur ve her modül rol tabanlı erişim kontrolü (RBAC) ile korunur.
 
 ### Temel İş Akışı
 
@@ -26,9 +26,9 @@ Casino Kullanıcısı → Talep Oluşturur → Admin Değerlendirir → Onay/Red
 | -------------- | -------------------------------- | ---------------------------------------------------------------- |
 | Framework      | Next.js 14+ (App Router)         | SSR/SSG desteği, API Routes ile fullstack, TypeScript native     |
 | UI             | Tailwind CSS + shadcn/ui         | Premium görünüm, tutarlı design system, hızlı geliştirme         |
-| 2D Harita      | Leaflet + react-leaflet          | Custom image overlay desteği, kroki.png üzerine kabana yerleşimi |
+| 2D Harita      | Leaflet + react-leaflet          | Custom image overlay desteği, kroki.png üzerine Cabana yerleşimi |
 | 3D             | React Three Fiber + drei         | Deklaratif Three.js, sınıf bazlı farklı 3D modeller              |
-| Takvim         | FullCalendar (Resource Timeline) | Profesyonel resource timeline, kabana satır/tarih sütun formatı  |
+| Takvim         | FullCalendar (Resource Timeline) | Profesyonel resource timeline, Cabana satır/tarih sütun formatı  |
 | State          | Zustand + TanStack Query         | Zustand: client state, TanStack Query: server state/cache        |
 | Veritabanı     | PostgreSQL + Prisma ORM          | İlişkisel veri modeli, type-safe ORM, migration desteği          |
 | Auth           | NextAuth.js + JWT                | RBAC entegrasyonu, session yönetimi, güvenli token               |
@@ -204,7 +204,7 @@ interface MapComponentProps {
 
 // Leaflet CRS.Simple kullanılır (coğrafi değil, piksel tabanlı)
 // gorsel/kroki.png ImageOverlay olarak yüklenir
-// Her kabana bir CircleMarker veya custom icon ile temsil edilir
+// Her Cabana bir CircleMarker veya custom icon ile temsil edilir
 // Renk kodlaması: müsait=yeşil, rezerve=kırmızı, kapalı=gri
 ```
 
@@ -216,10 +216,10 @@ interface ThreeViewProps {
   onCabanaSelect: (id: string) => void;
 }
 
-// Her Kabana_Sınıfı için farklı GLTF/GLB 3D model
+// Her Cabana_Sınıfı için farklı GLTF/GLB 3D model
 // OrbitControls ile kamera kontrolü
 // Hover ve click etkileşimleri
-// Seçilen kabana için detay paneli + fotoğraf galerisi
+// Seçilen Cabana için detay paneli + fotoğraf galerisi
 ```
 
 ### 4. Takvim Bileşeni (FullCalendar)
@@ -234,7 +234,7 @@ interface CalendarComponentProps {
 }
 
 // FullCalendar Resource Timeline plugin
-// Kaynaklar: Kabanalar (satırlar), Zaman: Tarihler (sütunlar)
+// Kaynaklar: Cabanalar (satırlar), Zaman: Tarihler (sütunlar)
 // Renk kodlaması: bekliyor=sarı, onaylı=yeşil, red=kırmızı, iptal=gri
 // Sağ tık context menu: Değişiklik, İptal, Ek Konsept
 ```
@@ -253,16 +253,16 @@ interface PricingEngine {
 }
 
 interface PriceBreakdown {
-  cabanaDaily: number; // Kabana günlük fiyat
+  cabanaDaily: number; // Cabana günlük fiyat
   conceptTotal: number; // Konsept toplam fiyat
   extrasTotal: number; // Ekstralar toplamı
   grandTotal: number; // Genel toplam
-  priceSource: PriceSource; // Fiyat kaynağı (kabana özel / konsept özel / genel)
+  priceSource: PriceSource; // Fiyat kaynağı (Cabana özel / konsept özel / genel)
   items: PriceLineItem[]; // Kalem bazlı detay
 }
 
 // Fiyat öncelik sırası:
-// 1. Kabana özel fiyat (en yüksek öncelik)
+// 1. Cabana özel fiyat (en yüksek öncelik)
 // 2. Konsept özel fiyat
 // 3. Genel ürün fiyatı (en düşük öncelik)
 ```
@@ -318,7 +318,7 @@ interface PresentationEngine {
 graph LR
     subgraph SYM["Sistem Yöneticisi"]
         SY1["Kullanıcı Yönetimi"]
-        SY2["Kabana Harita Yönetimi"]
+        SY2["Cabana Harita Yönetimi"]
         SY3["Sınıf Yönetimi"]
         SY4["Konsept Yönetimi"]
         SY5["Ürün Yönetimi"]
@@ -411,7 +411,7 @@ enum Role {
   FNB_USER
 }
 
-// ===== KABANA VE SINIFLANDIRMA =====
+// ===== Cabana VE SINIFLANDIRMA =====
 
 model CabanaClass {
   id            String    @id @default(cuid())
@@ -696,13 +696,13 @@ model SystemConfig {
 | İlişki                             | Tür | Açıklama                                                  |
 | ---------------------------------- | --- | --------------------------------------------------------- |
 | User → Reservation                 | 1:N | Kullanıcı birden fazla talep oluşturabilir                |
-| CabanaClass → Cabana               | 1:N | Bir sınıfta birden fazla kabana olabilir                  |
+| CabanaClass → Cabana               | 1:N | Bir sınıfta birden fazla Cabana olabilir                  |
 | CabanaClass → Concept              | 1:N | Bir sınıfa birden fazla konsept atanabilir                |
 | Concept → ConceptProduct → Product | N:M | Konseptler birden fazla ürün içerebilir                   |
-| Cabana → Reservation               | 1:N | Bir kabana birden fazla rezervasyona sahip olabilir       |
+| Cabana → Reservation               | 1:N | Bir Cabana birden fazla rezervasyona sahip olabilir       |
 | Reservation → ModificationRequest  | 1:N | Bir rezervasyonda birden fazla değişiklik talebi olabilir |
 | Reservation → ExtraItem            | 1:N | Bir rezervasyona birden fazla ekstra eklenebilir          |
-| Cabana → CabanaPrice               | 1:N | Kabana bazında günlük fiyatlar                            |
+| Cabana → CabanaPrice               | 1:N | Cabana bazında günlük fiyatlar                            |
 | Concept → ConceptPrice             | 1:N | Konsept bazında özel fiyatlar                             |
 
 ---
@@ -732,11 +732,11 @@ model SystemConfig {
 
 | Method | Endpoint                    | Açıklama                       | Rol         |
 | ------ | --------------------------- | ------------------------------ | ----------- |
-| GET    | `/api/cabanas`              | Tüm kabanalar (durum dahil)    | Tüm roller  |
-| POST   | `/api/cabanas`              | Yeni kabana ekle               | SystemAdmin |
-| GET    | `/api/cabanas/:id`          | Kabana detayı                  | Tüm roller  |
-| PATCH  | `/api/cabanas/:id`          | Kabana güncelle (konum, durum) | SystemAdmin |
-| DELETE | `/api/cabanas/:id`          | Kabana sil                     | SystemAdmin |
+| GET    | `/api/cabanas`              | Tüm Cabanalar (durum dahil)    | Tüm roller  |
+| POST   | `/api/cabanas`              | Yeni Cabana ekle               | SystemAdmin |
+| GET    | `/api/cabanas/:id`          | Cabana detayı                  | Tüm roller  |
+| PATCH  | `/api/cabanas/:id`          | Cabana güncelle (konum, durum) | SystemAdmin |
+| DELETE | `/api/cabanas/:id`          | Cabana sil                     | SystemAdmin |
 | PATCH  | `/api/cabanas/:id/position` | Harita koordinatı güncelle     | SystemAdmin |
 | PATCH  | `/api/cabanas/:id/status`   | Rezervasyon açık/kapalı        | SystemAdmin |
 
@@ -778,8 +778,8 @@ model SystemConfig {
 
 | Method | Endpoint                   | Açıklama                          | Rol   |
 | ------ | -------------------------- | --------------------------------- | ----- |
-| GET    | `/api/pricing/cabana/:id`  | Kabana fiyat takvimi              | Admin |
-| POST   | `/api/pricing/cabana/:id`  | Kabana günlük fiyat ekle/güncelle | Admin |
+| GET    | `/api/pricing/cabana/:id`  | Cabana fiyat takvimi              | Admin |
+| POST   | `/api/pricing/cabana/:id`  | Cabana günlük fiyat ekle/güncelle | Admin |
 | GET    | `/api/pricing/concept/:id` | Konsept fiyatları                 | Admin |
 | POST   | `/api/pricing/concept/:id` | Konsept fiyatı ekle/güncelle      | Admin |
 | POST   | `/api/pricing/calculate`   | Fiyat hesapla (preview)           | Admin |
@@ -840,7 +840,7 @@ interface ApiError {
 }
 
 // Örnek:
-// { code: "CABANA_NOT_AVAILABLE", message: "Seçilen tarihte kabana müsait değil", requestId: "req_abc123" }
+// { code: "CABANA_NOT_AVAILABLE", message: "Seçilen tarihte Cabana müsait değil", requestId: "req_abc123" }
 ```
 
 ### HTTP Durum Kodu Eşlemesi
@@ -944,7 +944,7 @@ Bu özellikler property-based testing ile doğrulanacaktır.
   → r1.dateRange ∩ r2.dateRange = ∅
 ```
 
-Aynı kabanada onaylı iki rezervasyon asla tarih çakışması yaşayamaz.
+Aynı Cabanada onaylı iki rezervasyon asla tarih çakışması yaşayamaz.
 
 ### P2: Fiyat Öncelik Tutarlılığı
 
@@ -960,7 +960,7 @@ Aynı kabanada onaylı iki rezervasyon asla tarih çakışması yaşayamaz.
   → appliedPrice = product.salePrice
 ```
 
-Fiyat öncelik sırası her zaman: kabana özel > konsept özel > genel ürün fiyatı.
+Fiyat öncelik sırası her zaman: Cabana özel > konsept özel > genel ürün fiyatı.
 
 ### P3: Durum Geçiş Tutarlılığı
 
@@ -1012,7 +1012,7 @@ Her veri değişikliği audit log'a kaydedilir.
 // Örnek: P1 - Rezervasyon çakışması testi
 import { fc } from "@fast-check/vitest";
 
-test("onaylı rezervasyonlar aynı kabanada çakışamaz", () => {
+test("onaylı rezervasyonlar aynı Cabanada çakışamaz", () => {
   fc.assert(
     fc.property(
       fc.record({

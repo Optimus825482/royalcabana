@@ -128,6 +128,22 @@ export const PATCH = withAuth(
             type: "modification_rejected",
           },
         );
+
+        // Auto-refresh: broadcast to all users except the updater if startDate >= 1 day from now
+        const msUntilStart =
+          new Date(modRequest.reservation.startDate).getTime() - Date.now();
+        if (msUntilStart >= 24 * 60 * 60 * 1000) {
+          sseManager.broadcastExcludeUser(
+            session.user.id,
+            SSE_EVENTS.RESERVATION_UPDATED,
+            {
+              reservationId,
+              cabanaName: modRequest.reservation.cabana?.name ?? "",
+              guestName: modRequest.reservation.guestName,
+              updatedBy: session.user.id,
+            },
+          );
+        }
       });
 
       return NextResponse.json({ success: true, data: updatedRequest });
@@ -178,7 +194,7 @@ export const PATCH = withAuth(
 
           const finalPrice = adjustedPrice ?? calculated.grandTotal;
 
-          // Kabana değiştiyse eski kabana'yı AVAILABLE, yeni kabana'yı RESERVED yap
+          // Cabana değiştiyse eski Cabana'yı AVAILABLE, yeni Cabana'yı RESERVED yap
           if (
             modRequest.newCabanaId &&
             modRequest.newCabanaId !== modRequest.reservation.cabanaId
@@ -265,6 +281,22 @@ export const PATCH = withAuth(
           type: "modification_approved",
           totalPrice: result.finalPrice,
         });
+
+        // Auto-refresh: broadcast to all users except the updater if startDate >= 1 day from now
+        const msUntilStart =
+          new Date(modRequest.reservation.startDate).getTime() - Date.now();
+        if (msUntilStart >= 24 * 60 * 60 * 1000) {
+          sseManager.broadcastExcludeUser(
+            session.user.id,
+            SSE_EVENTS.RESERVATION_UPDATED,
+            {
+              reservationId,
+              cabanaName: modRequest.reservation.cabana?.name ?? "",
+              guestName: modRequest.reservation.guestName,
+              updatedBy: session.user.id,
+            },
+          );
+        }
       });
 
       return NextResponse.json({
@@ -280,7 +312,7 @@ export const PATCH = withAuth(
         return NextResponse.json(
           {
             success: false,
-            error: "Yeni tarih aralığında bu kabana müsait değildir.",
+            error: "Yeni tarih aralığında bu Cabana müsait değildir.",
           },
           { status: 409 },
         );

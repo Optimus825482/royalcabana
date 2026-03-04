@@ -7,7 +7,6 @@ import SessionProvider from "@/components/shared/SessionProvider";
 import QueryProvider from "@/components/shared/QueryProvider";
 import ToastProvider from "@/components/shared/ToastProvider";
 import NotificationProvider from "@/components/shared/NotificationProvider";
-import DashboardShell from "@/components/shared/DashboardShell";
 import DashboardLayoutClient from "@/components/shared/DashboardLayoutClient";
 import SessionTracker from "@/components/shared/SessionTracker";
 
@@ -33,10 +32,8 @@ export default async function DashboardLayout({
         <ToastProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>
             <NotificationProvider>
-              <DashboardShell>
-                <SessionTracker />
-                <DashboardLayoutClient>{children}</DashboardLayoutClient>
-              </DashboardShell>
+              <SessionTracker />
+              <DashboardLayoutClient>{children}</DashboardLayoutClient>
             </NotificationProvider>
           </NextIntlClientProvider>
         </ToastProvider>

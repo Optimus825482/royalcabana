@@ -34,6 +34,13 @@ import {
   Repeat,
   Star,
   ChevronDown,
+  Building2,
+  MapPin,
+  HelpCircle,
+  BookOpenCheck,
+  Download,
+  HandCoins,
+  FolderTree,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -62,6 +69,7 @@ export function isGroup(item: NavItem): item is NavGroup {
 // ─── Grouped Navigation Config ──────────────────────────────────────────────
 
 export const SYSTEM_ADMIN_NAV: NavItem[] = [
+  // ─── Panel & Harita ───
   {
     href: "/system-admin",
     label: "Panel",
@@ -69,13 +77,28 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
     color: "text-sky-400",
   },
   {
-    label: "Tanımlar",
-    icon: Layers,
-    color: "text-violet-400",
+    href: "/system-admin/map",
+    label: "Harita",
+    icon: Map,
+    color: "text-teal-400",
+    requiredPermission: "map.view",
+  },
+  // ─── Cabana Yönetimi ───
+  {
+    label: "Cabana Yönetimi",
+    icon: Building2,
+    color: "text-amber-400",
     children: [
       {
+        href: "/system-admin/cabanas",
+        label: "Cabana Listesi",
+        icon: Building2,
+        color: "text-amber-400",
+        requiredPermission: "cabana.class.view",
+      },
+      {
         href: "/system-admin/classes",
-        label: "Kabana Sınıfları",
+        label: "Cabana Sınıfları",
         icon: Layers,
         color: "text-violet-400",
         requiredPermission: "cabana.class.view",
@@ -87,117 +110,27 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         color: "text-yellow-400",
         requiredPermission: "concept.view",
       },
-      {
-        href: "/system-admin/products",
-        label: "Ürünler",
-        icon: Package,
-        color: "text-orange-400",
-        requiredPermission: "product.view",
-      },
-      {
-        href: "/system-admin/task-definitions",
-        label: "Görev Tanımları",
-        icon: ClipboardList,
-        color: "text-pink-400",
-        requiredPermission: "task.definition.view",
-      },
-      {
-        href: "/system-admin/role-definitions",
-        label: "Rol Tanımları",
-        icon: Shield,
-        color: "text-indigo-400",
-        requiredPermission: "role.definition.view",
-      },
     ],
   },
+  // ─── Operasyon ───
   {
-    label: "Fiyatlandırma",
-    icon: DollarSign,
-    color: "text-emerald-400",
+    label: "Operasyon",
+    icon: ClipboardList,
+    color: "text-orange-400",
     children: [
       {
-        href: "/system-admin/pricing",
-        label: "Fiyat Görünümü",
-        icon: DollarSign,
-        color: "text-amber-400",
-        requiredPermission: "pricing.view",
-      },
-      {
-        href: "/system-admin/products/pricing",
-        label: "Fiyat İşlemleri",
-        icon: DollarSign,
+        href: "/system-admin/calendar",
+        label: "Takvim",
+        icon: CalendarDays,
         color: "text-emerald-400",
-        requiredPermission: "pricing.view",
+        requiredPermission: "reservation.view",
       },
       {
-        href: "/system-admin/cancellation-policy",
-        label: "İptal Politikası",
-        icon: Shield,
-        color: "text-red-400",
-        requiredPermission: "system.config.view",
-      },
-    ],
-  },
-  {
-    label: "Kullanıcılar",
-    icon: Users,
-    color: "text-blue-400",
-    children: [
-      {
-        href: "/system-admin/users",
-        label: "Kullanıcı Yönetimi",
-        icon: Users,
-        color: "text-blue-400",
-        requiredPermission: "user.view",
-      },
-      {
-        href: "/system-admin/guests",
-        label: "Misafirler",
-        icon: UserIcon,
-        color: "text-cyan-400",
-        requiredPermission: "guest.view",
-      },
-      {
-        href: "/system-admin/staff",
-        label: "Personel",
-        icon: UserCog,
-        color: "text-indigo-400",
-        requiredPermission: "staff.view",
-      },
-    ],
-  },
-  {
-    href: "/system-admin/calendar",
-    label: "Takvim",
-    icon: CalendarDays,
-    color: "text-emerald-400",
-    requiredPermission: "reservation.view",
-  },
-  {
-    href: "/system-admin/map",
-    label: "Harita",
-    icon: Map,
-    color: "text-teal-400",
-    requiredPermission: "map.view",
-  },
-  {
-    href: "/system-admin/reservations",
-    label: "Rezervasyonlar",
-    icon: BookOpen,
-    color: "text-amber-400",
-    requiredPermission: "reservation.view",
-  },
-  {
-    label: "Sistem",
-    icon: Settings,
-    color: "text-slate-400",
-    children: [
-      {
-        href: "/system-admin/system-control",
-        label: "Sistem Kontrolü",
-        icon: Settings,
-        color: "text-slate-400",
-        requiredPermission: "system.config.view",
+        href: "/system-admin/reservations",
+        label: "Rezervasyonlar",
+        icon: BookOpen,
+        color: "text-amber-400",
+        requiredPermission: "reservation.view",
       },
       {
         href: "/system-admin/blackout-dates",
@@ -206,16 +139,111 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         color: "text-rose-400",
         requiredPermission: "blackout.view",
       },
+    ],
+  },
+
+  // ─── Tanımlar ───
+  {
+    label: "Tanımlar",
+    icon: Layers,
+    color: "text-violet-400",
+    children: [
       {
-        href: "/system-admin/qr-codes",
-        label: "QR Kodlar",
-        icon: QrCode,
-        color: "text-fuchsia-400",
+        href: "/system-admin/concepts",
+        label: "Konsept Tanımları",
+        icon: Lightbulb,
+        color: "text-yellow-400",
+        requiredPermission: "concept.view",
+      },
+      {
+        href: "/system-admin/products",
+        label: "Ürün Grubu & Ürünler",
+        icon: Package,
+        color: "text-orange-400",
+        requiredPermission: "product.view",
+      },
+      {
+        href: "/system-admin/products/pricing",
+        label: "Ürün Fiyatlandırma",
+        icon: Package,
+        color: "text-orange-400",
+        requiredPermission: "pricing.view",
+      },
+      {
+        href: "/system-admin/extra-services",
+        label: "Ekstra Hizmetler",
+        icon: HandCoins,
+        color: "text-teal-400",
+        requiredPermission: "system.config.view",
+      },
+      {
+        href: "/system-admin/staff",
+        label: "Personel & Görevler",
+        icon: UserCog,
+        color: "text-indigo-400",
+        requiredPermission: "staff.view",
+      },
+
+      {
+        href: "/system-admin/guests",
+        label: "Misafirler",
+        icon: Users,
+        color: "text-emerald-400",
+        requiredPermission: "guest.view",
+      },
+      {
+        href: "/system-admin/users",
+        label: "Kullanıcı İşlemleri",
+        icon: Users,
+        color: "text-blue-400",
+        requiredPermission: "user.view",
+      },
+      {
+        href: "/system-admin/role-definitions",
+        label: "Rol & Yetki Tanımlama",
+        icon: Shield,
+        color: "text-indigo-400",
+        requiredPermission: "role.definition.view",
+      },
+      {
+        href: "/system-admin/service-point-definitions",
+        label: "Hizmet Noktaları",
+        icon: MapPin,
+        color: "text-cyan-400",
+        requiredPermission: "system.config.view",
+      },
+    ],
+  },
+  // ─── Sistem Ayarları ───
+  {
+    label: "Sistem Ayarları",
+    icon: Settings,
+    color: "text-slate-400",
+    children: [
+      {
+        href: "/system-admin/system-control#reservations",
+        label: "Rezervasyonlar Açık/Kapalı",
+        icon: Settings,
+        color: "text-slate-400",
+        requiredPermission: "system.config.view",
+      },
+      {
+        href: "/system-admin/system-control#currency",
+        label: "Para Birimi",
+        icon: DollarSign,
+        color: "text-emerald-400",
+        requiredPermission: "system.config.view",
+      },
+      {
+        href: "/system-admin/system-control#modules",
+        label: "Modül Yönetimi",
+        icon: FolderTree,
+        color: "text-violet-400",
         requiredPermission: "system.config.view",
       },
       {
         href: "/system-admin/audit-trail",
-        label: "Audit Log",
+        label: "Audit Trail",
         icon: ScrollText,
         color: "text-amber-400",
         requiredPermission: "audit.view",
@@ -226,14 +254,50 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         icon: FileCode,
         color: "text-lime-400",
       },
+      {
+        href: "/system-admin/qr-codes",
+        label: "QR Kodlar",
+        icon: QrCode,
+        color: "text-fuchsia-400",
+        requiredPermission: "system.config.view",
+      },
+      {
+        href: "/system-admin/cancellation-policy",
+        label: "İptal Politikası",
+        icon: Shield,
+        color: "text-red-400",
+        requiredPermission: "system.config.view",
+      },
     ],
   },
+  // ─── Raporlar ───
   {
     href: "/reports",
     label: "Raporlar",
     icon: BarChart3,
     color: "text-purple-400",
     requiredPermission: "report.view",
+  },
+  // ─── Sistem Kullanım Rehberi ───
+  {
+    href: "/system-admin/guide",
+    label: "Kullanım Rehberi",
+    icon: BookOpenCheck,
+    color: "text-green-400",
+  },
+  // ─── Yardım ───
+  {
+    href: "/system-admin/help",
+    label: "Yardım",
+    icon: HelpCircle,
+    color: "text-blue-300",
+  },
+  // ─── Uygulama Olarak Yükle ───
+  {
+    href: "#install-app",
+    label: "Uygulamayı Yükle",
+    icon: Download,
+    color: "text-green-400",
   },
 ];
 
@@ -278,32 +342,18 @@ export const ADMIN_NAV: NavItem[] = [
     color: "text-violet-400",
     children: [
       {
+        href: "/admin/guests",
+        label: "Misafirler",
+        icon: Users,
+        color: "text-emerald-400",
+        requiredPermission: "guest.view",
+      },
+      {
         href: "/admin/users",
         label: "Kullanıcılar",
         icon: Users,
         color: "text-blue-400",
         requiredPermission: "user.view",
-      },
-    ],
-  },
-  {
-    label: "Fiyatlandırma",
-    icon: DollarSign,
-    color: "text-emerald-400",
-    children: [
-      {
-        href: "/admin/pricing",
-        label: "Fiyat Yönetimi",
-        icon: DollarSign,
-        color: "text-emerald-400",
-        requiredPermission: "pricing.view",
-      },
-      {
-        href: "/admin/pricing/seasons",
-        label: "Sezonluk Fiyatlar",
-        icon: CalendarDays,
-        color: "text-teal-400",
-        requiredPermission: "pricing.view",
       },
     ],
   },
@@ -317,7 +367,7 @@ export const CASINO_NAV: NavItem[] = [
     color: "text-sky-400",
   },
   {
-    label: "Keşfet",
+    label: "Harita & Takvim",
     icon: Map,
     color: "text-teal-400",
     children: [
@@ -326,13 +376,6 @@ export const CASINO_NAV: NavItem[] = [
         label: "Harita",
         icon: Map,
         color: "text-teal-400",
-        requiredPermission: "map.view",
-      },
-      {
-        href: "/casino/view",
-        label: "3D Görünüm",
-        icon: Cuboid,
-        color: "text-violet-400",
         requiredPermission: "map.view",
       },
       {
@@ -401,6 +444,62 @@ export const FNB_NAV: NavItem[] = [
     label: "Panel",
     icon: UtensilsCrossed,
     color: "text-rose-400",
+  },
+  {
+    label: "Keşfet",
+    icon: Map,
+    color: "text-teal-400",
+    children: [
+      {
+        href: "/casino/map",
+        label: "Harita",
+        icon: Map,
+        color: "text-teal-400",
+        requiredPermission: "map.view",
+      },
+      {
+        href: "/casino/view",
+        label: "3D Görünüm",
+        icon: Cuboid,
+        color: "text-violet-400",
+        requiredPermission: "map.view",
+      },
+      {
+        href: "/casino/calendar",
+        label: "Takvim",
+        icon: CalendarDays,
+        color: "text-cyan-400",
+        requiredPermission: "reservation.view",
+      },
+    ],
+  },
+  {
+    label: "Rezervasyonlar",
+    icon: BookOpen,
+    color: "text-amber-400",
+    children: [
+      {
+        href: "/casino/reservations",
+        label: "Rezervasyonlar",
+        icon: BookOpen,
+        color: "text-amber-400",
+        requiredPermission: "reservation.view",
+      },
+      {
+        href: "/casino/waitlist",
+        label: "Bekleme Listesi",
+        icon: ListOrdered,
+        color: "text-orange-400",
+        requiredPermission: "reservation.view",
+      },
+      {
+        href: "/casino/recurring",
+        label: "Tekrarlayan",
+        icon: Repeat,
+        color: "text-pink-400",
+        requiredPermission: "reservation.view",
+      },
+    ],
   },
 ];
 
@@ -581,7 +680,7 @@ function Logo() {
         alt="Royal Cabana"
         width={40}
         height={40}
-        className="rounded-lg w-auto h-auto"
+        className="rounded-lg"
         onError={() => setImgError(true)}
         priority
       />

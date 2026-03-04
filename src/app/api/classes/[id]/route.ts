@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { Role, CabanaStatus } from "@/types";
 import { withAuth } from "@/lib/api-middleware";
 import { logAudit } from "@/lib/audit";
+import { invalidateCache } from "@/lib/cache";
 
 const updateClassSchema = z.object({
   name: z.string().min(2).optional(),
@@ -24,10 +25,13 @@ export const GET = withAuth(
     });
 
     if (!cabanaClass) {
-      return NextResponse.json({ error: "Sınıf bulunamadı." }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Sınıf bulunamadı." },
+        { status: 404 },
+      );
     }
 
-    return NextResponse.json(cabanaClass);
+    return NextResponse.json({ success: true, data: cabanaClass });
   },
 );
 
@@ -38,7 +42,10 @@ export const PATCH = withAuth(
 
     const existing = await prisma.cabanaClass.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json({ error: "Sınıf bulunamadı." }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Sınıf bulunamadı." },
+        { status: 404 },
+      );
     }
 
     const body = await req.json();
@@ -46,7 +53,11 @@ export const PATCH = withAuth(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -69,7 +80,9 @@ export const PATCH = withAuth(
       newValue: parsed.data,
     });
 
-    return NextResponse.json(updated);
+    await invalidateCache("classes:list:v2");
+
+    return NextResponse.json({ success: true, data: updated });
   },
 );
 
@@ -86,17 +99,23 @@ export const DELETE = withAuth(
     });
 
     if (!cabanaClass) {
-      return NextResponse.json({ error: "Sınıf bulunamadı." }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Sınıf bulunamadı." },
+        { status: 404 },
+      );
     }
 
     if (cabanaClass.cabanas.length > 0) {
       return NextResponse.json(
-        { error: "Bu sınıfa ait aktif kabana bulunmaktadır." },
+        { success: false, error: "Bu sınıfa ait aktif Cabana bulunmaktadır." },
         { status: 409 },
       );
     }
 
-    await prisma.cabanaClass.delete({ where: { id } });
+    await prisma.cabanaClass.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
 
     logAudit({
       userId: session.user.id,
@@ -109,6 +128,8 @@ export const DELETE = withAuth(
       },
     });
 
-    return NextResponse.json({ message: "Sınıf silindi." });
+    await invalidateCache("classes:list:v2");
+
+    return NextResponse.json({ success: true, data: null });
   },
 );

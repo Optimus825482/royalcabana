@@ -60,7 +60,7 @@ export const GET = withAuth(
       (prisma as any).fnbOrder.count({ where }),
     ]);
 
-    return NextResponse.json({ orders, total });
+    return NextResponse.json({ success: true, data: { orders, total } });
   },
   { requiredPermissions: ["fnb.order.view"] },
 );
@@ -73,14 +73,17 @@ export const POST = withAuth(
     const parsed = parseBody(createFnbOrderSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const { reservationId, cabanaId, notes, items } = parsed.data;
 
     // Rezervasyon varlık kontrolü
-    const reservation = await prisma.reservation.findUnique({
-      where: { id: reservationId },
+    const reservation = await prisma.reservation.findFirst({
+      where: { id: reservationId, deletedAt: null },
       select: {
         id: true,
         userId: true,
@@ -91,7 +94,7 @@ export const POST = withAuth(
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
@@ -172,7 +175,7 @@ export const POST = withAuth(
       }
     });
 
-    return NextResponse.json(order, { status: 201 });
+    return NextResponse.json({ success: true, data: order }, { status: 201 });
   },
   { requiredPermissions: ["fnb.order.create"] },
 );

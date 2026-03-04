@@ -4,7 +4,12 @@ import { useState, use } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { formatPrice, fetchSystemCurrency, type CurrencyCode, DEFAULT_CURRENCY } from "@/lib/currency";
+import {
+  formatPrice,
+  fetchSystemCurrency,
+  type CurrencyCode,
+  DEFAULT_CURRENCY,
+} from "@/lib/currency";
 
 interface Product {
   id: string;
@@ -22,7 +27,8 @@ async function fetchProducts(): Promise<Product[]> {
   const res = await fetch("/api/products");
   if (!res.ok) throw new Error("Ürünler yüklenemedi.");
   const data = await res.json();
-  return Array.isArray(data) ? data : (data.products ?? []);
+  const resolved = data.data ?? data;
+  return Array.isArray(resolved) ? resolved : (resolved.products ?? []);
 }
 
 export default function FnBExtrasPage({
@@ -45,7 +51,12 @@ export default function FnBExtrasPage({
     queryFn: fetchSystemCurrency,
   });
 
-  const { data: products = [], isLoading } = useQuery({
+  const {
+    data: products = [],
+    isLoading,
+    isError: isProductsError,
+    error: productsError,
+  } = useQuery({
     queryKey: ["products"],
     queryFn: fetchProducts,
   });
@@ -124,6 +135,13 @@ export default function FnBExtrasPage({
               <div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
               <span>Ürünler yükleniyor...</span>
             </div>
+          </div>
+        ) : isProductsError ? (
+          <div className="text-center py-12">
+            <p className="text-red-400 text-sm">
+              {(productsError as Error)?.message ??
+                "Veriler yüklenirken bir hata oluştu."}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">

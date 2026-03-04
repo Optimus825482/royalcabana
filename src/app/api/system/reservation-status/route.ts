@@ -16,7 +16,7 @@ export const GET = withAuth(
       },
       orderBy: { name: "asc" },
     });
-    return NextResponse.json({ cabanas });
+    return NextResponse.json({ success: true, data: { cabanas } });
   },
   { requiredPermissions: ["system.config.view"] },
 );
@@ -29,7 +29,7 @@ export const PATCH = withAuth(
 
     if (!cabanaId || typeof isOpen !== "boolean") {
       return NextResponse.json(
-        { message: "cabanaId ve isOpen alanları zorunludur" },
+        { success: false, error: "cabanaId ve isOpen alanları zorunludur" },
         { status: 400 },
       );
     }
@@ -39,7 +39,7 @@ export const PATCH = withAuth(
       data: { isOpenForReservation: isOpen },
       select: { id: true, name: true, isOpenForReservation: true },
     });
-    return NextResponse.json(cabana);
+    return NextResponse.json({ success: true, data: cabana });
   },
   { requiredPermissions: ["system.config.update"] },
 );

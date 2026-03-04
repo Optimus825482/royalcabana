@@ -97,16 +97,31 @@ const formatDate = (dateStr: string) =>
 
 async function fetchCabanas(): Promise<CabanaOption[]> {
   const res = await fetch("/api/cabanas");
-  if (!res.ok) throw new Error("Kabana listesi yüklenemedi.");
-  const data = await res.json();
-  return data.cabanas ?? data;
+  if (!res.ok) throw new Error("Cabana listesi yüklenemedi.");
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
 }
 
 async function fetchRecurring(): Promise<RecurringRow[]> {
   const res = await fetch("/api/recurring-bookings");
   if (!res.ok) throw new Error("Tekrarlayan rezervasyonlar yüklenemedi.");
-  const data = await res.json();
-  return data.items ?? data.recurringBookings ?? data;
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  if (Array.isArray(resolved)) return resolved;
+  return resolved.items ?? resolved.recurringBookings ?? [];
+}
+
+function normalizeRecurringRows(data: unknown): RecurringRow[] {
+  if (Array.isArray(data)) return data as RecurringRow[];
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as RecurringRow[];
+    if (Array.isArray(obj.recurringBookings)) {
+      return obj.recurringBookings as RecurringRow[];
+    }
+  }
+  return [];
 }
 
 async function createRecurring(data: RecurringForm): Promise<RecurringRow> {
@@ -132,7 +147,8 @@ async function createRecurring(data: RecurringForm): Promise<RecurringRow> {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Tekrarlayan rezervasyon oluşturulamadı.");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function toggleRecurringActive(
@@ -148,7 +164,8 @@ async function toggleRecurringActive(
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Durum güncellenemedi.");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function deleteRecurring(id: string): Promise<void> {
@@ -185,10 +202,17 @@ export default function RecurringBookingsPage() {
     queryFn: fetchCabanas,
   });
 
-  const { data: allRows = [], isLoading } = useQuery({
+  const {
+    data: rawRows = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery<unknown, Error, RecurringRow[]>({
     queryKey: ["recurring-bookings"],
     queryFn: fetchRecurring,
+    select: normalizeRecurringRows,
   });
+  const allRows = rawRows;
 
   const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
   const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -272,6 +296,16 @@ export default function RecurringBookingsPage() {
         </div>
       )}
 
+      {/* Error */}
+      {isError && (
+        <div className="text-center py-12">
+          <p className="text-red-400 text-sm">
+            {(error as Error)?.message ??
+              "Veriler yüklenirken bir hata oluştu."}
+          </p>
+        </div>
+      )}
+
       {/* Desktop Table */}
       <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         {isLoading ? (
@@ -292,7 +326,7 @@ export default function RecurringBookingsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-800 text-neutral-400 text-left">
-                <th className="px-4 py-3 font-medium">Kabana</th>
+                    <th className="px-4 py-3 font-medium">Cabana</th>
                 <th className="px-4 py-3 font-medium">Misafir</th>
                 <th className="px-4 py-3 font-medium">Tekrar</th>
                 <th className="px-4 py-3 font-medium">Tarih Aralığı</th>
@@ -476,7 +510,7 @@ export default function RecurringBookingsPage() {
             }}
             className="space-y-4"
           >
-            <Field label="Kabana">
+            <Field label="Cabana">
               <select
                 required
                 value={createForm.cabanaId}
@@ -485,7 +519,7 @@ export default function RecurringBookingsPage() {
                 }
                 className={selectCls}
               >
-                <option value="">Kabana seçin</option>
+                <option value="">Cabana seçin</option>
                 {cabanas.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}

@@ -37,7 +37,7 @@ export default function ClassesPage() {
   const queryClient = useQueryClient();
 
   const {
-    data: classes = [],
+    data: rawClasses,
     isLoading: loading,
     error: queryError,
   } = useQuery<CabanaClass[]>({
@@ -45,9 +45,12 @@ export default function ClassesPage() {
     queryFn: async () => {
       const res = await fetch("/api/classes");
       if (!res.ok) throw new Error("Sınıflar yüklenemedi.");
-      return res.json();
+      const json = await res.json();
+      const resolved = json.data ?? json;
+      return Array.isArray(resolved) ? resolved : [];
     },
   });
+  const classes = Array.isArray(rawClasses) ? rawClasses : [];
 
   const [error, setError] = useState(queryError ? String(queryError) : "");
   const [success, setSuccess] = useState("");
@@ -215,10 +218,10 @@ export default function ClassesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
-            Kabana Sınıfları
+            Cabana Sınıfları
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
-            Kabana sınıflarını ve özelliklerini yönetin
+            Cabana sınıflarını ve özelliklerini yönetin
           </p>
         </div>
         <PermissionGate permission="cabana.class.create">
@@ -276,7 +279,7 @@ export default function ClassesPage() {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-xs px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700">
-                      {cls._count.cabanas} kabana
+                      {cls._count.cabanas} Cabana
                     </span>
                     <span className="text-xs px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700">
                       {cls.attributes.length} özellik

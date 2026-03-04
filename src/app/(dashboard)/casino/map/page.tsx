@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import CabanaMap from "@/components/map/CabanaMap";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
@@ -14,15 +15,17 @@ interface SystemConfig {
 
 async function fetchCabanas(): Promise<CabanaWithStatus[]> {
   const res = await fetch("/api/cabanas");
-  if (!res.ok) throw new Error("Kabanalar yüklenemedi.");
-  const data = await res.json();
-  return Array.isArray(data) ? data : (data.cabanas ?? []);
+  if (!res.ok) throw new Error("Cabanalar yüklenemedi.");
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
 }
 
 async function fetchSystemConfig(): Promise<SystemConfig> {
   const res = await fetch("/api/system/config");
   if (!res.ok) throw new Error("Sistem konfigürasyonu yüklenemedi.");
-  const data = await res.json();
+  const raw = await res.json();
+  const data = raw.data ?? raw;
   // API returns { isOpen: boolean }
   if (typeof data.isOpen !== "undefined") {
     return {
@@ -47,6 +50,7 @@ async function fetchSystemConfig(): Promise<SystemConfig> {
 const statusLabel: Record<CabanaStatus, string> = {
   [CabanaStatus.AVAILABLE]: "Müsait",
   [CabanaStatus.RESERVED]: "Rezerve",
+  [CabanaStatus.OCCUPIED]: "Dolu",
   [CabanaStatus.CLOSED]: "Kapalı",
 };
 
@@ -55,6 +59,8 @@ const statusBadgeClass: Record<CabanaStatus, string> = {
     "bg-green-950/60 border border-green-700/40 text-green-400",
   [CabanaStatus.RESERVED]:
     "bg-red-950/50 border border-red-800/40 text-red-400",
+  [CabanaStatus.OCCUPIED]:
+    "bg-amber-950/50 border border-amber-700/40 text-amber-400",
   [CabanaStatus.CLOSED]:
     "bg-neutral-800 border border-neutral-700 text-neutral-500",
 };
@@ -69,6 +75,7 @@ export default function CasinoMapPage() {
   const {
     data: cabanas = [],
     isLoading: cabanasLoading,
+    isError: cabanasIsError,
     error: cabanasError,
   } = useQuery({
     queryKey: ["cabanas"],
@@ -78,6 +85,7 @@ export default function CasinoMapPage() {
   const {
     data: systemConfig,
     isLoading: configLoading,
+    isError: configIsError,
     error: configError,
   } = useQuery({
     queryKey: ["system-config"],
@@ -86,6 +94,7 @@ export default function CasinoMapPage() {
 
   const systemOpen = systemConfig?.system_open_for_reservation ?? true;
   const isLoading = cabanasLoading || configLoading;
+  const isError = cabanasIsError || configIsError;
   const fetchError =
     cabanasError instanceof Error
       ? cabanasError.message
@@ -97,15 +106,16 @@ export default function CasinoMapPage() {
     setSelectedCabana(cabana);
   }
 
-  const canRequest =
-    systemOpen &&
-    selectedCabana !== null &&
-    selectedCabana.status === CabanaStatus.AVAILABLE &&
-    selectedCabana.isOpenForReservation;
-
-  function handleRequestClick() {
-    if (!canRequest) return;
-    router.push("/casino/calendar");
+  function handleReservationStatusClick() {
+    if (!selectedCabana) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const params = new URLSearchParams({
+      view: "timeline",
+      range: "day",
+      cabanaId: selectedCabana.id,
+      date: today,
+    });
+    router.push(`/casino/calendar?${params.toString()}`);
   }
 
   return (
@@ -136,10 +146,10 @@ export default function CasinoMapPage() {
       <div className="flex items-center px-4 sm:px-6 py-4 border-b border-neutral-800 shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
-            Kabana Haritası
+            Cabana Haritası
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
-            Kabana seçerek rezervasyon talebi oluşturun
+            Cabana seçerek rezervasyon talebi oluşturun
           </p>
         </div>
       </div>
@@ -154,15 +164,14 @@ export default function CasinoMapPage() {
       )}
 
       {/* Main content */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-        {/* Map area */}
-        <div className="flex-1 p-4 min-h-0 min-h-[300px] md:min-h-0">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full p-4 min-h-75 md:min-h-0">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full min-h-[300px]">
-              <LoadingSpinner message="Kabanalar yükleniyor..." />
+            <div className="flex items-center justify-center h-full min-h-75">
+              <LoadingSpinner message="Cabanalar yükleniyor..." />
             </div>
           ) : (
-            <div className="h-full min-h-[300px] md:min-h-[500px]">
+              <div className="h-full min-h-75 md:min-h-125">
               <CabanaMap
                 cabanas={cabanas}
                 editable={false}
@@ -172,39 +181,40 @@ export default function CasinoMapPage() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Detail panel */}
-        <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-neutral-800 bg-neutral-900 flex flex-col overflow-y-auto max-h-[50vh] md:max-h-none rc-scrollbar">
-          {!selectedCabana ? (
-            <div className="flex flex-col items-center justify-center flex-1 text-neutral-500 text-sm px-6 text-center gap-2">
-              <svg
-                className="w-10 h-10 text-neutral-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-                />
-              </svg>
-              <p>Haritadan bir kabana seçin</p>
+      {selectedCabana && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setSelectedCabana(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${selectedCabana.name} detayları`}
+        >
+          <div
+            className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-neutral-700" />
             </div>
-          ) : (
-            <div className="p-5 space-y-5">
-              {/* Cabana name + status */}
+
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
+              <h2 className="text-base font-semibold text-yellow-400 leading-tight">
+                {selectedCabana.name}
+              </h2>
+              <button
+                onClick={() => setSelectedCabana(null)}
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors active:scale-95"
+                aria-label="Kapat"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-5 overscroll-contain rc-scrollbar">
               <div className="flex items-start justify-between gap-2">
-                <h2 className="text-base font-semibold text-yellow-400 leading-tight">
-                  {selectedCabana.name}
-                </h2>
+                <h3 className="text-sm font-medium text-neutral-200">Durum</h3>
                 <span
                   className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${statusBadgeClass[selectedCabana.status]}`}
                 >
@@ -212,7 +222,6 @@ export default function CasinoMapPage() {
                 </span>
               </div>
 
-              {/* Details */}
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center py-1.5 border-b border-neutral-800">
                   <span className="text-neutral-500">Sınıf</span>
@@ -251,52 +260,19 @@ export default function CasinoMapPage() {
                   </span>
                 </div>
               </div>
-
-              <div className="border-t border-neutral-800" />
-
-              {/* Reservation button */}
-              <div className="space-y-2">
-                <button
-                  onClick={handleRequestClick}
-                  disabled={!canRequest}
-                  title={
-                    !systemOpen
-                      ? "Sistem rezervasyona kapalı"
-                      : selectedCabana.status !== CabanaStatus.AVAILABLE
-                        ? "Kabana müsait değil"
-                        : !selectedCabana.isOpenForReservation
-                          ? "Bu kabana rezervasyona kapalı"
-                          : undefined
-                  }
-                  className="w-full min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 transition-colors"
-                >
-                  Rezervasyon Talebi Oluştur
-                </button>
-
-                {/* Disabled reason message */}
-                {!systemOpen && (
-                  <p className="text-xs text-amber-400/80 text-center">
-                    Sistem rezervasyona kapalı
-                  </p>
-                )}
-                {systemOpen &&
-                  selectedCabana.status !== CabanaStatus.AVAILABLE && (
-                    <p className="text-xs text-neutral-500 text-center">
-                      Bu kabana şu anda müsait değil
-                    </p>
-                  )}
-                {systemOpen &&
-                  selectedCabana.status === CabanaStatus.AVAILABLE &&
-                  !selectedCabana.isOpenForReservation && (
-                    <p className="text-xs text-neutral-500 text-center">
-                      Bu kabana rezervasyona kapalı
-                    </p>
-                  )}
-              </div>
             </div>
-          )}
+
+            <div className="p-5 border-t border-neutral-800 shrink-0">
+              <button
+                onClick={handleReservationStatusClick}
+                className="w-full min-h-11 py-2.5 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 text-neutral-950 transition-colors"
+              >
+                Rezervasyon Durumu
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

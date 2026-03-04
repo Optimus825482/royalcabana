@@ -1,7 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   User,
   Mail,
@@ -31,11 +32,21 @@ const ROLE_LABELS: Record<string, string> = {
   FNB_USER: "F&B Kullanıcısı",
 };
 
+async function fetchProfile(): Promise<ProfileData> {
+  const res = await fetch("/api/profile");
+  if (!res.ok) throw new Error("Profil yüklenemedi");
+  const json = await res.json();
+  return json.data ?? json;
+}
+
 export default function ProfilePage() {
-  const { data: session } = useSession();
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  useSession();
+  const queryClient = useQueryClient();
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["profile"],
+    queryFn: fetchProfile,
+  });
 
   // Form state
   const [username, setUsername] = useState("");
@@ -55,24 +66,13 @@ export default function ProfilePage() {
     message: string;
   } | null>(null);
 
-  const fetchProfile = useCallback(async () => {
-    try {
-      const res = await fetch("/api/profile");
-      if (!res.ok) throw new Error("Profil yüklenemedi");
-      const data: ProfileData = await res.json();
-      setProfile(data);
-      setUsername(data.username);
-      setEmail(data.email);
-    } catch {
-      setToast({ type: "error", message: "Profil bilgileri yüklenemedi." });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Sync form when profile loads
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (profile) {
+      setUsername(profile.username);
+      setEmail(profile.email);
+    }
+  }, [profile]);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -81,10 +81,39 @@ export default function ProfilePage() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const updateMutation = useMutation({
+    mutationFn: async (payload: Record<string, string>) => {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Güncelleme başarısız.");
+      }
+      return data as ProfileData;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["profile"], data);
+      setUsername(data.username);
+      setEmail(data.email);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setToast({ type: "success", message: "Profil başarıyla güncellendi." });
+    },
+    onError: (error) => {
+      setToast({
+        type: "error",
+        message: error instanceof Error ? error.message : "Bir hata oluştu.",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (newPassword && newPassword !== confirmPassword) {
       setToast({ type: "error", message: "Yeni şifreler eşleşmiyor." });
       return;
@@ -107,47 +136,18 @@ export default function ProfilePage() {
       return;
     }
 
-    setSaving(true);
-    try {
-      const payload: Record<string, string> = {};
-      if (username !== profile?.username) payload.username = username;
-      if (email !== profile?.email) payload.email = email;
-      if (newPassword) {
-        payload.currentPassword = currentPassword;
-        payload.newPassword = newPassword;
-      }
-
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setToast({
-          type: "error",
-          message: data.error || "Güncelleme başarısız.",
-        });
-        return;
-      }
-
-      setProfile(data);
-      setUsername(data.username);
-      setEmail(data.email);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setToast({ type: "success", message: "Profil başarıyla güncellendi." });
-    } catch {
-      setToast({ type: "error", message: "Bir hata oluştu." });
-    } finally {
-      setSaving(false);
+    const payload: Record<string, string> = {};
+    if (username !== profile?.username) payload.username = username;
+    if (email !== profile?.email) payload.email = email;
+    if (newPassword) {
+      payload.currentPassword = currentPassword;
+      payload.newPassword = newPassword;
     }
+
+    updateMutation.mutate(payload);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
@@ -372,15 +372,15 @@ export default function ProfilePage() {
         {/* Submit */}
         <button
           type="submit"
-          disabled={saving}
+          disabled={updateMutation.isPending}
           className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 font-medium rounded-lg py-3 text-sm transition-colors active:scale-[0.98]"
         >
-          {saving ? (
+          {updateMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Save className="w-4 h-4" />
           )}
-          {saving ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
+          {updateMutation.isPending ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
         </button>
       </form>
     </div>

@@ -6,23 +6,24 @@ import { logAudit } from "@/lib/audit";
 import { parseBody, updateGuestSchema } from "@/lib/validators";
 
 export const GET = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (_req, { params }) => {
     const id = params!.id;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const guest = await (prisma as any).guest.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       include: { _count: { select: { reservations: true } } },
     });
 
     if (!guest) {
       return NextResponse.json(
-        { error: "Misafir bulunamadı." },
+        { success: false, error: "Misafir bulunamadı." },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(guest);
+    return NextResponse.json({ success: true, data: guest });
   },
 );
 
@@ -31,10 +32,13 @@ export const PATCH = withAuth(
   async (req, { session, params }) => {
     const id = params!.id;
 
-    const existing = await (prisma as any).guest.findUnique({ where: { id } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing = await (prisma as any).guest.findUnique({
+      where: { id, deletedAt: null },
+    });
     if (!existing) {
       return NextResponse.json(
-        { error: "Misafir bulunamadı." },
+        { success: false, error: "Misafir bulunamadı." },
         { status: 404 },
       );
     }
@@ -43,9 +47,13 @@ export const PATCH = withAuth(
     const parsed = parseBody(updateGuestSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const guest = await (prisma as any).guest.update({
       where: { id },
       data: parsed.data,
@@ -60,7 +68,7 @@ export const PATCH = withAuth(
       newValue: guest as Record<string, unknown>,
     });
 
-    return NextResponse.json(guest);
+    return NextResponse.json({ success: true, data: guest });
   },
 );
 
@@ -69,24 +77,34 @@ export const DELETE = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const existing = await (prisma as any).guest.findUnique({ where: { id } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing = await (prisma as any).guest.findUnique({
+      where: { id, deletedAt: null },
+    });
     if (!existing) {
       return NextResponse.json(
-        { error: "Misafir bulunamadı." },
+        { success: false, error: "Misafir bulunamadı." },
         { status: 404 },
       );
     }
 
-    await (prisma as any).guest.delete({ where: { id } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (prisma as any).guest.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
 
     logAudit({
       userId: session.user.id,
-      action: "DELETE",
+      action: "SOFT_DELETE",
       entity: "Guest",
       entityId: id,
       oldValue: existing as Record<string, unknown>,
     });
 
-    return NextResponse.json({ message: "Misafir silindi." });
+    return NextResponse.json({
+      success: true,
+      data: { message: "Misafir silindi." },
+    });
   },
 );

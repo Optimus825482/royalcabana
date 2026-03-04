@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { notificationService } from "@/services/notification.service";
 import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
+import { emailService } from "@/lib/email";
 
 const actionSchema = z.object({
   action: z.enum(["approve", "reject"]),
@@ -115,12 +116,28 @@ export const PATCH = withAuth(
             type: "cancellation_rejected",
           },
         );
+
+        // Auto-refresh: broadcast to all users except the updater if startDate >= 1 day from now
+        const msUntilStart =
+          new Date(cancelRequest.reservation.startDate).getTime() - Date.now();
+        if (msUntilStart >= 24 * 60 * 60 * 1000) {
+          sseManager.broadcastExcludeUser(
+            session.user.id,
+            SSE_EVENTS.RESERVATION_UPDATED,
+            {
+              reservationId,
+              cabanaName: cancelRequest.reservation.cabana?.name ?? "",
+              guestName: cancelRequest.reservation.guestName,
+              updatedBy: session.user.id,
+            },
+          );
+        }
       });
 
       return NextResponse.json({ success: true, data: updatedRequest });
     }
 
-    // ── APPROVE ── kabana'yı AVAILABLE'a çevir
+    // ── APPROVE ── Cabana'yı AVAILABLE'a çevir
     const [updatedRequest] = await prisma.$transaction([
       prisma.cancellationRequest.update({
         where: { id: requestId },
@@ -166,11 +183,38 @@ export const PATCH = withAuth(
         },
       });
 
+      const reqOwner = await prisma.user.findUnique({
+        where: { id: cancelRequest.reservation.userId },
+        select: { email: true },
+      });
+      if (reqOwner?.email) {
+        emailService.sendReservationCancelled(reqOwner.email, {
+          guestName: cancelRequest.reservation.guestName,
+          cabanaName: cancelRequest.reservation.cabana?.name ?? "",
+        });
+      }
+
       sseManager.broadcast(SSE_EVENTS.RESERVATION_CANCELLED, {
         reservationId,
         cabanaId: cancelRequest.reservation.cabanaId,
         cabanaName: cancelRequest.reservation.cabana?.name ?? "",
       });
+
+      // Auto-refresh: broadcast to all users except the updater if startDate >= 1 day from now
+      const msUntilStart =
+        new Date(cancelRequest.reservation.startDate).getTime() - Date.now();
+      if (msUntilStart >= 24 * 60 * 60 * 1000) {
+        sseManager.broadcastExcludeUser(
+          session.user.id,
+          SSE_EVENTS.RESERVATION_UPDATED,
+          {
+            reservationId,
+            cabanaName: cancelRequest.reservation.cabana?.name ?? "",
+            guestName: cancelRequest.reservation.guestName,
+            updatedBy: session.user.id,
+          },
+        );
+      }
     });
 
     return NextResponse.json({ success: true, data: updatedRequest });

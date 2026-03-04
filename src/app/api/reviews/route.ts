@@ -35,6 +35,8 @@ export const GET = withAuth(
       where.rating = parseInt(rating, 10);
     }
 
+    where.deletedAt = null;
+
     const [reviews, total] = await Promise.all([
       (prisma as any).review.findMany({
         where,
@@ -58,8 +60,16 @@ export const GET = withAuth(
     ]);
 
     return NextResponse.json({
-      data: reviews,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      success: true,
+      data: {
+        data: reviews,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
     });
   },
   { requiredPermissions: ["reservation.view"] },
@@ -71,10 +81,24 @@ export const POST = withAuth(
     const body = await req.json();
     const parsed = parseBody(createReviewSchema, body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const { reservationId, rating, comment } = parsed.data;
+
+    // Validate rating range (1-5)
+    if (rating < 1 || rating > 5) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Puan 1 ile 5 arasında olmalıdır.",
+        },
+        { status: 400 },
+      );
+    }
 
     // Verify reservation belongs to user and is CHECKED_OUT
     const reservation = await prisma.reservation.findFirst({
@@ -82,12 +106,16 @@ export const POST = withAuth(
         id: reservationId,
         userId: session.user.id,
         status: "CHECKED_OUT",
+        deletedAt: null,
       },
     });
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Geçerli bir tamamlanmış rezervasyon bulunamadı." },
+        {
+          success: false,
+          error: "Geçerli bir tamamlanmış rezervasyon bulunamadı.",
+        },
         { status: 404 },
       );
     }
@@ -99,7 +127,10 @@ export const POST = withAuth(
 
     if (existing) {
       return NextResponse.json(
-        { error: "Bu rezervasyon için zaten bir değerlendirme mevcut." },
+        {
+          success: false,
+          error: "Bu rezervasyon için zaten bir değerlendirme mevcut.",
+        },
         { status: 409 },
       );
     }
@@ -126,12 +157,12 @@ export const POST = withAuth(
     logAudit({
       userId: session.user.id,
       action: "CREATE",
-      entity: "Reservation",
+      entity: "Review",
       entityId: review.id,
       newValue: { reservationId, rating, comment },
     });
 
-    return NextResponse.json(review, { status: 201 });
+    return NextResponse.json({ success: true, data: review }, { status: 201 });
   },
   { requiredPermissions: ["reservation.create"] },
 );

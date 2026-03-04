@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { DatabaseError } from "@/lib/errors";
+import { cached } from "@/lib/cache";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,10 +32,9 @@ interface ConceptData {
 }
 
 interface PriceData {
-  cabanaName: string;
   className: string;
-  date: string;
-  dailyPrice: number;
+  conceptName: string;
+  totalValue: number;
 }
 
 // ─── Data Fetcher ─────────────────────────────────────────────────────────────
@@ -43,8 +44,11 @@ async function fetchData(): Promise<SlideData> {
     prisma.cabana.findMany({
       include: {
         cabanaClass: true,
-        concept: true,
-        prices: { orderBy: { date: "asc" }, take: 5 },
+        concept: {
+          include: {
+            products: { include: { product: true } },
+          },
+        },
       },
       orderBy: { name: "asc" },
     }),
@@ -88,14 +92,23 @@ async function fetchData(): Promise<SlideData> {
     })),
   }));
 
-  const priceList: PriceData[] = cabanas.flatMap((c) =>
-    c.prices.map((p) => ({
-      cabanaName: c.name,
-      className: c.cabanaClass.name,
-      date: new Date(p.date).toLocaleDateString("tr-TR"),
-      dailyPrice: Number(p.dailyPrice),
-    })),
-  );
+  // Fiyat listesi — konsept ürün fiyatları üzerinden hesaplanır
+  const priceList: PriceData[] = cabanas
+    .filter((c) => c.concept)
+    .map((c) => {
+      const conceptProducts = c.concept!.products ?? [];
+      const totalValue = conceptProducts.reduce(
+        (sum: number, cp: any) =>
+          sum + Number(cp.product.salePrice) * cp.quantity,
+        0,
+      );
+      return {
+        className: c.cabanaClass.name,
+        conceptName: c.concept!.name,
+        totalValue,
+      };
+    })
+    .filter((p) => p.totalValue > 0);
 
   return {
     cabanas: cabanaList,
@@ -132,10 +145,10 @@ function buildHtml(data: SlideData): string {
       <div class="cover-inner">
         <div class="cover-logo">RC</div>
         <h1 class="cover-title">Royal Cabana</h1>
-        <p class="cover-subtitle">Kabana Yönetim Sistemi</p>
+        <p class="cover-subtitle">Cabana Yönetim Sistemi</p>
         <p class="cover-date">${date}</p>
         <div class="cover-stats">
-          <div class="stat-item"><span class="stat-num">${data.cabanas.length}</span><span class="stat-label">Kabana</span></div>
+          <div class="stat-item"><span class="stat-num">${data.cabanas.length}</span><span class="stat-label">Cabana</span></div>
           <div class="stat-divider"></div>
           <div class="stat-item"><span class="stat-num">${data.classes.length}</span><span class="stat-label">Sınıf</span></div>
           <div class="stat-divider"></div>
@@ -144,14 +157,14 @@ function buildHtml(data: SlideData): string {
       </div>
     </section>`;
 
-  // ── Slide 2: Kabana Sınıfları ───────────────────────────────────────────────
+  // ── Slide 2: Cabana Sınıfları ───────────────────────────────────────────────
   const classCards = data.classes
     .map(
       (cls) => `
     <div class="class-card">
       <div class="class-card-header">
         <span class="class-name">${cls.name}</span>
-        <span class="class-count">${cls.cabanaCount} kabana</span>
+        <span class="class-count">${cls.cabanaCount} cabana</span>
       </div>
       <p class="class-desc">${cls.description}</p>
       ${
@@ -170,12 +183,12 @@ function buildHtml(data: SlideData): string {
     <section class="slide">
       <div class="slide-header">
         <span class="slide-num">01</span>
-        <h2 class="slide-title">Kabana Sınıfları</h2>
+        <h2 class="slide-title">Cabana Sınıfları</h2>
       </div>
       <div class="class-grid">${classCards}</div>
     </section>`;
 
-  // ── Slide 3: Kabana Listesi ─────────────────────────────────────────────────
+  // ── Slide 3: Cabana Listesi ─────────────────────────────────────────────────
   const cabanaRows = data.cabanas
     .map(
       (c, i) => `
@@ -192,13 +205,13 @@ function buildHtml(data: SlideData): string {
     <section class="slide">
       <div class="slide-header">
         <span class="slide-num">02</span>
-        <h2 class="slide-title">Kabana Yerleşimi</h2>
+        <h2 class="slide-title">Cabana Yerleşimi</h2>
       </div>
       <div class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Kabana</th><th>Sınıf</th><th>Konsept</th><th>Durum</th>
+              <th>Cabana</th><th>Sınıf</th><th>Konsept</th><th>Durum</th>
             </tr>
           </thead>
           <tbody>${cabanaRows}</tbody>
@@ -257,17 +270,16 @@ function buildHtml(data: SlideData): string {
       ? `<div class="table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Kabana</th><th>Sınıf</th><th>Tarih</th><th>Günlük Fiyat</th></tr>
+            <tr><th>Sınıf</th><th>Konsept</th><th>Toplam Değer</th></tr>
           </thead>
           <tbody>
             ${data.prices
               .map(
                 (p, i) => `
               <tr class="${i % 2 === 0 ? "row-even" : "row-odd"}">
-                <td class="td-name">${p.cabanaName}</td>
                 <td>${p.className}</td>
-                <td>${p.date}</td>
-                <td class="td-price">${p.dailyPrice.toLocaleString("tr-TR")} ₺</td>
+                <td class="td-name">${p.conceptName}</td>
+                <td class="td-price">${p.totalValue.toLocaleString("tr-TR")} ₺</td>
               </tr>`,
               )
               .join("")}
@@ -291,7 +303,7 @@ function buildHtml(data: SlideData): string {
       <div class="closing-inner">
         <div class="closing-logo">RC</div>
         <h2 class="closing-title">Royal Cabana</h2>
-        <p class="closing-sub">Kabana Yönetim Sistemi — ${date}</p>
+        <p class="closing-sub">Cabana Yönetim Sistemi — ${date}</p>
       </div>
     </section>`;
 
@@ -452,7 +464,7 @@ function buildHtml(data: SlideData): string {
     <div class="nav-links">
       <a class="nav-link" href="#cover">Kapak</a>
       <a class="nav-link" href="#classes">Sınıflar</a>
-      <a class="nav-link" href="#cabanas">Kabana</a>
+      <a class="nav-link" href="#cabanas">Cabana</a>
       <a class="nav-link" href="#concepts">Konsept</a>
       <a class="nav-link" href="#pricing">Fiyat</a>
     </div>
@@ -474,8 +486,14 @@ function buildHtml(data: SlideData): string {
 
 export class HtmlPresentationEngine {
   async generate(): Promise<string> {
-    const data = await fetchData();
-    return buildHtml(data);
+    try {
+      const data = await cached("presentation:html", 300, () => fetchData());
+      return buildHtml(data);
+    } catch (error) {
+      throw new DatabaseError("HTML sunum oluşturulamadı", {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 }
 

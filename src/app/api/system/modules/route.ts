@@ -41,7 +41,7 @@ export const GET = withAuth(
   [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async () => {
     const config = await getModuleConfig();
-    return NextResponse.json(config);
+    return NextResponse.json({ success: true, data: config });
   },
   { requiredPermissions: ["system.config.view"] },
 );
@@ -53,7 +53,7 @@ export const PUT = withAuth(
     const body = await req.json();
     if (!isValidConfig(body)) {
       return NextResponse.json(
-        { message: "Geçersiz modül konfigürasyonu" },
+        { success: false, error: "Geçersiz modül konfigürasyonu" },
         { status: 400 },
       );
     }
@@ -75,7 +75,7 @@ export const PUT = withAuth(
       newValue: body as unknown as Record<string, unknown>,
     });
 
-    return NextResponse.json(JSON.parse(config.value));
+    return NextResponse.json({ success: true, data: JSON.parse(config.value) });
   },
   { requiredPermissions: ["system.config.update"] },
 );

@@ -31,7 +31,7 @@ export const GET = withAuth(
       include: { group: true },
     });
 
-    return NextResponse.json(products);
+    return NextResponse.json({ success: true, data: products });
   },
   { requiredPermissions: ["product.view"] },
 );
@@ -43,24 +43,17 @@ export const POST = withAuth(
     const parsed = createProductSchema.safeParse(body);
     if (!parsed.success)
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
 
     const product = await prisma.product.create({
       data: parsed.data,
       include: { group: true },
-    });
-
-    // Record initial price history
-    await (prisma as any).productPriceHistory.create({
-      data: {
-        productId: product.id,
-        purchasePrice: parsed.data.purchasePrice,
-        salePrice: parsed.data.salePrice,
-        source: "MANUAL",
-        changedBy: session.user.id,
-      },
     });
 
     logAudit({
@@ -71,7 +64,7 @@ export const POST = withAuth(
       newValue: parsed.data,
     });
 
-    return NextResponse.json(product, { status: 201 });
+    return NextResponse.json({ success: true, data: product }, { status: 201 });
   },
   { requiredPermissions: ["product.create"] },
 );

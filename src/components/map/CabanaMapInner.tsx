@@ -11,6 +11,33 @@ import * as THREE from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
 
+// ─── ServicePoint type for dynamic building rendering ────────────────────────
+
+interface ServicePointData {
+  id: string;
+  name: string;
+  type: string;
+  coordX: number | null;
+  coordY: number | null;
+  rotation: number;
+  scale: number;
+  isLocked: boolean;
+  isActive: boolean;
+  requiredStaffCount: number;
+  staffRoles: string[] | null;
+}
+
+interface ServicePointTransform {
+  id: string;
+  name: string;
+  type: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  isLocked: boolean;
+}
+
 // ─── Image / scene config ────────────────────────────────────────────────────
 
 const IMAGE_SRC = "/gorsel/sonnn.png";
@@ -1710,6 +1737,572 @@ function buildBlueSeaBarMesh(
   return group;
 }
 
+// ─── Generic Service Point 3D Model (for types without custom mesh) ──────────
+
+function buildGenericServicePointMesh(
+  coordX: number,
+  coordY: number,
+  rotation: number = 0,
+  name: string = "Service Point",
+  type: string = "OTHER",
+): THREE.Group {
+  const group = new THREE.Group();
+
+  // Color scheme based on type
+  const typeColors: Record<
+    string,
+    { main: number; roof: number; accent: number }
+  > = {
+    BAR: { main: 0x4a4a4a, roof: 0xff6b35, accent: 0x8b4513 },
+    BEACH_BAR: { main: 0x4a4a4a, roof: 0xff6b35, accent: 0x8b4513 },
+    RESTAURANT: { main: 0x5c3a1e, roof: 0xc0392b, accent: 0xf39c12 },
+    POOL_BAR: { main: 0x2c3e50, roof: 0x3498db, accent: 0x1abc9c },
+    SPA: { main: 0x6c3483, roof: 0x8e44ad, accent: 0xf1c40f },
+    RECEPTION: { main: 0x1a5276, roof: 0x2980b9, accent: 0xecf0f1 },
+    SHOP: { main: 0x7d6608, roof: 0xf1c40f, accent: 0xffffff },
+  };
+  const colors = typeColors[type.toUpperCase()] ?? {
+    main: 0x555555,
+    roof: 0x888888,
+    accent: 0xcccccc,
+  };
+
+  const upperType = type.toUpperCase();
+
+  // Materials
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: colors.main,
+    roughness: 0.7,
+    metalness: 0.1,
+  });
+  const roofMat = new THREE.MeshStandardMaterial({
+    color: colors.roof,
+    roughness: 0.5,
+    metalness: 0.2,
+  });
+  const accentMat = new THREE.MeshStandardMaterial({
+    color: colors.accent,
+    roughness: 0.5,
+    metalness: 0.15,
+  });
+  const platformMat = new THREE.MeshStandardMaterial({
+    color: 0x5a5a5a,
+    roughness: 0.9,
+  });
+
+  // ─── RESTAURANT: Wide building with tables & awning ───────────────────
+  if (upperType === "RESTAURANT") {
+    const w = 70,
+      d = 55,
+      wallH = 22;
+
+    // Platform
+    const platform = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 6, d + 6, 2),
+      platformMat,
+    );
+    platform.position.z = 1;
+    platform.receiveShadow = true;
+    platform.castShadow = true;
+    group.add(platform);
+
+    // Walls (L-shape — back + left, open front + right for terrace)
+    const backWall = new THREE.Mesh(
+      new THREE.BoxGeometry(w, 2, wallH),
+      wallMat,
+    );
+    backWall.position.set(0, d / 2 - 1, 2 + wallH / 2);
+    backWall.castShadow = true;
+    group.add(backWall);
+    const leftWall = new THREE.Mesh(
+      new THREE.BoxGeometry(2, d, wallH),
+      wallMat,
+    );
+    leftWall.position.set(-w / 2 + 1, 0, 2 + wallH / 2);
+    leftWall.castShadow = true;
+    group.add(leftWall);
+
+    // Awning roof (slanted)
+    const awning = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 10, d + 10, 2),
+      roofMat,
+    );
+    awning.position.set(0, 0, 2 + wallH + 3);
+    awning.castShadow = true;
+    group.add(awning);
+
+    // Dining tables (2x3 grid)
+    const tableMat = new THREE.MeshStandardMaterial({
+      color: 0xa0522d,
+      roughness: 0.6,
+    });
+    for (let col = 0; col < 3; col++) {
+      for (let row = 0; row < 2; row++) {
+        const tx = -w / 4 + col * (w / 3.5);
+        const ty = -d / 4 + row * (d / 2.5);
+        // Table top
+        const tbl = new THREE.Mesh(
+          new THREE.CylinderGeometry(4, 4, 1, 8),
+          tableMat,
+        );
+        tbl.rotation.x = Math.PI / 2;
+        tbl.position.set(tx, ty, 8);
+        tbl.castShadow = true;
+        group.add(tbl);
+        // Table leg
+        const leg = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.5, 0.5, 5, 6),
+          accentMat,
+        );
+        leg.rotation.x = Math.PI / 2;
+        leg.position.set(tx, ty, 5);
+        group.add(leg);
+        // 4 chairs
+        [
+          [-3.5, 0],
+          [3.5, 0],
+          [0, -3.5],
+          [0, 3.5],
+        ].forEach(([cx, cy]) => {
+          const chair = new THREE.Mesh(
+            new THREE.BoxGeometry(2, 2, 3),
+            accentMat,
+          );
+          chair.position.set(tx + cx, ty + cy, 4);
+          chair.castShadow = true;
+          group.add(chair);
+        });
+      }
+    }
+
+    // ─── POOL_BAR: Circular bar with pool edge ────────────────────────────
+  } else if (upperType === "POOL_BAR") {
+    const radius = 25;
+
+    // Circular platform
+    const platform = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius + 3, radius + 3, 2, 24),
+      platformMat,
+    );
+    platform.rotation.x = Math.PI / 2;
+    platform.position.z = 1;
+    platform.receiveShadow = true;
+    platform.castShadow = true;
+    group.add(platform);
+
+    // Circular bar counter
+    const counter = new THREE.Mesh(
+      new THREE.TorusGeometry(radius * 0.6, 3, 8, 24),
+      new THREE.MeshStandardMaterial({ color: colors.accent, roughness: 0.5 }),
+    );
+    counter.position.z = 10;
+    group.add(counter);
+
+    // Center column
+    const column = new THREE.Mesh(
+      new THREE.CylinderGeometry(2, 2, 20, 12),
+      wallMat,
+    );
+    column.rotation.x = Math.PI / 2;
+    column.position.z = 12;
+    column.castShadow = true;
+    group.add(column);
+
+    // Umbrella roof (cone)
+    const umbrella = new THREE.Mesh(
+      new THREE.ConeGeometry(radius + 5, 8, 12),
+      roofMat,
+    );
+    umbrella.rotation.x = Math.PI / 2;
+    umbrella.position.z = 26;
+    umbrella.castShadow = true;
+    group.add(umbrella);
+
+    // Pool water ring around
+    const poolRing = new THREE.Mesh(
+      new THREE.TorusGeometry(radius + 8, 5, 8, 32),
+      new THREE.MeshStandardMaterial({
+        color: 0x3498db,
+        transparent: true,
+        opacity: 0.4,
+        roughness: 0.2,
+      }),
+    );
+    poolRing.position.z = 1;
+    group.add(poolRing);
+
+    // Bar stools (8 around)
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const sx = Math.cos(angle) * radius * 0.8;
+      const sy = Math.sin(angle) * radius * 0.8;
+      const stool = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 1.5, 6, 8),
+        accentMat,
+      );
+      stool.rotation.x = Math.PI / 2;
+      stool.position.set(sx, sy, 5);
+      stool.castShadow = true;
+      group.add(stool);
+      // Stool seat
+      const seat = new THREE.Mesh(
+        new THREE.CylinderGeometry(2, 2, 1, 8),
+        new THREE.MeshStandardMaterial({ color: 0xecf0f1, roughness: 0.8 }),
+      );
+      seat.rotation.x = Math.PI / 2;
+      seat.position.set(sx, sy, 8.5);
+      group.add(seat);
+    }
+
+    // ─── SPA: Rounded pavilion with zen elements ──────────────────────────
+  } else if (upperType === "SPA") {
+    const w = 55,
+      d = 45,
+      wallH = 18;
+
+    // Rounded platform
+    const platform = new THREE.Mesh(
+      new THREE.CylinderGeometry(30, 30, 2, 20),
+      new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 }),
+    );
+    platform.rotation.x = Math.PI / 2;
+    platform.position.z = 1;
+    platform.receiveShadow = true;
+    platform.castShadow = true;
+    group.add(platform);
+
+    // Main pavilion (octagonal walls)
+    const pavilion = new THREE.Mesh(
+      new THREE.CylinderGeometry(22, 22, wallH, 8),
+      new THREE.MeshStandardMaterial({
+        color: colors.main,
+        roughness: 0.7,
+        transparent: true,
+        opacity: 0.7,
+      }),
+    );
+    pavilion.rotation.x = Math.PI / 2;
+    pavilion.position.z = 2 + wallH / 2;
+    pavilion.castShadow = true;
+    group.add(pavilion);
+
+    // Dome roof
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(24, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+      roofMat,
+    );
+    dome.position.z = 2 + wallH;
+    dome.castShadow = true;
+    group.add(dome);
+
+    // Zen pool (center)
+    const zenPool = new THREE.Mesh(
+      new THREE.CylinderGeometry(8, 8, 1, 16),
+      new THREE.MeshStandardMaterial({
+        color: 0x5dade2,
+        transparent: true,
+        opacity: 0.5,
+        roughness: 0.1,
+      }),
+    );
+    zenPool.rotation.x = Math.PI / 2;
+    zenPool.position.z = 2.5;
+    group.add(zenPool);
+
+    // Massage beds (4 around pool)
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const bx = Math.cos(angle) * 14;
+      const by = Math.sin(angle) * 14;
+      const bed = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 8, 1.5),
+        new THREE.MeshStandardMaterial({ color: 0xf5f0e0, roughness: 0.9 }),
+      );
+      bed.position.set(bx, by, 4);
+      bed.rotation.z = angle;
+      bed.castShadow = true;
+      group.add(bed);
+    }
+
+    // Candle lights
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const lx = Math.cos(angle) * 10;
+      const ly = Math.sin(angle) * 10;
+      const candle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.8, 8, 8),
+        new THREE.MeshStandardMaterial({
+          color: 0xf1c40f,
+          emissive: 0xf39c12,
+          emissiveIntensity: 0.6,
+        }),
+      );
+      candle.position.set(lx, ly, 4);
+      group.add(candle);
+    }
+
+    // ─── RECEPTION: Formal desk with signage ──────────────────────────────
+  } else if (upperType === "RECEPTION") {
+    const w = 60,
+      d = 40,
+      wallH = 24;
+
+    // Platform
+    const platform = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 4, d + 4, 2),
+      platformMat,
+    );
+    platform.position.z = 1;
+    platform.receiveShadow = true;
+    platform.castShadow = true;
+    group.add(platform);
+
+    // Full walls (4 sides with entrance gap)
+    const backWall = new THREE.Mesh(
+      new THREE.BoxGeometry(w, 2, wallH),
+      wallMat,
+    );
+    backWall.position.set(0, d / 2 - 1, 2 + wallH / 2);
+    backWall.castShadow = true;
+    group.add(backWall);
+    const leftWall = new THREE.Mesh(
+      new THREE.BoxGeometry(2, d, wallH),
+      wallMat,
+    );
+    leftWall.position.set(-w / 2 + 1, 0, 2 + wallH / 2);
+    leftWall.castShadow = true;
+    group.add(leftWall);
+    const rightWall = new THREE.Mesh(
+      new THREE.BoxGeometry(2, d, wallH),
+      wallMat,
+    );
+    rightWall.position.set(w / 2 - 1, 0, 2 + wallH / 2);
+    rightWall.castShadow = true;
+    group.add(rightWall);
+
+    // Flat roof
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 8, d + 8, 3),
+      roofMat,
+    );
+    roof.position.z = 2 + wallH + 2;
+    roof.castShadow = true;
+    group.add(roof);
+
+    // Reception desk (curved front)
+    const desk = new THREE.Mesh(
+      new THREE.BoxGeometry(w * 0.6, 8, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0x2c3e50,
+        roughness: 0.4,
+        metalness: 0.2,
+      }),
+    );
+    desk.position.set(0, -d / 4, 2 + 6);
+    desk.castShadow = true;
+    group.add(desk);
+
+    // Desk top (marble)
+    const deskTop = new THREE.Mesh(
+      new THREE.BoxGeometry(w * 0.62, 9, 1),
+      new THREE.MeshStandardMaterial({
+        color: 0xecf0f1,
+        roughness: 0.2,
+        metalness: 0.1,
+      }),
+    );
+    deskTop.position.set(0, -d / 4, 2 + 12.5);
+    deskTop.castShadow = true;
+    group.add(deskTop);
+
+    // Welcome sign (green light)
+    const signLight = new THREE.Mesh(
+      new THREE.SphereGeometry(2, 8, 8),
+      new THREE.MeshStandardMaterial({
+        color: 0x2ecc71,
+        emissive: 0x27ae60,
+        emissiveIntensity: 0.8,
+      }),
+    );
+    signLight.position.set(w / 2 - 5, d / 2 - 5, 2 + wallH - 3);
+    group.add(signLight);
+
+    // ─── SHOP: Storefront with display windows ────────────────────────────
+  } else if (upperType === "SHOP") {
+    const w = 50,
+      d = 35,
+      wallH = 22;
+
+    // Platform
+    const platform = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 4, d + 4, 2),
+      platformMat,
+    );
+    platform.position.z = 1;
+    platform.receiveShadow = true;
+    platform.castShadow = true;
+    group.add(platform);
+
+    // Walls
+    const backWall = new THREE.Mesh(
+      new THREE.BoxGeometry(w, 2, wallH),
+      wallMat,
+    );
+    backWall.position.set(0, d / 2 - 1, 2 + wallH / 2);
+    backWall.castShadow = true;
+    group.add(backWall);
+    const leftWall = new THREE.Mesh(
+      new THREE.BoxGeometry(2, d, wallH),
+      wallMat,
+    );
+    leftWall.position.set(-w / 2 + 1, 0, 2 + wallH / 2);
+    leftWall.castShadow = true;
+    group.add(leftWall);
+    const rightWall = new THREE.Mesh(
+      new THREE.BoxGeometry(2, d, wallH),
+      wallMat,
+    );
+    rightWall.position.set(w / 2 - 1, 0, 2 + wallH / 2);
+    rightWall.castShadow = true;
+    group.add(rightWall);
+
+    // Awning (zigzag canopy)
+    const awning = new THREE.Mesh(new THREE.BoxGeometry(w + 8, 12, 2), roofMat);
+    awning.position.set(0, -d / 2 - 2, 2 + wallH - 2);
+    awning.castShadow = true;
+    group.add(awning);
+
+    // Flat roof
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 6, d + 6, 3),
+      wallMat,
+    );
+    roof.position.z = 2 + wallH + 2;
+    roof.castShadow = true;
+    group.add(roof);
+
+    // Display windows (2 glass panels)
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x85c1e9,
+      transparent: true,
+      opacity: 0.3,
+      roughness: 0.1,
+      metalness: 0.3,
+    });
+    const win1 = new THREE.Mesh(
+      new THREE.BoxGeometry(w * 0.35, 1, wallH * 0.6),
+      glassMat,
+    );
+    win1.position.set(-w / 5, -d / 2 + 1, 2 + wallH * 0.4);
+    group.add(win1);
+    const win2 = new THREE.Mesh(
+      new THREE.BoxGeometry(w * 0.35, 1, wallH * 0.6),
+      glassMat,
+    );
+    win2.position.set(w / 5, -d / 2 + 1, 2 + wallH * 0.4);
+    group.add(win2);
+
+    // Shelves inside (visible through windows)
+    for (let i = 0; i < 3; i++) {
+      const shelf = new THREE.Mesh(
+        new THREE.BoxGeometry(w * 0.8, 2, 0.5),
+        accentMat,
+      );
+      shelf.position.set(0, d / 4, 6 + i * 5);
+      shelf.castShadow = true;
+      group.add(shelf);
+    }
+
+    // ─── DEFAULT: Generic box building ────────────────────────────────────
+  } else {
+    const w = 50,
+      d = 40,
+      wallH = 20;
+
+    // Base platform
+    const platform = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 4, d + 4, 2),
+      platformMat,
+    );
+    platform.position.z = 1;
+    platform.receiveShadow = true;
+    platform.castShadow = true;
+    group.add(platform);
+
+    // Walls (3 sides)
+    const backWall = new THREE.Mesh(
+      new THREE.BoxGeometry(w, 2, wallH),
+      wallMat,
+    );
+    backWall.position.set(0, d / 2 - 1, 2 + wallH / 2);
+    backWall.castShadow = true;
+    group.add(backWall);
+    const leftWall = new THREE.Mesh(
+      new THREE.BoxGeometry(2, d, wallH),
+      wallMat,
+    );
+    leftWall.position.set(-w / 2 + 1, 0, 2 + wallH / 2);
+    leftWall.castShadow = true;
+    group.add(leftWall);
+    const rightWall = new THREE.Mesh(
+      new THREE.BoxGeometry(2, d, wallH),
+      wallMat,
+    );
+    rightWall.position.set(w / 2 - 1, 0, 2 + wallH / 2);
+    rightWall.castShadow = true;
+    group.add(rightWall);
+
+    // Roof
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 6, d + 6, 3),
+      roofMat,
+    );
+    roof.position.z = 2 + wallH + 2;
+    roof.castShadow = true;
+    group.add(roof);
+  }
+
+  // ─── NAME LABEL (all types) ───────────────────────────────────────────
+  const labelCanvas = document.createElement("canvas");
+  labelCanvas.width = 512;
+  labelCanvas.height = 80;
+  const labelCtx = labelCanvas.getContext("2d")!;
+  labelCtx.clearRect(0, 0, 512, 80);
+  labelCtx.font = "bold 36px Arial";
+  labelCtx.textAlign = "center";
+  labelCtx.textBaseline = "middle";
+  labelCtx.shadowColor = "rgba(0, 0, 0, 0.8)";
+  labelCtx.shadowBlur = 6;
+  labelCtx.shadowOffsetX = 2;
+  labelCtx.shadowOffsetY = 2;
+  labelCtx.fillStyle = "#ffffff";
+  labelCtx.strokeStyle = "#333333";
+  labelCtx.lineWidth = 2;
+  labelCtx.strokeText(name.toUpperCase(), 256, 40);
+  labelCtx.fillText(name.toUpperCase(), 256, 40);
+
+  const labelTexture = new THREE.CanvasTexture(labelCanvas);
+  const labelSprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: labelTexture,
+      transparent: true,
+      depthTest: false,
+    }),
+  );
+  labelSprite.scale.set(60, 12, 1);
+  // Position label above the tallest structure
+  const labelZ = upperType === "POOL_BAR" ? 38 : upperType === "SPA" ? 35 : 40;
+  labelSprite.position.set(0, 0, labelZ);
+  group.add(labelSprite);
+
+  // Position & rotation
+  const worldPos = pixelToWorld(coordX, coordY);
+  group.position.copy(worldPos);
+  group.rotation.z = (rotation * Math.PI) / 180;
+
+  return group;
+}
+
 // ─── Context Menu State ──────────────────────────────────────────────────────
 
 interface ContextMenuState {
@@ -1788,10 +2381,6 @@ export default function CabanaMapInner({
   const [colorPickerCabana, setColorPickerCabana] =
     useState<CabanaWithStatus | null>(null);
   const [pickerColor, setPickerColor] = useState("#3b82f6");
-  // Cabana detail modal
-  const [detailCabana, setDetailCabana] = useState<CabanaWithStatus | null>(
-    null,
-  );
   // Effects state — matching GiroCanvas EffectsPanel
   const [fogEnabled, setFogEnabled] = useState(true);
   const [displacementEnabled, setDisplacementEnabled] = useState(false);
@@ -1824,37 +2413,26 @@ export default function CabanaMapInner({
     y: number;
   } | null>(null);
 
-  // ─── Bar transform defaults ────────────────────────────────────────────────
-  const SUNSET_DEFAULT = useMemo(
-    () => ({ x: 540, y: 280, scale: 1, rotation: 0, isLocked: false }),
+  // ─── ServicePoint state (dynamic buildings from DB) ─────────────────────────
+  const [servicePoints, setServicePoints] = useState<ServicePointTransform[]>(
     [],
   );
-  const BLUE_SEA_DEFAULT = useMemo(
-    () => ({ x: 680, y: 420, scale: 1, rotation: 0, isLocked: false }),
-    [],
-  );
+  const servicePointRefs = useRef<Map<string, THREE.Group>>(new Map());
+  const spDbLoadedRef = useRef(false);
+
+  // ─── Common Parasol defaults (not a ServicePoint — kept as SystemConfig) ──
   const COMMON_PARASOL_DEFAULT = useMemo(
     () => ({ x: 620, y: 400, scale: 1, rotation: 0, isLocked: false }),
     [],
   );
 
-  // ─── Sunset Bar state (persisted to DB via SystemConfig) ──────────────────
-  const SUNSET_BAR_CONFIG_KEY = "sunset_bar_transform";
-  const [sunsetBarTransform, setSunsetBarTransform] = useState(() => ({
-    ...SUNSET_DEFAULT,
-  }));
+  // ─── Sunset Bar state → now driven by servicePoints ────────────────────────
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
   const [buildingContextMenu, setBuildingContextMenu] = useState<{
     x: number;
     y: number;
     buildingType: string;
   } | null>(null);
-
-  // ─── Blue Sea Bar state (persisted to DB via SystemConfig) ────────────────
-  const BLUE_SEA_BAR_CONFIG_KEY = "blue_sea_bar_transform";
-  const [blueSeaBarTransform, setBlueSeaBarTransform] = useState(() => ({
-    ...BLUE_SEA_DEFAULT,
-  }));
 
   // ─── Common Parasol state (persisted to DB via SystemConfig) ──────────────
   const COMMON_PARASOL_CONFIG_KEY = "common_parasol_transform";
@@ -1865,37 +2443,72 @@ export default function CabanaMapInner({
   // ─── Flag: DB'den yükleme tamamlandı mı? Bu flag true olana kadar save tetiklenmez ─
   const barDbLoadedRef = useRef(false);
 
-  // ─── Fetch bar transforms from DB on mount ────────────────────────────────
+  // ─── Fetch ServicePoints + Common Parasol from DB on mount ─────────────────
   const barInitRef = useRef(false);
   useEffect(() => {
     if (barInitRef.current) return;
     barInitRef.current = true;
-    const fetchBarConfig = async (
-      key: string,
-      setter: (v: typeof SUNSET_DEFAULT) => void,
-      def: typeof SUNSET_DEFAULT,
-    ) => {
+
+    const fetchServicePoints = async () => {
       try {
-        const res = await fetch(`/api/system/config/${key}`);
+        const res = await fetch(
+          "/api/service-points?activeOnly=true&lightweight=true",
+        );
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            const transforms: ServicePointTransform[] = json.data
+              .filter(
+                (sp: ServicePointData) =>
+                  sp.coordX != null && sp.coordY != null,
+              )
+              .map((sp: ServicePointData) => ({
+                id: sp.id,
+                name: sp.name,
+                type: sp.type,
+                x: sp.coordX!,
+                y: sp.coordY!,
+                scale: sp.scale ?? 1,
+                rotation: sp.rotation ?? 0,
+                isLocked: sp.isLocked ?? false,
+              }));
+            setServicePoints(transforms);
+          }
+        }
+      } catch {
+        /* API hatası — sessiz */
+      }
+    };
+
+    const fetchParasolConfig = async () => {
+      try {
+        const res = await fetch(
+          `/api/system/config/${COMMON_PARASOL_CONFIG_KEY}`,
+        );
         if (res.ok) {
           const json = await res.json();
           if (json.data?.value) {
             const parsed = JSON.parse(json.data.value);
-            const merged = { ...def, ...parsed };
-            setter(merged);
-            localStorage.setItem(key, JSON.stringify(merged));
+            const merged = { ...COMMON_PARASOL_DEFAULT, ...parsed };
+            setCommonParasolTransform(merged);
+            localStorage.setItem(
+              COMMON_PARASOL_CONFIG_KEY,
+              JSON.stringify(merged),
+            );
             return;
           }
         }
       } catch {
         /* API hatası */
       }
-      // API başarısız olursa localStorage'a bak
       if (typeof window !== "undefined") {
-        const saved = localStorage.getItem(key);
+        const saved = localStorage.getItem(COMMON_PARASOL_CONFIG_KEY);
         if (saved) {
           try {
-            setter({ ...def, ...JSON.parse(saved) });
+            setCommonParasolTransform({
+              ...COMMON_PARASOL_DEFAULT,
+              ...JSON.parse(saved),
+            });
             return;
           } catch {
             /* parse hatası */
@@ -1903,35 +2516,64 @@ export default function CabanaMapInner({
         }
       }
     };
-    Promise.all([
-      fetchBarConfig(
-        SUNSET_BAR_CONFIG_KEY,
-        setSunsetBarTransform,
-        SUNSET_DEFAULT,
-      ),
-      fetchBarConfig(
-        BLUE_SEA_BAR_CONFIG_KEY,
-        setBlueSeaBarTransform,
-        BLUE_SEA_DEFAULT,
-      ),
-      fetchBarConfig(
-        COMMON_PARASOL_CONFIG_KEY,
-        setCommonParasolTransform,
-        COMMON_PARASOL_DEFAULT,
-      ),
-    ]).finally(() => {
-      // Yükleme bitti — artık save effect'leri aktif
-      barDbLoadedRef.current = true;
-    });
-  }, [SUNSET_DEFAULT, BLUE_SEA_DEFAULT]);
 
-  // ─── Save bar transforms to DB + localStorage (debounced) ─────────────────
+    Promise.all([fetchServicePoints(), fetchParasolConfig()]).finally(() => {
+      barDbLoadedRef.current = true;
+      spDbLoadedRef.current = true;
+    });
+  }, [COMMON_PARASOL_DEFAULT]);
+
+  // ─── Save ServicePoint transforms to DB (debounced PATCH) ──────────────────
   const saveTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
     {},
   );
+
+  const saveServicePointTransform = useCallback(
+    (
+      spId: string,
+      value: {
+        x: number;
+        y: number;
+        scale: number;
+        rotation: number;
+        isLocked: boolean;
+      },
+    ) => {
+      if (!spDbLoadedRef.current) return;
+      if (saveTimerRef.current[spId]) clearTimeout(saveTimerRef.current[spId]);
+      saveTimerRef.current[spId] = setTimeout(async () => {
+        try {
+          await fetch(`/api/service-points/${spId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              coordX: value.x,
+              coordY: value.y,
+              scale: value.scale,
+              rotation: value.rotation,
+              isLocked: value.isLocked,
+            }),
+          });
+        } catch {
+          /* sessiz hata */
+        }
+      }, 500);
+    },
+    [],
+  );
+
+  // Save Common Parasol to SystemConfig (not a ServicePoint)
   const saveBarConfig = useCallback(
-    (key: string, value: typeof SUNSET_DEFAULT) => {
-      // DB yüklemesi tamamlanmadan kaydetme (ilk mount'taki defaults'ı overwrite etmemek için)
+    (
+      key: string,
+      value: {
+        x: number;
+        y: number;
+        scale: number;
+        rotation: number;
+        isLocked: boolean;
+      },
+    ) => {
       if (!barDbLoadedRef.current) return;
       localStorage.setItem(key, JSON.stringify(value));
       if (saveTimerRef.current[key]) clearTimeout(saveTimerRef.current[key]);
@@ -1950,12 +2592,6 @@ export default function CabanaMapInner({
     [],
   );
 
-  useEffect(() => {
-    saveBarConfig(SUNSET_BAR_CONFIG_KEY, sunsetBarTransform);
-  }, [sunsetBarTransform, saveBarConfig]);
-  useEffect(() => {
-    saveBarConfig(BLUE_SEA_BAR_CONFIG_KEY, blueSeaBarTransform);
-  }, [blueSeaBarTransform, saveBarConfig]);
   useEffect(() => {
     saveBarConfig(COMMON_PARASOL_CONFIG_KEY, commonParasolTransform);
   }, [commonParasolTransform, saveBarConfig]);
@@ -2012,9 +2648,7 @@ export default function CabanaMapInner({
   const rectDefinedRef = useRef(rectDefined);
   const mapLockedRef = useRef(mapLocked);
   const savedElevationDataRef = useRef(savedElevationData);
-  const setDetailCabanaRef = useRef(setDetailCabana);
-  const sunsetBarTransformRef = useRef(sunsetBarTransform);
-  const blueSeaBarTransformRef = useRef(blueSeaBarTransform);
+  const servicePointsRef = useRef(servicePoints);
   const commonParasolTransformRef = useRef(commonParasolTransform);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are intentionally synced every render for imperative three.js handlers
@@ -2029,9 +2663,7 @@ export default function CabanaMapInner({
     rectDefinedRef.current = rectDefined;
     mapLockedRef.current = mapLocked;
     savedElevationDataRef.current = savedElevationData;
-    setDetailCabanaRef.current = setDetailCabana;
-    sunsetBarTransformRef.current = sunsetBarTransform;
-    blueSeaBarTransformRef.current = blueSeaBarTransform;
+    servicePointsRef.current = servicePoints;
     commonParasolTransformRef.current = commonParasolTransform;
   });
 
@@ -2420,18 +3052,16 @@ export default function CabanaMapInner({
     });
   }, [cabanas, selectedCabanaId]);
 
-  // ─── Static buildings (Sunset Bar, etc.) ──────────────────────────────────
-
-  const sunsetBarRef = useRef<THREE.Group | null>(null);
+  // ─── Dynamic ServicePoint buildings (from DB) ──────────────────────────────
 
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
 
-    // Remove existing Sunset Bar if any
-    if (sunsetBarRef.current) {
-      scene.remove(sunsetBarRef.current);
-      sunsetBarRef.current.traverse((child) => {
+    // Remove all existing service point meshes
+    servicePointRefs.current.forEach((group, _id) => {
+      scene.remove(group);
+      group.traverse((child) => {
         if ((child as THREE.Mesh).geometry)
           (child as THREE.Mesh).geometry.dispose();
         if ((child as THREE.Mesh).material) {
@@ -2440,66 +3070,59 @@ export default function CabanaMapInner({
           else (mat as THREE.Material).dispose();
         }
       });
-      sunsetBarRef.current = null;
-    }
+    });
+    servicePointRefs.current.clear();
 
-    // Add Sunset Bar with current transform from state
-    const sunsetBar = buildSunsetBarMesh(
-      sunsetBarTransform.x,
-      sunsetBarTransform.y,
-      sunsetBarTransform.rotation,
-    );
-    // Apply scale
-    sunsetBar.scale.setScalar(sunsetBarTransform.scale);
-    scene.add(sunsetBar);
-    sunsetBarRef.current = sunsetBar;
+    // Build mesh for each service point based on type
+    for (const sp of servicePoints) {
+      let group: THREE.Group;
+      const spType = sp.type.toUpperCase();
+      const spName = sp.name.toLowerCase();
 
-    return () => {
-      if (sunsetBarRef.current && scene) {
-        scene.remove(sunsetBarRef.current);
+      // Dispatch to existing mesh builders based on type/name
+      if (
+        spName.includes("sunset") ||
+        (spType === "BEACH_BAR" && spName.includes("sunset"))
+      ) {
+        group = buildSunsetBarMesh(sp.x, sp.y, sp.rotation);
+      } else if (spName.includes("blue sea") || spName.includes("blue_sea")) {
+        group = buildBlueSeaBarMesh(sp.x, sp.y, sp.rotation);
+      } else {
+        // Generic service point — use buildGenericServicePointMesh
+        group = buildGenericServicePointMesh(
+          sp.x,
+          sp.y,
+          sp.rotation,
+          sp.name,
+          sp.type,
+        );
       }
-    };
-  }, [sunsetBarTransform]);
 
-  // ─── Blue Sea Bar static building ─────────────────────────────────────────
-
-  const blueSeaBarRef = useRef<THREE.Group | null>(null);
-
-  useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene) return;
-
-    // Remove existing Blue Sea Bar if any
-    if (blueSeaBarRef.current) {
-      scene.remove(blueSeaBarRef.current);
-      blueSeaBarRef.current.traverse((child) => {
-        if ((child as THREE.Mesh).geometry)
-          (child as THREE.Mesh).geometry.dispose();
-        if ((child as THREE.Mesh).material) {
-          const mat = (child as THREE.Mesh).material;
-          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-          else (mat as THREE.Material).dispose();
-        }
+      group.scale.setScalar(sp.scale);
+      // Tag with service point data for drag/click system
+      group.userData = {
+        isBuilding: true,
+        buildingType: `sp-${sp.id}`,
+        servicePointId: sp.id,
+      };
+      group.traverse((child) => {
+        child.userData = {
+          isBuilding: true,
+          buildingType: `sp-${sp.id}`,
+          servicePointId: sp.id,
+        };
       });
-      blueSeaBarRef.current = null;
+
+      scene.add(group);
+      servicePointRefs.current.set(sp.id, group);
     }
 
-    // Add Blue Sea Bar with current transform from state
-    const blueSeaBar = buildBlueSeaBarMesh(
-      blueSeaBarTransform.x,
-      blueSeaBarTransform.y,
-      blueSeaBarTransform.rotation,
-    );
-    blueSeaBar.scale.setScalar(blueSeaBarTransform.scale);
-    scene.add(blueSeaBar);
-    blueSeaBarRef.current = blueSeaBar;
-
     return () => {
-      if (blueSeaBarRef.current && scene) {
-        scene.remove(blueSeaBarRef.current);
-      }
+      servicePointRefs.current.forEach((group) => {
+        if (scene) scene.remove(group);
+      });
     };
-  }, [blueSeaBarTransform]);
+  }, [servicePoints]);
 
   // ─── Common Parasols (draggable building, persisted to DB) ────────────────
 
@@ -2699,12 +3322,14 @@ export default function CabanaMapInner({
       getMouseNDC(e);
       raycaster.setFromCamera(mouse, camera!);
 
-      // Collect all building meshes
+      // Collect all building meshes (ServicePoints + Common Parasol)
       const buildings: { ref: THREE.Group | null; type: string }[] = [
-        { ref: sunsetBarRef.current, type: "sunset-bar" },
-        { ref: blueSeaBarRef.current, type: "blue-sea-bar" },
         { ref: commonParasolRef.current, type: "common-parasol" },
       ];
+      // Add all service point refs
+      servicePointRefs.current.forEach((group, spId) => {
+        buildings.push({ ref: group, type: `sp-${spId}` });
+      });
 
       const allMeshes: THREE.Object3D[] = [];
       const meshToBuilding = new Map<
@@ -2750,13 +3375,14 @@ export default function CabanaMapInner({
         const buildingHit = findBuildingUnderMouse(e);
         if (buildingHit) {
           // Check if building is locked
-          const isLocked =
-            (buildingHit.buildingType === "sunset-bar" &&
-              sunsetBarTransformRef.current.isLocked) ||
-            (buildingHit.buildingType === "blue-sea-bar" &&
-              blueSeaBarTransformRef.current.isLocked) ||
-            (buildingHit.buildingType === "common-parasol" &&
-              commonParasolTransformRef.current.isLocked);
+          let isLocked = false;
+          if (buildingHit.buildingType === "common-parasol") {
+            isLocked = commonParasolTransformRef.current.isLocked;
+          } else if (buildingHit.buildingType.startsWith("sp-")) {
+            const spId = buildingHit.buildingType.replace("sp-", "");
+            const sp = servicePointsRef.current.find((s) => s.id === spId);
+            isLocked = sp?.isLocked ?? false;
+          }
           if (isLocked) {
             // Building is locked, just select it but don't allow drag
             setSelectedBuilding(buildingHit.buildingType);
@@ -2792,9 +3418,7 @@ export default function CabanaMapInner({
             cabana.isLocked,
           );
           onCabanaClickRef.current?.(cabana);
-          // Open detail modal when cabana is clicked (non-editable mode or locked cabana)
           if (!editableRef.current || cabana.isLocked) {
-            setDetailCabanaRef.current?.(cabana);
             return;
           }
           // DRAG START: Basılı tut, offset hesapla
@@ -2867,39 +3491,7 @@ export default function CabanaMapInner({
           bd.group.position.x,
           bd.group.position.y,
         );
-        // Update Sunset Bar transform state
-        if (bd.buildingType === "sunset-bar") {
-          setSunsetBarTransform(
-            (prev: {
-              x: number;
-              y: number;
-              scale: number;
-              rotation: number;
-              isLocked: boolean;
-            }) => ({
-              ...prev,
-              x: coordX,
-              y: coordY,
-            }),
-          );
-        }
-        // Update Blue Sea Bar transform state
-        if (bd.buildingType === "blue-sea-bar") {
-          setBlueSeaBarTransform(
-            (prev: {
-              x: number;
-              y: number;
-              scale: number;
-              rotation: number;
-              isLocked: boolean;
-            }) => ({
-              ...prev,
-              x: coordX,
-              y: coordY,
-            }),
-          );
-        }
-        // Update Common Parasol transform state
+        // Update ServicePoint or Common Parasol transform state
         if (bd.buildingType === "common-parasol") {
           setCommonParasolTransform(
             (prev: {
@@ -2914,6 +3506,17 @@ export default function CabanaMapInner({
               y: coordY,
             }),
           );
+        } else if (bd.buildingType.startsWith("sp-")) {
+          const spId = bd.buildingType.replace("sp-", "");
+          setServicePoints((prev) => {
+            const updated = prev.map((sp) =>
+              sp.id === spId ? { ...sp, x: coordX, y: coordY } : sp,
+            );
+            // Save to DB
+            const sp = updated.find((s) => s.id === spId);
+            if (sp) saveServicePointTransform(spId, sp);
+            return updated;
+          });
         }
         buildingDragRef.current = null;
         return;
@@ -3569,7 +4172,7 @@ export default function CabanaMapInner({
       {/* Three.js Canvas */}
       <div
         ref={mountRef}
-        className="flex-1 rounded-lg overflow-hidden border border-neutral-700 min-h-[280px] md:min-h-[400px] relative"
+        className="flex-1 rounded-lg overflow-hidden border border-neutral-700 min-h-70 md:min-h-100 relative"
         style={{
           background: "#0a0a0a",
           cursor: rectActive ? "crosshair" : "auto",
@@ -3578,7 +4181,7 @@ export default function CabanaMapInner({
         {/* Rectangle selection SVG overlay */}
         {rectActive && rectScreenStart && rectScreenEnd && (
           <svg
-            className="absolute inset-0 z-[5] pointer-events-none"
+            className="absolute inset-0 z-5 pointer-events-none"
             width="100%"
             height="100%"
           >
@@ -3596,119 +4199,99 @@ export default function CabanaMapInner({
         )}
       </div>
 
-      {/* Building Context Menu (Sunset Bar, Blue Sea Bar, etc.) */}
-      {buildingContextMenu && (
-        <div
-          className="fixed z-[2000] bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl py-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-150"
-          style={{ left: buildingContextMenu.x, top: buildingContextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div
-            className={`px-3 py-1.5 text-[11px] font-semibold border-b border-neutral-800 ${buildingContextMenu.buildingType === "blue-sea-bar" ? "text-blue-400" : "text-orange-400"}`}
-          >
-            {buildingContextMenu.buildingType === "sunset-bar"
-              ? "Sunset Bar"
-              : buildingContextMenu.buildingType === "blue-sea-bar"
-                ? "Blue Sea Bar"
-                : buildingContextMenu.buildingType}
-          </div>
-          <button
-            onClick={() => {
-              if (buildingContextMenu.buildingType === "sunset-bar") {
-                setSunsetBarTransform(
-                  (prev: {
-                    x: number;
-                    y: number;
-                    scale: number;
-                    rotation: number;
-                    isLocked: boolean;
-                  }) => ({
-                    ...prev,
-                    isLocked: !prev.isLocked,
-                  }),
-                );
+      {/* Building Context Menu (ServicePoints + Common Parasol) */}
+      {buildingContextMenu &&
+        (() => {
+          const bt = buildingContextMenu.buildingType;
+          const isServicePoint = bt.startsWith("sp-");
+          const spId = isServicePoint ? bt.replace("sp-", "") : null;
+          const sp = spId ? servicePoints.find((s) => s.id === spId) : null;
+          const displayName = sp
+            ? sp.name
+            : bt === "common-parasol"
+              ? "Common Parasol"
+              : bt;
+          const isLocked = sp
+            ? sp.isLocked
+            : bt === "common-parasol"
+              ? commonParasolTransform.isLocked
+              : false;
+          const coordInfo = sp
+            ? { x: Math.round(sp.x), y: Math.round(sp.y) }
+            : bt === "common-parasol"
+              ? {
+                x: Math.round(commonParasolTransform.x),
+                y: Math.round(commonParasolTransform.y),
               }
-              if (buildingContextMenu.buildingType === "blue-sea-bar") {
-                setBlueSeaBarTransform(
-                  (prev: {
-                    x: number;
-                    y: number;
-                    scale: number;
-                    rotation: number;
-                    isLocked: boolean;
-                  }) => ({
-                    ...prev,
-                    isLocked: !prev.isLocked,
-                  }),
-                );
-              }
-              if (buildingContextMenu.buildingType === "common-parasol") {
-                setCommonParasolTransform(
-                  (prev: {
-                    x: number;
-                    y: number;
-                    scale: number;
-                    rotation: number;
-                    isLocked: boolean;
-                  }) => ({
-                    ...prev,
-                    isLocked: !prev.isLocked,
-                  }),
-                );
-              }
-              setBuildingContextMenu(null);
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors text-left ${buildingContextMenu.buildingType === "blue-sea-bar" ? "hover:bg-blue-600/20 hover:text-blue-400" : "hover:bg-orange-600/20 hover:text-orange-400"}`}
-          >
-            {(buildingContextMenu.buildingType === "sunset-bar" &&
-              sunsetBarTransform.isLocked) ||
-            (buildingContextMenu.buildingType === "blue-sea-bar" &&
-              blueSeaBarTransform.isLocked) ||
-            (buildingContextMenu.buildingType === "common-parasol" &&
-              commonParasolTransform.isLocked)
-              ? "🔓 Kilidi Aç"
-              : "🔒 Sabitle"}
-          </button>
-          <button
-            onClick={() => {
-              setSelectedBuilding(buildingContextMenu.buildingType);
-              setBuildingContextMenu(null);
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors text-left ${buildingContextMenu.buildingType === "blue-sea-bar" ? "hover:bg-blue-600/20 hover:text-blue-400" : "hover:bg-orange-600/20 hover:text-orange-400"}`}
-          >
-            📐 Boyutlandır
-          </button>
-          <div className="border-t border-neutral-800 my-1" />
-          <div className="px-3 py-1.5 text-[10px] text-neutral-600">
-            {buildingContextMenu.buildingType === "sunset-bar" && (
-              <>
-                X: {Math.round(sunsetBarTransform.x)} · Y:{" "}
-                {Math.round(sunsetBarTransform.y)}
-                {sunsetBarTransform.isLocked && " · 🔒"}
-              </>
-            )}
-            {buildingContextMenu.buildingType === "blue-sea-bar" && (
-              <>
-                X: {Math.round(blueSeaBarTransform.x)} · Y:{" "}
-                {Math.round(blueSeaBarTransform.y)}
-                {blueSeaBarTransform.isLocked && " · 🔒"}
-              </>
-            )}
-            {buildingContextMenu.buildingType === "common-parasol" && (
-              <>
-                X: {Math.round(commonParasolTransform.x)} · Y:{" "}
-                {Math.round(commonParasolTransform.y)}
-                {commonParasolTransform.isLocked && " · 🔒"}
-              </>
-            )}
-          </div>
-        </div>
-      )}
+              : null;
+          const accentClass = sp?.name.toLowerCase().includes("blue")
+            ? "text-blue-400"
+            : "text-orange-400";
+          const hoverClass = sp?.name.toLowerCase().includes("blue")
+            ? "hover:bg-blue-600/20 hover:text-blue-400"
+            : "hover:bg-orange-600/20 hover:text-orange-400";
+
+          return (
+            <div
+              className="fixed z-2000 bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl py-1 min-w-50 animate-in fade-in zoom-in-95 duration-150"
+              style={{
+                left: buildingContextMenu.x,
+                top: buildingContextMenu.y,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className={`px-3 py-1.5 text-[11px] font-semibold border-b border-neutral-800 ${accentClass}`}
+              >
+                {displayName}
+              </div>
+              <button
+                onClick={() => {
+                  if (isServicePoint && spId) {
+                    setServicePoints((prev) => {
+                      const updated = prev.map((s) =>
+                        s.id === spId ? { ...s, isLocked: !s.isLocked } : s,
+                      );
+                      const updatedSp = updated.find((s) => s.id === spId);
+                      if (updatedSp) saveServicePointTransform(spId, updatedSp);
+                      return updated;
+                    });
+                  } else if (bt === "common-parasol") {
+                    setCommonParasolTransform((prev) => ({
+                      ...prev,
+                      isLocked: !prev.isLocked,
+                    }));
+                  }
+                  setBuildingContextMenu(null);
+                }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors text-left ${hoverClass}`}
+              >
+                {isLocked ? "🔓 Kilidi Aç" : "🔒 Sabitle"}
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedBuilding(bt);
+                  setBuildingContextMenu(null);
+                }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors text-left ${hoverClass}`}
+              >
+                📐 Boyutlandır
+              </button>
+              <div className="border-t border-neutral-800 my-1" />
+              {coordInfo && (
+                <div className="px-3 py-1.5 text-[10px] text-neutral-600">
+                  X: {coordInfo.x} · Y: {coordInfo.y}
+                  {isLocked && " · 🔒"}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed z-[2000] bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl py-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-150"
+          className="fixed z-2000 bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl py-1 min-w-50 animate-in fade-in zoom-in-95 duration-150"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -3786,7 +4369,7 @@ export default function CabanaMapInner({
       {/* Color Picker Modal */}
       {colorPickerCabana && (
         <div
-          className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-2100 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
           onClick={() => setColorPickerCabana(null)}
         >
           <div
@@ -3847,7 +4430,7 @@ export default function CabanaMapInner({
       {/* Resize Modal */}
       {resizeCabana && (
         <div
-          className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-2100 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
           onClick={() => setResizeCabana(null)}
         >
           <div
@@ -3874,7 +4457,7 @@ export default function CabanaMapInner({
                   step={0.1}
                   value={resizeScaleX}
                   onChange={(e) => setResizeScaleX(Number(e.target.value))}
-                  aria-label="Kabana genişliği"
+                  aria-label="Cabana genişliği"
                   className="w-full accent-yellow-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -3894,7 +4477,7 @@ export default function CabanaMapInner({
                   step={0.1}
                   value={resizeScaleY}
                   onChange={(e) => setResizeScaleY(Number(e.target.value))}
-                  aria-label="Kabana derinliği"
+                  aria-label="Cabana derinliği"
                   className="w-full accent-yellow-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -3914,7 +4497,7 @@ export default function CabanaMapInner({
                   step={5}
                   value={resizeRotation}
                   onChange={(e) => setResizeRotation(Number(e.target.value))}
-                  aria-label="Kabana döndürme"
+                  aria-label="Cabana döndürme"
                   className="w-full accent-yellow-500 h-1.5 cursor-pointer"
                 />
               </div>
@@ -3937,386 +4520,163 @@ export default function CabanaMapInner({
         </div>
       )}
 
-      {/* Sunset Bar Control Panel */}
-      {selectedBuilding === "sunset-bar" && editable && (
-        <div className="fixed bottom-4 right-4 z-[2100]">
-          <div
-            className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 rounded-xl shadow-2xl p-5 w-72"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-orange-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M17 11h1a3 3 0 0 1 0 6h-1" />
-                  <path d="M9 12v6" />
-                  <path d="M13 12v6" />
-                  <path d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1 0-5c.78 0 1.57.5 2.5.5S9.44 2 11 2s2 1.5 3 1.5 1.72-.5 2.5-.5a2.5 2.5 0 0 1 0 5c-.78 0-1.5-.5-2.5-.5Z" />
-                  <path d="M5 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-orange-400">
-                  Sunset Bar
-                </h3>
-                <p className="text-[10px] text-neutral-500">
-                  Boyut ve rotasyon ayarları
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-neutral-400">Boyut</span>
-                  <span className="text-[11px] text-neutral-500 tabular-nums">
-                    {sunsetBarTransform.scale.toFixed(2)}x
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0.3}
-                  max={2}
-                  step={0.05}
-                  value={sunsetBarTransform.scale}
-                  onChange={(e) =>
-                    setSunsetBarTransform(
-                      (prev: {
-                        x: number;
-                        y: number;
-                        scale: number;
-                        rotation: number;
-                        isLocked: boolean;
-                      }) => ({
-                        ...prev,
-                        scale: Number(e.target.value),
-                      }),
-                    )
-                  }
-                  aria-label="Sunset Bar boyutu"
-                  className="w-full accent-orange-500 h-1.5 cursor-pointer"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-neutral-400">Döndürme</span>
-                  <span className="text-[11px] text-neutral-500 tabular-nums">
-                    {sunsetBarTransform.rotation}°
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={360}
-                  step={5}
-                  value={sunsetBarTransform.rotation}
-                  onChange={(e) =>
-                    setSunsetBarTransform(
-                      (prev: {
-                        x: number;
-                        y: number;
-                        scale: number;
-                        rotation: number;
-                        isLocked: boolean;
-                      }) => ({
-                        ...prev,
-                        rotation: Number(e.target.value),
-                      }),
-                    )
-                  }
-                  aria-label="Sunset Bar döndürme"
-                  className="w-full accent-orange-500 h-1.5 cursor-pointer"
-                />
-              </div>
-              <div className="pt-2 border-t border-neutral-800">
-                <div className="flex items-center justify-between text-[10px] text-neutral-500">
-                  <span>Konum</span>
-                  <span className="tabular-nums">
-                    X: {Math.round(sunsetBarTransform.x)}, Y:{" "}
-                    {Math.round(sunsetBarTransform.y)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => {
-                  setSunsetBarTransform({
-                    x: 540,
-                    y: 280,
-                    scale: 1,
-                    rotation: 0,
-                    isLocked: false,
-                  });
-                }}
-                className="flex-1 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-              >
-                Sıfırla
-              </button>
-              <button
-                onClick={() => setSelectedBuilding(null)}
-                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-orange-600 hover:bg-orange-500 text-neutral-950 transition-colors"
-              >
-                Tamam
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Blue Sea Bar Control Panel */}
-      {selectedBuilding === "blue-sea-bar" && editable && (
-        <div className="fixed bottom-4 right-4 z-[2100]">
-          <div
-            className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 rounded-xl shadow-2xl p-5 w-72"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-blue-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
-                  <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
-                  <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-blue-400">
-                  Blue Sea Bar
-                </h3>
-                <p className="text-[10px] text-neutral-500">
-                  Boyut ve rotasyon ayarları
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-neutral-400">Boyut</span>
-                  <span className="text-[11px] text-neutral-500 tabular-nums">
-                    {blueSeaBarTransform.scale.toFixed(2)}x
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0.3}
-                  max={2}
-                  step={0.05}
-                  value={blueSeaBarTransform.scale}
-                  onChange={(e) =>
-                    setBlueSeaBarTransform(
-                      (prev: {
-                        x: number;
-                        y: number;
-                        scale: number;
-                        rotation: number;
-                        isLocked: boolean;
-                      }) => ({
-                        ...prev,
-                        scale: Number(e.target.value),
-                      }),
-                    )
-                  }
-                  aria-label="Blue Sea Bar boyutu"
-                  className="w-full accent-blue-500 h-1.5 cursor-pointer"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-neutral-400">Döndürme</span>
-                  <span className="text-[11px] text-neutral-500 tabular-nums">
-                    {blueSeaBarTransform.rotation}°
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={360}
-                  step={5}
-                  value={blueSeaBarTransform.rotation}
-                  onChange={(e) =>
-                    setBlueSeaBarTransform(
-                      (prev: {
-                        x: number;
-                        y: number;
-                        scale: number;
-                        rotation: number;
-                        isLocked: boolean;
-                      }) => ({
-                        ...prev,
-                        rotation: Number(e.target.value),
-                      }),
-                    )
-                  }
-                  aria-label="Blue Sea Bar döndürme"
-                  className="w-full accent-blue-500 h-1.5 cursor-pointer"
-                />
-              </div>
-              <div className="pt-2 border-t border-neutral-800">
-                <div className="flex items-center justify-between text-[10px] text-neutral-500">
-                  <span>Konum</span>
-                  <span className="tabular-nums">
-                    X: {Math.round(blueSeaBarTransform.x)}, Y:{" "}
-                    {Math.round(blueSeaBarTransform.y)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => {
-                  setBlueSeaBarTransform({
-                    x: 680,
-                    y: 420,
-                    scale: 1,
-                    rotation: 0,
-                    isLocked: false,
-                  });
-                }}
-                className="flex-1 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-              >
-                Sıfırla
-              </button>
-              <button
-                onClick={() => setSelectedBuilding(null)}
-                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-              >
-                Tamam
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cabana Detail Modal */}
-      {detailCabana && (
-        <div
-          className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={() => setDetailCabana(null)}
-        >
-          <div
-            className="bg-neutral-900 border border-neutral-700 rounded-t-xl sm:rounded-xl shadow-2xl p-5 w-full sm:w-96 max-w-[100vw] sm:max-w-[90vw]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drag handle for mobile */}
-            <div className="flex justify-center -mt-2 mb-3 sm:hidden">
-              <div className="w-10 h-1 rounded-full bg-neutral-700" />
-            </div>
-            <div className="flex items-center gap-3 pb-3 border-b border-neutral-800 mb-4">
+      {/* Dynamic Service Point Control Panel */}
+      {selectedBuilding?.startsWith("sp-") &&
+        editable &&
+        (() => {
+          const spId = selectedBuilding.replace("sp-", "");
+          const sp = servicePoints.find((s) => s.id === spId);
+          if (!sp) return null;
+          const accentColor = sp.name.toLowerCase().includes("blue")
+            ? "blue"
+            : "orange";
+          const accentBg =
+            accentColor === "blue" ? "bg-blue-500/20" : "bg-orange-500/20";
+          const accentText =
+            accentColor === "blue" ? "text-blue-400" : "text-orange-400";
+          const accentSlider =
+            accentColor === "blue" ? "accent-blue-500" : "accent-orange-500";
+          const accentBtn =
+            accentColor === "blue"
+              ? "bg-blue-600 hover:bg-blue-500 text-white"
+              : "bg-orange-600 hover:bg-orange-500 text-neutral-950";
+          return (
+            <div className="fixed bottom-4 right-4 z-2100">
               <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center"
-                style={{
-                  backgroundColor: getDefaultColor(detailCabana) + "30",
-                }}
+                className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 rounded-xl shadow-2xl p-5 w-72"
+                onClick={(e) => e.stopPropagation()}
               >
-                <div
-                  className="w-6 h-6 rounded"
-                  style={{ backgroundColor: getDefaultColor(detailCabana) }}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-neutral-100 truncate">
-                  {detailCabana.name}
-                </h3>
-                <p className="text-xs text-neutral-500">
-                  {detailCabana.cabanaClass?.name || "Standart"}
-                </p>
-              </div>
-              <div
-                className="px-2.5 py-1 rounded-full text-xs font-medium"
-                style={{
-                  backgroundColor: getStatusColor(detailCabana) + "20",
-                  color: getStatusColor(detailCabana),
-                }}
-              >
-                {getStatusLabel(detailCabana)}
-              </div>
-            </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className={`w-10 h-10 rounded-lg ${accentBg} flex items-center justify-center`}
+                  >
+                    <svg
+                      className={`w-5 h-5 ${accentText}`}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17 11h1a3 3 0 0 1 0 6h-1" />
+                      <path d="M9 12v6" />
+                      <path d="M13 12v6" />
+                      <path d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1 0-5c.78 0 1.57.5 2.5.5S9.44 2 11 2s2 1.5 3 1.5 1.72-.5 2.5-.5a2.5 2.5 0 0 1 0 5c-.78 0-1.5-.5-2.5-.5Z" />
+                      <path d="M5 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${accentText}`}>
+                      {sp.name}
+                    </h3>
+                    <p className="text-[10px] text-neutral-500">
+                      Boyut ve rotasyon ayarları
+                    </p>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-neutral-800/50 rounded-lg p-3">
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
-                  Sınıf
-                </p>
-                <p className="text-sm text-neutral-200">
-                  {detailCabana.cabanaClass?.name || "Standart"}
-                </p>
-              </div>
-              <div className="bg-neutral-800/50 rounded-lg p-3">
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
-                  Konsept
-                </p>
-                <p className="text-sm text-neutral-200">
-                  {detailCabana.concept?.name || "—"}
-                </p>
-              </div>
-              <div className="bg-neutral-800/50 rounded-lg p-3">
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
-                  Konum
-                </p>
-                <p className="text-sm text-neutral-200">
-                  X: {Math.round(detailCabana.coordX)}, Y:{" "}
-                  {Math.round(detailCabana.coordY)}
-                </p>
-              </div>
-              <div className="bg-neutral-800/50 rounded-lg p-3">
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
-                  Rezervasyon
-                </p>
-                <p className="text-sm text-neutral-200">
-                  {detailCabana.isOpenForReservation ? "Açık" : "Kapalı"}
-                </p>
-              </div>
-            </div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] text-neutral-400">
+                        Boyut
+                      </span>
+                      <span className="text-[11px] text-neutral-500 tabular-nums">
+                        {sp.scale.toFixed(2)}x
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.3}
+                      max={2}
+                      step={0.05}
+                      value={sp.scale}
+                      onChange={(e) => {
+                        const newScale = Number(e.target.value);
+                        setServicePoints((prev) => {
+                          const updated = prev.map((s) =>
+                            s.id === spId ? { ...s, scale: newScale } : s,
+                          );
+                          const updatedSp = updated.find((s) => s.id === spId);
+                          if (updatedSp)
+                            saveServicePointTransform(spId, updatedSp);
+                          return updated;
+                        });
+                      }}
+                      aria-label={`${sp.name} boyutu`}
+                      className={`w-full ${accentSlider} h-1.5 cursor-pointer`}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] text-neutral-400">
+                        Döndürme
+                      </span>
+                      <span className="text-[11px] text-neutral-500 tabular-nums">
+                        {sp.rotation}°
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={360}
+                      step={5}
+                      value={sp.rotation}
+                      onChange={(e) => {
+                        const newRotation = Number(e.target.value);
+                        setServicePoints((prev) => {
+                          const updated = prev.map((s) =>
+                            s.id === spId ? { ...s, rotation: newRotation } : s,
+                          );
+                          const updatedSp = updated.find((s) => s.id === spId);
+                          if (updatedSp)
+                            saveServicePointTransform(spId, updatedSp);
+                          return updated;
+                        });
+                      }}
+                      aria-label={`${sp.name} döndürme`}
+                      className={`w-full ${accentSlider} h-1.5 cursor-pointer`}
+                    />
+                  </div>
+                  <div className="pt-2 border-t border-neutral-800">
+                    <div className="flex items-center justify-between text-[10px] text-neutral-500">
+                      <span>Konum</span>
+                      <span className="tabular-nums">
+                        X: {Math.round(sp.x)}, Y: {Math.round(sp.y)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-neutral-800/50 rounded-lg p-3">
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
-                  Boyut
-                </p>
-                <p className="text-sm text-neutral-200">
-                  {detailCabana.scaleX.toFixed(1)} x{" "}
-                  {detailCabana.scaleY.toFixed(1)}
-                </p>
-              </div>
-              <div className="bg-neutral-800/50 rounded-lg p-3">
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
-                  Kilitli
-                </p>
-                <p className="text-sm text-neutral-200">
-                  {detailCabana.isLocked ? "Evet" : "Hayır"}
-                </p>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => {
+                      setServicePoints((prev) => {
+                        const updated = prev.map((s) =>
+                          s.id === spId ? { ...s, scale: 1, rotation: 0 } : s,
+                        );
+                        const updatedSp = updated.find((s) => s.id === spId);
+                        if (updatedSp)
+                          saveServicePointTransform(spId, updatedSp);
+                        return updated;
+                      });
+                    }}
+                    className="flex-1 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                  >
+                    Sıfırla
+                  </button>
+                  <button
+                    onClick={() => setSelectedBuilding(null)}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg ${accentBtn} transition-colors`}
+                  >
+                    Tamam
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div className="flex justify-end pt-2 border-t border-neutral-800">
-              <button
-                onClick={() => setDetailCabana(null)}
-                className="px-4 py-2 text-xs rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-              >
-                Kapat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          );
+        })()}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mt-2 text-xs text-neutral-500">

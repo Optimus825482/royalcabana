@@ -39,7 +39,7 @@ export const GET = withAuth(
       (prisma as any).recurringBooking.count({ where }),
     ]);
 
-    return NextResponse.json({ items, total });
+    return NextResponse.json({ success: true, data: { items, total } });
   },
 );
 
@@ -51,7 +51,10 @@ export const POST = withAuth(
     const parsed = parseBody(createRecurringBookingSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const {
@@ -96,6 +99,6 @@ export const POST = withAuth(
       },
     });
 
-    return NextResponse.json(item, { status: 201 });
+    return NextResponse.json({ success: true, data: item }, { status: 201 });
   },
 );

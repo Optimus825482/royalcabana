@@ -1,5 +1,5 @@
 import { prisma as defaultPrisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, ReservationStatus } from "@prisma/client";
 import type { PriceBreakdown, PriceLineItem } from "@/types";
 
 type PrismaClientType = typeof defaultPrisma;
@@ -25,46 +25,22 @@ export class PricingEngine {
     startDate: Date;
     endDate: Date;
     extraItems?: Array<{ productId: string; quantity: number }>;
+    customRequestPrice?: number;
+    reservationId?: string;
   }): Promise<PriceBreakdown> {
-    const { cabanaId, conceptId, startDate, endDate, extraItems = [] } = params;
+    const { conceptId, startDate, endDate, extraItems = [], reservationId } = params;
 
     const items: PriceLineItem[] = [];
-
-    // ── 1. Kabana Günlük Fiyatı ──────────────────────────────────────────────
     const days = this.daysBetween(startDate, endDate);
-    let cabanaDaily = 0;
-    let priceSource: PriceBreakdown["priceSource"] = "GENERAL";
+    const priceSource: PriceBreakdown["priceSource"] = "GENERAL";
 
     // ── Paralel veri çekme: bağımsız sorguları aynı anda başlat ──
-    const cabanaPricesPromise =
-      days > 0
-        ? this.prisma.cabanaPrice.findMany({
-            where: {
-              cabanaId,
-              date: { in: this.getDateRange(startDate, endDate) },
-            },
-          })
-        : Promise.resolve([]);
-
-    const priceRangesPromise =
-      days > 0
-        ? this.prisma.cabanaPriceRange.findMany({
-            where: {
-              cabanaId,
-              startDate: { lte: endDate },
-              endDate: { gte: startDate },
-            },
-            orderBy: { priority: "desc" },
-          })
-        : Promise.resolve([]);
-
     const conceptDataPromise = conceptId
       ? Promise.all([
           this.prisma.conceptProduct.findMany({
             where: { conceptId },
             include: { product: true },
           }),
-          this.prisma.conceptPrice.findMany({ where: { conceptId } }),
           this.prisma.concept.findUnique({
             where: { id: conceptId },
             select: { serviceFee: true },
@@ -79,94 +55,19 @@ export class PricingEngine {
           })
         : Promise.resolve([]);
 
-    // Tüm bağımsız sorguları paralel bekle (Rule 1.4)
-    const [cabanaPrices, priceRanges, conceptData, extraProducts] =
-      await Promise.all([
-        cabanaPricesPromise,
-        priceRangesPromise,
-        conceptDataPromise,
-        extraProductsPromise,
-      ]);
+    const [conceptData, extraProducts] = await Promise.all([
+      conceptDataPromise,
+      extraProductsPromise,
+    ]);
 
-    // ── Kabana fiyat hesaplama ──
-    if (days > 0) {
-      const dateRange = this.getDateRange(startDate, endDate);
-      const pricedDates = new Set(
-        cabanaPrices.map((p) => p.date.toISOString()),
-      );
-      const missingDates = dateRange.filter(
-        (d) => !pricedDates.has(d.toISOString()),
-      );
-
-      let rangePriceTotal = 0;
-      let rangeDayCount = 0;
-
-      if (missingDates.length > 0) {
-        for (const d of missingDates) {
-          const match = priceRanges.find(
-            (r) => d >= r.startDate && d < r.endDate,
-          );
-          if (match) {
-            rangePriceTotal += toNum(match.dailyPrice);
-            rangeDayCount++;
-          }
-        }
-      }
-
-      if (cabanaPrices.length > 0 || rangeDayCount > 0) {
-        const dailyTotal = cabanaPrices.reduce(
-          (sum: number, p) => sum + toNum(p.dailyPrice),
-          0,
-        );
-        cabanaDaily = dailyTotal + rangePriceTotal;
-        priceSource = "CABANA_SPECIFIC";
-
-        if (cabanaPrices.length > 0) {
-          items.push({
-            name: "Kabana Günlük Fiyat",
-            quantity: cabanaPrices.length,
-            unitPrice: dailyTotal / cabanaPrices.length,
-            total: dailyTotal,
-            source: "CABANA_SPECIFIC",
-          });
-        }
-        if (rangeDayCount > 0) {
-          items.push({
-            name: "Kabana Sezon Fiyatı",
-            quantity: rangeDayCount,
-            unitPrice: rangePriceTotal / rangeDayCount,
-            total: rangePriceTotal,
-            source: "CABANA_SPECIFIC",
-          });
-        }
-      }
-    }
-
-    // ── 2. Konsept Ürün Fiyatları ─────────────────────────────────────────────
+    // ── 1. Konsept Ürün Fiyatları (Product.salePrice × quantity) ──────────────
     let conceptTotal = 0;
 
     if (conceptData) {
-      const [conceptProducts, allConceptPrices, conceptInfo] = conceptData;
-      const conceptPriceMap = new Map(
-        allConceptPrices.map((cp) => [cp.productId, cp]),
-      );
+      const [conceptProducts, conceptInfo] = conceptData;
 
       for (const cp of conceptProducts) {
-        const conceptPrice = conceptPriceMap.get(cp.productId);
-
-        let unitPrice: number;
-        let source: PriceLineItem["source"];
-
-        if (conceptPrice) {
-          unitPrice = toNum(conceptPrice.price);
-          source = "CONCEPT_SPECIFIC";
-          if (priceSource === "GENERAL") priceSource = "CONCEPT_SPECIFIC";
-        } else {
-          unitPrice = toNum(cp.product.salePrice);
-          source = "GENERAL";
-        }
-
-        // Konsept ürünleri günlüktür — toplam kullanım gün sayısıyla çarpılır
+        const unitPrice = toNum(cp.product.salePrice);
         const stayDays = Math.max(days, 1);
         const totalQty = cp.quantity * stayDays;
         const total = unitPrice * totalQty;
@@ -177,14 +78,11 @@ export class PricingEngine {
           quantity: totalQty,
           unitPrice,
           total,
-          source,
+          source: "GENERAL",
         });
       }
-    }
 
-    // Add service fee if present
-    if (conceptData) {
-      const [, , conceptInfo] = conceptData;
+      // Service fee
       const serviceFee = toNum(conceptInfo?.serviceFee);
       if (serviceFee > 0) {
         const stayDays = Math.max(days, 1);
@@ -195,12 +93,12 @@ export class PricingEngine {
           quantity: stayDays,
           unitPrice: serviceFee,
           total: serviceFeeTotal,
-          source: "CONCEPT_SPECIFIC",
+          source: "GENERAL",
         });
       }
     }
 
-    // ── 3. Ekstra Kalemler ────────────────────────────────────────────────────
+    // ── 2. Ekstra Kalemler (ExtraServicePrice × quantity) ─────────────────────
     let extrasTotal = 0;
 
     if (extraItems.length > 0) {
@@ -231,18 +129,132 @@ export class PricingEngine {
       }
     }
 
+    // ── 3. Onaylı Ekstra Talepler (ReservationExtraRequest) ──────────────────
+    let extraRequestsTotal = 0;
+
+    if (reservationId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const approvedExtras = await (this.prisma as any).reservationExtraRequest.findMany({
+        where: {
+          reservationId,
+          status: "APPROVED",
+          unitPrice: { not: null },
+        },
+        include: { product: { select: { name: true } } },
+      });
+
+      for (const er of approvedExtras) {
+        const price = toNum(er.unitPrice);
+        const total = price * er.quantity;
+        extraRequestsTotal += total;
+
+        items.push({
+          name: er.type === "PRODUCT" ? (er.product?.name ?? "Ekstra Ürün") : (er.customName ?? "Özel Talep"),
+          quantity: er.quantity,
+          unitPrice: price,
+          total,
+          source: "GENERAL",
+        });
+      }
+    }
+
     // ── 4. Grand Total ────────────────────────────────────────────────────────
-    const grandTotal = cabanaDaily + conceptTotal + extrasTotal;
+    const grandTotal = conceptTotal + extrasTotal + extraRequestsTotal;
 
     return {
       days,
-      cabanaDaily,
+      cabanaDaily: 0,
       conceptTotal,
       extrasTotal,
+      extraRequestsTotal,
       grandTotal,
       priceSource,
       items,
     };
+  }
+
+  /**
+   * Verilen conceptId'ye sahip aktif rezervasyonların totalPrice'ını
+   * PricingEngine ile yeniden hesaplar. Fire-and-forget olarak çağrılmalı.
+   * CANCELLED, REJECTED, CHECKED_OUT durumlarına dokunmaz.
+   */
+  async recalculateReservationsByConceptId(conceptId: string): Promise<void> {
+    const activeStatuses: string[] = [
+      "PENDING",
+      "APPROVED",
+      "CHECKED_IN",
+      "MODIFICATION_PENDING",
+      "EXTRA_PENDING",
+    ];
+
+    const reservations = await this.prisma.reservation.findMany({
+      where: {
+        conceptId,
+        status: { in: activeStatuses as ReservationStatus[] },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        cabanaId: true,
+        conceptId: true,
+        startDate: true,
+        endDate: true,
+        extraItems_json: true,
+        customRequestPriced: true,
+        customRequestPrice: true,
+        cabana: { select: { conceptId: true } },
+      },
+    });
+
+    for (const res of reservations) {
+      try {
+        const storedExtras = parseExtraItemsJson(res.extraItems_json);
+
+        let customRequestAmount = 0;
+        if (res.customRequestPriced && res.customRequestPrice) {
+          customRequestAmount = Number(res.customRequestPrice);
+        }
+
+        const calculated = await this.calculatePrice({
+          cabanaId: res.cabanaId,
+          conceptId: res.conceptId ?? res.cabana.conceptId ?? null,
+          startDate: res.startDate,
+          endDate: res.endDate,
+          extraItems: storedExtras,
+          customRequestPrice: customRequestAmount || undefined,
+          reservationId: res.id,
+        });
+
+        const newTotal = calculated.grandTotal + customRequestAmount;
+
+        await this.prisma.reservation.update({
+          where: { id: res.id },
+          data: { totalPrice: new Prisma.Decimal(newTotal.toFixed(2)) },
+        });
+      } catch (err) {
+        console.error(
+          `[PricingEngine] Recalculate failed for reservation ${res.id}:`,
+          err,
+        );
+      }
+    }
+  }
+
+  /**
+   * Verilen productId'yi içeren tüm concept'leri bulur ve
+   * her birinin aktif rezervasyonlarını yeniden hesaplar.
+   */
+  async recalculateReservationsByProductId(productId: string): Promise<void> {
+    const conceptProducts = await this.prisma.conceptProduct.findMany({
+      where: { productId },
+      select: { conceptId: true },
+    });
+
+    const conceptIds = [...new Set(conceptProducts.map((cp) => cp.conceptId))];
+
+    await Promise.all(
+      conceptIds.map((cId) => this.recalculateReservationsByConceptId(cId)),
+    );
   }
 
   /** startDate ile endDate arasındaki gün sayısı (endDate dahil değil) */
@@ -250,19 +262,21 @@ export class PricingEngine {
     const ms = end.getTime() - start.getTime();
     return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
   }
+}
 
-  /** startDate (dahil) ile endDate (hariç) arasındaki her günün Date dizisi */
-  private getDateRange(start: Date, end: Date): Date[] {
-    const dates: Date[] = [];
-    const current = new Date(start);
-    current.setUTCHours(0, 0, 0, 0);
-    const endNorm = new Date(end);
-    endNorm.setUTCHours(0, 0, 0, 0);
+type ExtraItemEntry = { productId: string; quantity: number };
 
-    while (current < endNorm) {
-      dates.push(new Date(current));
-      current.setUTCDate(current.getUTCDate() + 1);
+function parseExtraItemsJson(
+  json: Prisma.JsonValue | null | undefined,
+): ExtraItemEntry[] {
+  if (!json) return [];
+  if (typeof json === "string") {
+    try {
+      return JSON.parse(json) as ExtraItemEntry[];
+    } catch {
+      return [];
     }
-    return dates;
   }
+  if (Array.isArray(json)) return json as ExtraItemEntry[];
+  return [];
 }

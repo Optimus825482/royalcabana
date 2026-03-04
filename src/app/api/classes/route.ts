@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { cached, invalidateCache } from "@/lib/cache";
 
 const allRoles = [
   Role.ADMIN,
@@ -23,14 +24,17 @@ const createClassSchema = z.object({
 export const GET = withAuth(
   allRoles,
   async () => {
-    const classes = await prisma.cabanaClass.findMany({
-      include: {
-        attributes: true,
-        _count: { select: { cabanas: true } },
-      },
-      orderBy: { createdAt: "desc" },
+    const classes = await cached("classes:list:v2", 300, async () => {
+      return prisma.cabanaClass.findMany({
+        where: { isDeleted: false },
+        include: {
+          attributes: true,
+          _count: { select: { cabanas: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
     });
-    return NextResponse.json(classes);
+    return NextResponse.json({ success: true, data: classes });
   },
   { requiredPermissions: ["cabana.class.view"] },
 );
@@ -42,7 +46,11 @@ export const POST = withAuth(
     const parsed = createClassSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -52,7 +60,7 @@ export const POST = withAuth(
     const existing = await prisma.cabanaClass.findUnique({ where: { name } });
     if (existing) {
       return NextResponse.json(
-        { message: "Bu isimde bir sınıf zaten mevcut." },
+        { success: false, error: "Bu isimde bir sınıf zaten mevcut." },
         { status: 409 },
       );
     }
@@ -77,7 +85,12 @@ export const POST = withAuth(
       newValue: { name, description },
     });
 
-    return NextResponse.json(cabanaClass, { status: 201 });
+    await invalidateCache("classes:list:v2");
+
+    return NextResponse.json(
+      { success: true, data: cabanaClass },
+      { status: 201 },
+    );
   },
   { requiredPermissions: ["cabana.class.create"] },
 );

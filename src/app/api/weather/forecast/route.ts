@@ -443,9 +443,8 @@ const allRoles = [
 ];
 
 export const GET = withAuth(allRoles, async () => {
-  // Check cache
   if (forecastCache && Date.now() < forecastCache.expiresAt) {
-    return NextResponse.json(forecastCache.data);
+    return NextResponse.json({ success: true, data: forecastCache.data });
   }
 
   try {
@@ -456,7 +455,7 @@ export const GET = withAuth(allRoles, async () => {
     ]);
 
     if (!meteoRes.ok) {
-      return NextResponse.json(generateMockData());
+      return NextResponse.json({ success: true, data: generateMockData() });
     }
 
     const json = await meteoRes.json();
@@ -474,8 +473,8 @@ export const GET = withAuth(allRoles, async () => {
 
     forecastCache = { data, expiresAt: Date.now() + CACHE_TTL };
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, data });
   } catch {
-    return NextResponse.json(generateMockData());
+    return NextResponse.json({ success: true, data: generateMockData() });
   }
 });

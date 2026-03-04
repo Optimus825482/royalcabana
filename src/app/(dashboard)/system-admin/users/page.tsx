@@ -82,13 +82,16 @@ export default function UsersPage() {
   const {
     data: users = [],
     isLoading: loading,
+    isError: isUsersError,
     error: queryError,
   } = useQuery<UserRow[]>({
     queryKey: ["system-admin-users"],
     queryFn: async () => {
       const res = await fetch("/api/users");
       if (!res.ok) throw new Error("Kullanıcılar yüklenemedi.");
-      return res.json();
+      const json = await res.json();
+      const resolved = json.data ?? json;
+      return Array.isArray(resolved) ? resolved : [];
     },
   });
 
@@ -340,6 +343,13 @@ export default function UsersPage() {
         {loading ? (
           <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
             Yükleniyor...
+          </div>
+        ) : isUsersError ? (
+          <div className="text-center py-12">
+            <p className="text-red-400 text-sm">
+              {(queryError as Error)?.message ??
+                "Veriler yüklenirken bir hata oluştu."}
+            </p>
           </div>
         ) : users.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">

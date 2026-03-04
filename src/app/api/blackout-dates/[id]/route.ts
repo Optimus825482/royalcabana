@@ -21,11 +21,10 @@ export const DELETE = withAuth(
       );
     }
 
-    // Hard delete — blackoutDate soft delete modeli değil
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM blackout_dates WHERE id = $1`,
-      id,
-    );
+    await (prisma as any).blackoutDate.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
 
     logAudit({
       userId: session.user.id,

@@ -55,16 +55,19 @@ export const GET = withAuth([Role.CASINO_USER], async (_req, { session }) => {
   ]);
 
   return NextResponse.json({
-    activeReservations,
-    pendingRequests,
-    upcomingReservations: upcomingReservations.map((r) => ({
-      id: r.id,
-      cabanaName: r.cabana.name,
-      guestName: r.guestName,
-      startDate: r.startDate,
-      endDate: r.endDate,
-    })),
-    totalReservations,
-    thisMonthReservations,
+    success: true,
+    data: {
+      activeReservations,
+      pendingRequests,
+      upcomingReservations: upcomingReservations.map((r) => ({
+        id: r.id,
+        cabanaName: r.cabana.name,
+        guestName: r.guestName,
+        startDate: r.startDate,
+        endDate: r.endDate,
+      })),
+      totalReservations,
+      thisMonthReservations,
+    },
   });
 });

@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
+import { invalidateCache } from "@/lib/cache";
+import { PricingEngine } from "@/lib/pricing";
 
 const addProductSchema = z.object({
   productId: z.string().min(1),
@@ -25,7 +27,7 @@ export const POST = withAuth(
     const concept = await prisma.concept.findUnique({ where: { id } });
     if (!concept) {
       return NextResponse.json(
-        { message: "Konsept bulunamadı." },
+        { success: false, error: "Konsept bulunamadı." },
         { status: 404 },
       );
     }
@@ -34,7 +36,7 @@ export const POST = withAuth(
     const parsed = addProductSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        { success: false, error: "Validation error", errors: parsed.error.flatten() },
         { status: 400 },
       );
     }
@@ -45,7 +47,7 @@ export const POST = withAuth(
     });
     if (existing) {
       return NextResponse.json(
-        { message: "Bu ürün zaten konsepte eklenmiş." },
+        { success: false, error: "Bu ürün zaten konsepte eklenmiş." },
         { status: 409 },
       );
     }
@@ -54,7 +56,12 @@ export const POST = withAuth(
       data: { conceptId: id, productId, quantity },
       include: { product: true },
     });
-    return NextResponse.json(conceptProduct, { status: 201 });
+    await invalidateCache("concepts:list:v1");
+    after(async () => {
+      const engine = new PricingEngine();
+      await engine.recalculateReservationsByConceptId(id);
+    });
+    return NextResponse.json({ success: true, data: conceptProduct }, { status: 201 });
   },
   { requiredPermissions: ["concept.update"] },
 );
@@ -67,7 +74,7 @@ export const PATCH = withAuth(
     const parsed = updateQuantitySchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        { success: false, error: "Validation error", errors: parsed.error.flatten() },
         { status: 400 },
       );
     }
@@ -78,7 +85,7 @@ export const PATCH = withAuth(
     });
     if (!entry) {
       return NextResponse.json(
-        { message: "Bu ürün konsepte eklenmemiş." },
+        { success: false, error: "Bu ürün konsepte eklenmemiş." },
         { status: 404 },
       );
     }
@@ -88,7 +95,12 @@ export const PATCH = withAuth(
       data: { quantity },
       include: { product: true },
     });
-    return NextResponse.json(updated);
+    await invalidateCache("concepts:list:v1");
+    after(async () => {
+      const engine = new PricingEngine();
+      await engine.recalculateReservationsByConceptId(id);
+    });
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["concept.update"] },
 );
@@ -101,7 +113,7 @@ export const DELETE = withAuth(
     const parsed = removeProductSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        { success: false, error: "Validation error", errors: parsed.error.flatten() },
         { status: 400 },
       );
     }
@@ -112,13 +124,18 @@ export const DELETE = withAuth(
     });
     if (!entry) {
       return NextResponse.json(
-        { message: "Bu ürün konsepte eklenmemiş." },
+        { success: false, error: "Bu ürün konsepte eklenmemiş." },
         { status: 404 },
       );
     }
 
     await prisma.conceptProduct.delete({ where: { id: entry.id } });
-    return NextResponse.json({ message: "Ürün konseptten kaldırıldı." });
+    await invalidateCache("concepts:list:v1");
+    after(async () => {
+      const engine = new PricingEngine();
+      await engine.recalculateReservationsByConceptId(id);
+    });
+    return NextResponse.json({ success: true, data: { message: "Ürün konseptten kaldırıldı." } });
   },
   { requiredPermissions: ["concept.update"] },
 );

@@ -2,30 +2,30 @@
 
 ## Giriş
 
-Royal Cabana, bir otel/casino tatil köyünün sahil/iskele bölgesindeki lüks kabana alanlarını yönetmek ve rezervasyon süreçlerini dijitalleştirmek için tasarlanan premium bir sistemdir. Sistem beş ana modülden oluşur: Sistem Yöneticisi Modülü (master data, tanımlar ve konfigürasyon), Admin Modülü (gözetim, onay/red, fiyatlandırma, kullanıcı yönetimi), Casino Rezervasyon Modülü (talep oluşturma, takvim görünümü, 2D/3D kabana gezinme), F&B Rezervasyon Modülü (talep görüntüleme, konsept dışı ekstra ekleme, hizmet yürütme) ve Raporlama ve Sunum Modülü (detaylı raporlama, sunum oluşturma).
+Royal Cabana, bir otel/casino tatil köyünün sahil/iskele bölgesindeki lüks Cabana alanlarını yönetmek ve rezervasyon süreçlerini dijitalleştirmek için tasarlanan premium bir sistemdir. Sistem beş ana modülden oluşur: Sistem Yöneticisi Modülü (master data, tanımlar ve konfigürasyon), Admin Modülü (gözetim, onay/red, fiyatlandırma, kullanıcı yönetimi), Casino Rezervasyon Modülü (talep oluşturma, takvim görünümü, 2D/3D Cabana gezinme), F&B Rezervasyon Modülü (talep görüntüleme, konsept dışı ekstra ekleme, hizmet yürütme) ve Raporlama ve Sunum Modülü (detaylı raporlama, sunum oluşturma).
 
-Talep akışı: Casino departmanı misafirler/VIP'ler için kabana talepleri oluşturur → Admin tüm talepleri değerlendirir ve onaylar/reddeder → F&B departmanı onaylanan rezervasyonları görüntüler ve hizmet yürütmesini gerçekleştirir → Casino kullanıcısı onay/red bildirimi alır.
+Talep akışı: Casino departmanı misafirler/VIP'ler için Cabana talepleri oluşturur → Admin tüm talepleri değerlendirir ve onaylar/reddeder → F&B departmanı onaylanan rezervasyonları görüntüler ve hizmet yürütmesini gerçekleştirir → Casino kullanıcısı onay/red bildirimi alır.
 
 Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetilir; premium, lüks tatil köyü estetiği hedeflenir.
 
 ## Sözlük (Glossary)
 
 - **Sistem**: Royal Cabana uygulamasının tamamını ifade eder
-- **Sistem_Yöneticisi_Modülü**: Kullanıcı tanımları, kabana yerleşimi (2D harita), kabana sınıfları, konseptler, ürünler ve tüm sistem konfigürasyonunu yöneten en üst seviye modül
+- **Sistem_Yöneticisi_Modülü**: Kullanıcı tanımları, Cabana yerleşimi (2D harita), Cabana sınıfları, konseptler, ürünler ve tüm sistem konfigürasyonunu yöneten en üst seviye modül
 - **Admin_Modülü**: Tüm sistemi kuşbakışı gören, Casino'dan gelen tüm talepleri onaylayan/reddeden, dinamik fiyatlandırma yapan, kullanıcı yönetimi sağlayan gözetim ve karar modülü
-- **Casino_Rezervasyon_Modülü**: Casino departmanının misafirler/VIP'ler için kabana rezervasyon talepleri oluşturduğu, takvim görünümünde rezervasyonları takip ettiği, 2D/3D kabana görünümlerini incelediği, değişiklik/iptal/ek konsept talepleri gönderdiği modül
+- **Casino_Rezervasyon_Modülü**: Casino departmanının misafirler/VIP'ler için Cabana rezervasyon talepleri oluşturduğu, takvim görünümünde rezervasyonları takip ettiği, 2D/3D Cabana görünümlerini incelediği, değişiklik/iptal/ek konsept talepleri gönderdiği modül
 - **F&B_Rezervasyon_Modülü**: F&B departmanının Casino taleplerini ve rezervasyon durumlarını görüntülediği, onaylanan rezervasyonlarda konsept dışı ekstra ürün ve hizmet eklediği, hizmet yürütmesini gerçekleştirdiği operasyonel modül
 - **Raporlama_Sunum_Modülü**: Sistem verilerinden detaylı raporlar ve otel yönetimine sunulabilecek formatta sunumlar oluşturan modül; Sistem Yöneticisi yetkisiyle erişilir
-- **Kabana**: Sahil/iskele bölgesinde konumlanan, misafirlere tahsis edilen lüks yapı birimi
-- **Kabana_Sınıfı**: Kabanaların kategorize edildiği, kendine özgü standartları ve dinamik özellikleri olan sınıf tipi (4-5 farklı sınıf)
-- **Konsept**: Bir kabana sınıfına atanan, ürün seçimlerini ve hizmet paketini tanımlayan tema/paket
+- **Cabana**: Sahil/iskele bölgesinde konumlanan, misafirlere tahsis edilen lüks yapı birimi
+- **Cabana_Sınıfı**: Cabanaların kategorize edildiği, kendine özgü standartları ve dinamik özellikleri olan sınıf tipi (4-5 farklı sınıf)
+- **Konsept**: Bir Cabana sınıfına atanan, ürün seçimlerini ve hizmet paketini tanımlayan tema/paket
 - **Ürün**: Sistemde kayıtlı, alış ve satış fiyatı olan, konseptlere dahil edilebilen mal veya hizmet kalemi
-- **Harita_Görünümü**: Kabanaların gerçek konumlarına uygun şekilde 2D olarak görselleştirildiği Leaflet tabanlı harita arayüzü
-- **3D_Görünüm**: Kabanaların sınıflarına göre farklı 3D modellerle görselleştirildiği ileri aşama arayüz
-- **Kroki**: Kabanaların fiziksel yerleşim planını gösteren referans çizim (`gorsel/kroki.png` ve ek görünümler)
-- **Dinamik_Fiyatlandırma**: Kabana, konsept, ürün ve ek özellik bazında esnek şekilde yapılandırılabilen fiyat sistemi
+- **Harita_Görünümü**: Cabanaların gerçek konumlarına uygun şekilde 2D olarak görselleştirildiği Leaflet tabanlı harita arayüzü
+- **3D_Görünüm**: Cabanaların sınıflarına göre farklı 3D modellerle görselleştirildiği ileri aşama arayüz
+- **Kroki**: Cabanaların fiziksel yerleşim planını gösteren referans çizim (`gorsel/kroki.png` ve ek görünümler)
+- **Dinamik_Fiyatlandırma**: Cabana, konsept, ürün ve ek özellik bazında esnek şekilde yapılandırılabilen fiyat sistemi
 - **Takvim_Görünümü**: Rezervasyonların zaman çizelgesi olarak görüntülendiği, yeni talep oluşturma ve mevcut talepleri yönetme imkanı sunan profesyonel ve şık takvim arayüzü
-- **Rezervasyon_Talebi**: Casino departmanının oluşturduğu, Admin onayı gerektiren kabana rezervasyon isteği
+- **Rezervasyon_Talebi**: Casino departmanının oluşturduğu, Admin onayı gerektiren Cabana rezervasyon isteği
 - **Değişiklik_Talebi**: Mevcut bir rezervasyon üzerinde Casino departmanının talep ettiği değişiklik isteği
 - **İptal_Talebi**: Mevcut bir rezervasyonun iptali için Casino departmanının gönderdiği talep
 - **Ek_Konsept_Talebi**: Mevcut bir rezervasyona ek konsept/ekstra eklenmesi için Casino departmanının gönderdiği talep
@@ -57,49 +57,49 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 
 ---
 
-### Gereksinim 2: Kabana Yerleşim ve Harita Yönetimi
+### Gereksinim 2: Cabana Yerleşim ve Harita Yönetimi
 
-**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, kabanaların gerçek konumlarını 2D harita üzerinde yönetmek istiyorum, böylece fiziksel yerleşim planını dijital ortamda doğru şekilde temsil edebilirim.
+**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, Cabanaların gerçek konumlarını 2D harita üzerinde yönetmek istiyorum, böylece fiziksel yerleşim planını dijital ortamda doğru şekilde temsil edebilirim.
 
 #### Kabul Kriterleri
 
-1. THE Sistem_Yöneticisi_Modülü SHALL Kroki (`gorsel/kroki.png`) referans alınarak kabana konumlarını Harita_Görünümü üzerinde görüntülemek için Leaflet tabanlı bir arayüz sağlamalıdır
-2. WHEN Sistem_Yöneticisi bir kabana konumunu Harita_Görünümü üzerinde sürükleyerek değiştirdiğinde, THE Sistem_Yöneticisi_Modülü SHALL yeni koordinatları kaydetmelidir
-3. WHEN Sistem_Yöneticisi yeni bir kabana eklediğinde, THE Sistem_Yöneticisi_Modülü SHALL kabanayı Harita_Görünümü üzerinde varsayılan konumda görüntülemelidir
-4. THE Harita_Görünümü SHALL her kabanayı durumuna göre renk kodlaması ile (müsait, rezerve, kapalı) görüntülemelidir
-5. WHEN Sistem_Yöneticisi bir kabana üzerine tıkladığında, THE Sistem_Yöneticisi_Modülü SHALL kabananın sınıf, konsept, durum ve fiyat bilgilerini özet olarak göstermelidir
+1. THE Sistem_Yöneticisi_Modülü SHALL Kroki (`gorsel/kroki.png`) referans alınarak Cabana konumlarını Harita_Görünümü üzerinde görüntülemek için Leaflet tabanlı bir arayüz sağlamalıdır
+2. WHEN Sistem_Yöneticisi bir Cabana konumunu Harita_Görünümü üzerinde sürükleyerek değiştirdiğinde, THE Sistem_Yöneticisi_Modülü SHALL yeni koordinatları kaydetmelidir
+3. WHEN Sistem_Yöneticisi yeni bir Cabana eklediğinde, THE Sistem_Yöneticisi_Modülü SHALL Cabanayı Harita_Görünümü üzerinde varsayılan konumda görüntülemelidir
+4. THE Harita_Görünümü SHALL her Cabanayı durumuna göre renk kodlaması ile (müsait, rezerve, kapalı) görüntülemelidir
+5. WHEN Sistem_Yöneticisi bir Cabana üzerine tıkladığında, THE Sistem_Yöneticisi_Modülü SHALL Cabananın sınıf, konsept, durum ve fiyat bilgilerini özet olarak göstermelidir
 6. IF Kroki dosyası (`gorsel/kroki.png`) yüklenemezse, THEN THE Sistem_Yöneticisi_Modülü SHALL kullanıcıya "Kroki yüklenemedi" hata mesajı göstermelidir
 7. THE Sistem_Yöneticisi_Modülü SHALL ek kroki görünümlerini (`gorsel/kroki1.png`, `gorsel/kroki2.png`, `gorsel/kroki3.png`) referans olarak görüntüleme seçeneği sağlamalıdır
 
 ---
 
-### Gereksinim 3: Kabana Sınıflandırma Sistemi
+### Gereksinim 3: Cabana Sınıflandırma Sistemi
 
-**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, kabanaları farklı sınıflara ayırmak ve her sınıfa dinamik özellikler tanımlamak istiyorum, böylece farklı hizmet seviyelerini sistematik şekilde yönetebilirim.
+**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, Cabanaları farklı sınıflara ayırmak ve her sınıfa dinamik özellikler tanımlamak istiyorum, böylece farklı hizmet seviyelerini sistematik şekilde yönetebilirim.
 
 #### Kabul Kriterleri
 
-1. THE Sistem_Yöneticisi_Modülü SHALL en az 4, en fazla 5 farklı Kabana_Sınıfı tanımlamaya olanak sağlamalıdır
-2. WHEN Sistem_Yöneticisi yeni bir Kabana_Sınıfı oluşturduğunda, THE Sistem_Yöneticisi_Modülü SHALL sınıf adı, açıklama ve varsayılan standartlar alanlarını zorunlu olarak istemelidir
-3. WHEN Sistem_Yöneticisi bir Kabana_Sınıfına yeni bir özellik eklediğinde, THE Sistem_Yöneticisi_Modülü SHALL özelliği sınıfın standartlar listesine kaydetmelidir
-4. WHEN Sistem_Yöneticisi bir Kabana_Sınıfını bir kabanaya atadığında, THE Sistem_Yöneticisi_Modülü SHALL sınıfa bağlı konsepti otomatik olarak kabanaya atamalıdır
-5. THE Sistem_Yöneticisi_Modülü SHALL her Kabana_Sınıfının özellik listesini dinamik olarak genişletmeye ve düzenlemeye izin vermelidir
-6. IF Sistem_Yöneticisi, üzerinde aktif kabana bulunan bir Kabana_Sınıfını silmeye çalışırsa, THEN THE Sistem_Yöneticisi_Modülü SHALL "Bu sınıfa atanmış kabanalar mevcut, önce kabanaların sınıfını değiştirin" uyarısı göstermelidir
+1. THE Sistem_Yöneticisi_Modülü SHALL en az 4, en fazla 5 farklı Cabana_Sınıfı tanımlamaya olanak sağlamalıdır
+2. WHEN Sistem_Yöneticisi yeni bir Cabana_Sınıfı oluşturduğunda, THE Sistem_Yöneticisi_Modülü SHALL sınıf adı, açıklama ve varsayılan standartlar alanlarını zorunlu olarak istemelidir
+3. WHEN Sistem_Yöneticisi bir Cabana_Sınıfına yeni bir özellik eklediğinde, THE Sistem_Yöneticisi_Modülü SHALL özelliği sınıfın standartlar listesine kaydetmelidir
+4. WHEN Sistem_Yöneticisi bir Cabana_Sınıfını bir Cabanaya atadığında, THE Sistem_Yöneticisi_Modülü SHALL sınıfa bağlı konsepti otomatik olarak Cabanaya atamalıdır
+5. THE Sistem_Yöneticisi_Modülü SHALL her Cabana_Sınıfının özellik listesini dinamik olarak genişletmeye ve düzenlemeye izin vermelidir
+6. IF Sistem_Yöneticisi, üzerinde aktif Cabana bulunan bir Cabana_Sınıfını silmeye çalışırsa, THEN THE Sistem_Yöneticisi_Modülü SHALL "Bu sınıfa atanmış Cabanalar mevcut, önce Cabanaların sınıfını değiştirin" uyarısı göstermelidir
 
 ---
 
 ### Gereksinim 4: Konsept Yönetimi
 
-**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, kabana sınıflarına atanacak konseptler oluşturmak ve bu konseptlere ürün seçimleri eklemek istiyorum, böylece her kabana tipinin sunduğu hizmet paketini tanımlayabileyim.
+**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, Cabana sınıflarına atanacak konseptler oluşturmak ve bu konseptlere ürün seçimleri eklemek istiyorum, böylece her Cabana tipinin sunduğu hizmet paketini tanımlayabileyim.
 
 #### Kabul Kriterleri
 
 1. WHEN Sistem_Yöneticisi yeni bir Konsept oluşturduğunda, THE Sistem_Yöneticisi_Modülü SHALL konsept adı, açıklama ve dahil edilen ürün listesi alanlarını sağlamalıdır
 2. WHEN Sistem_Yöneticisi bir Konsepte ürün eklediğinde, THE Sistem_Yöneticisi_Modülü SHALL ürünü kayıtlı ürünler listesinden seçtirmelidir
-3. WHEN Sistem_Yöneticisi bir Konsepti bir Kabana_Sınıfına atadığında, THE Sistem_Yöneticisi_Modülü SHALL o sınıftaki tüm kabanalara konsepti otomatik olarak yansıtmalıdır
+3. WHEN Sistem_Yöneticisi bir Konsepti bir Cabana_Sınıfına atadığında, THE Sistem_Yöneticisi_Modülü SHALL o sınıftaki tüm Cabanalara konsepti otomatik olarak yansıtmalıdır
 4. THE Sistem_Yöneticisi_Modülü SHALL bir Konsepte dinamik olarak yeni özellikler ve ürünler eklemeye izin vermelidir
-5. WHEN Sistem_Yöneticisi bir Konsepti düzenlediğinde, THE Sistem_Yöneticisi_Modülü SHALL değişiklikleri o konsepte bağlı tüm kabanalara yansıtmalıdır
-6. IF Sistem_Yöneticisi, bir Kabana_Sınıfına atanmış bir Konsepti silmeye çalışırsa, THEN THE Sistem_Yöneticisi_Modülü SHALL "Bu konsept aktif bir sınıfa atanmış, önce sınıf atamasını kaldırın" uyarısı göstermelidir
+5. WHEN Sistem_Yöneticisi bir Konsepti düzenlediğinde, THE Sistem_Yöneticisi_Modülü SHALL değişiklikleri o konsepte bağlı tüm Cabanalara yansıtmalıdır
+6. IF Sistem_Yöneticisi, bir Cabana_Sınıfına atanmış bir Konsepti silmeye çalışırsa, THEN THE Sistem_Yöneticisi_Modülü SHALL "Bu konsept aktif bir sınıfa atanmış, önce sınıf atamasını kaldırın" uyarısı göstermelidir
 
 ---
 
@@ -120,48 +120,48 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 
 ### Gereksinim 6: Dinamik Fiyatlandırma Sistemi
 
-**Kullanıcı Hikayesi:** Bir admin olarak, kabana, konsept, ürün ve ek özellik bazında esnek fiyatlandırma yapılandırmak istiyorum, böylece gelen talepleri fiyatlandırabileyim ve farklı senaryolara göre fiyatları özelleştirebilirim.
+**Kullanıcı Hikayesi:** Bir admin olarak, Cabana, konsept, ürün ve ek özellik bazında esnek fiyatlandırma yapılandırmak istiyorum, böylece gelen talepleri fiyatlandırabileyim ve farklı senaryolara göre fiyatları özelleştirebilirim.
 
 #### Kabul Kriterleri
 
-1. THE Admin_Modülü SHALL kabana bazında günlük fiyat tanımlamaya olanak sağlamalıdır
+1. THE Admin_Modülü SHALL Cabana bazında günlük fiyat tanımlamaya olanak sağlamalıdır
 2. THE Admin_Modülü SHALL konsept bazında toplam paket fiyatı ve kalem bazlı (itemized) fiyat tanımlamaya olanak sağlamalıdır
 3. THE Admin_Modülü SHALL ek özellikler ve ekstra konseptler için ayrı fiyat tanımlamaya olanak sağlamalıdır
-4. WHEN Admin belirli bir kabana için özel fiyat tanımladığında, THE Dinamik_Fiyatlandırma SHALL o kabanaya özel fiyatı genel fiyatın önüne geçirerek uygulamalıdır
+4. WHEN Admin belirli bir Cabana için özel fiyat tanımladığında, THE Dinamik_Fiyatlandırma SHALL o Cabanaya özel fiyatı genel fiyatın önüne geçirerek uygulamalıdır
 5. WHEN Admin belirli bir konsept için özel ürün fiyatı tanımladığında, THE Dinamik_Fiyatlandırma SHALL konsepte özel fiyatı genel ürün fiyatının önüne geçirerek uygulamalıdır
-6. THE Dinamik_Fiyatlandırma SHALL fiyat öncelik sırasını şu şekilde uygulamalıdır: kabana özel fiyat > konsept özel fiyat > genel ürün fiyatı
-7. IF bir kabana için hiçbir fiyat tanımlanmamışsa, THEN THE Dinamik_Fiyatlandırma SHALL kabanayı "fiyat belirlenmemiş" durumunda göstermelidir
+6. THE Dinamik_Fiyatlandırma SHALL fiyat öncelik sırasını şu şekilde uygulamalıdır: Cabana özel fiyat > konsept özel fiyat > genel ürün fiyatı
+7. IF bir Cabana için hiçbir fiyat tanımlanmamışsa, THEN THE Dinamik_Fiyatlandırma SHALL Cabanayı "fiyat belirlenmemiş" durumunda göstermelidir
 8. WHEN Admin bir Rezervasyon_Talebi için fiyat belirlediğinde, THE Admin_Modülü SHALL toplam fiyatı talep detayında görüntülemelidir
 
 ---
 
 ### Gereksinim 7: Sistem Kontrolü
 
-**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, tüm sistemin veya tek tek kabanaların rezervasyona açık/kapalı durumunu kontrol etmek istiyorum, böylece operasyonel ihtiyaçlara göre müsaitlik yönetimi yapabileyim.
+**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, tüm sistemin veya tek tek Cabanaların rezervasyona açık/kapalı durumunu kontrol etmek istiyorum, böylece operasyonel ihtiyaçlara göre müsaitlik yönetimi yapabileyim.
 
 #### Kabul Kriterleri
 
 1. THE Sistem_Yöneticisi_Modülü SHALL tüm sistemi rezervasyona açma ve kapatma kontrolü sağlamalıdır
 2. WHEN Sistem_Yöneticisi sistemi rezervasyona kapattığında, THE Casino_Rezervasyon_Modülü SHALL yeni talep oluşturma işlemini devre dışı bırakmalı ve "Sistem şu anda rezervasyona kapalıdır" mesajı göstermelidir
-3. THE Sistem_Yöneticisi_Modülü SHALL her kabana için bireysel olarak rezervasyona açma ve kapatma kontrolü sağlamalıdır
-4. WHEN Sistem_Yöneticisi bir kabanayı rezervasyona kapattığında, THE Casino_Rezervasyon_Modülü SHALL o kabanayı "kapalı" durumunda göstermeli ve seçime izin vermemelidir
+3. THE Sistem_Yöneticisi_Modülü SHALL her Cabana için bireysel olarak rezervasyona açma ve kapatma kontrolü sağlamalıdır
+4. WHEN Sistem_Yöneticisi bir Cabanayı rezervasyona kapattığında, THE Casino_Rezervasyon_Modülü SHALL o Cabanayı "kapalı" durumunda göstermeli ve seçime izin vermemelidir
 5. WHILE sistem rezervasyona kapalıyken, THE Admin_Modülü SHALL mevcut rezervasyonları görüntüleme ve yönetme işlevlerini aktif tutmalıdır
-6. WHEN Sistem_Yöneticisi sistemi yeniden açtığında, THE Casino_Rezervasyon_Modülü SHALL tüm müsait kabanaları anında talep oluşturmaya uygun duruma getirmelidir
+6. WHEN Sistem_Yöneticisi sistemi yeniden açtığında, THE Casino_Rezervasyon_Modülü SHALL tüm müsait Cabanaları anında talep oluşturmaya uygun duruma getirmelidir
 
 ---
 
-### Gereksinim 8: Casino Kabana Görüntüleme (2D ve 3D)
+### Gereksinim 8: Casino Cabana Görüntüleme (2D ve 3D)
 
-**Kullanıcı Hikayesi:** Bir casino kullanıcısı olarak, kabanaları 2D harita ve 3D görünüm üzerinde incelemek istiyorum, böylece misafirler için en uygun kabanayı seçebilirim.
+**Kullanıcı Hikayesi:** Bir casino kullanıcısı olarak, Cabanaları 2D harita ve 3D görünüm üzerinde incelemek istiyorum, böylece misafirler için en uygun Cabanayı seçebilirim.
 
 #### Kabul Kriterleri
 
-1. THE Casino_Rezervasyon_Modülü SHALL kabanaları Harita_Görünümü üzerinde gerçek konumlarıyla görüntülemelidir
-2. THE Casino_Rezervasyon_Modülü SHALL her kabanayı müsaitlik durumuna göre renk kodlamasıyla (müsait: yeşil, rezerve: kırmızı, kapalı: gri) göstermelidir
-3. WHEN Casino_Kullanıcısı bir kabana üzerine tıkladığında, THE Casino_Rezervasyon_Modülü SHALL kabananın sınıf bilgisi, konsept detayları ve görsellerini göstermelidir
-4. THE Casino_Rezervasyon_Modülü SHALL kabanaları 3D_Görünüm üzerinde sınıflarına göre farklı 3D modellerle görselleştirmelidir
-5. WHEN Casino_Kullanıcısı 3D_Görünüm üzerinde bir kabana seçtiğinde, THE Casino_Rezervasyon_Modülü SHALL kabananın detay bilgilerini ve fotoğraf açılarını (`gorsel/arka.jpg`, `gorsel/on.png`, `gorsel/sag.png`, `gorsel/sol.png`, `gorsel/ust.png`) göstermelidir
-6. WHERE fiyat görüntüleme seçeneği aktifse, THE Casino_Rezervasyon_Modülü SHALL kabana detaylarında günlük fiyat ve konsept fiyat bilgilerini göstermelidir
+1. THE Casino_Rezervasyon_Modülü SHALL Cabanaları Harita_Görünümü üzerinde gerçek konumlarıyla görüntülemelidir
+2. THE Casino_Rezervasyon_Modülü SHALL her Cabanayı müsaitlik durumuna göre renk kodlamasıyla (müsait: yeşil, rezerve: kırmızı, kapalı: gri) göstermelidir
+3. WHEN Casino_Kullanıcısı bir Cabana üzerine tıkladığında, THE Casino_Rezervasyon_Modülü SHALL Cabananın sınıf bilgisi, konsept detayları ve görsellerini göstermelidir
+4. THE Casino_Rezervasyon_Modülü SHALL Cabanaları 3D_Görünüm üzerinde sınıflarına göre farklı 3D modellerle görselleştirmelidir
+5. WHEN Casino_Kullanıcısı 3D_Görünüm üzerinde bir Cabana seçtiğinde, THE Casino_Rezervasyon_Modülü SHALL Cabananın detay bilgilerini ve fotoğraf açılarını (`gorsel/arka.jpg`, `gorsel/on.png`, `gorsel/sag.png`, `gorsel/sol.png`, `gorsel/ust.png`) göstermelidir
+6. WHERE fiyat görüntüleme seçeneği aktifse, THE Casino_Rezervasyon_Modülü SHALL Cabana detaylarında günlük fiyat ve konsept fiyat bilgilerini göstermelidir
 7. WHILE Harita_Görünümü veya 3D_Görünüm yüklenirken, THE Casino_Rezervasyon_Modülü SHALL bir yükleniyor göstergesi (loading indicator) sunmalıdır
 8. THE Casino_Rezervasyon_Modülü SHALL 2D ve 3D görünümler arasında geçiş yapma seçeneği sağlamalıdır
 
@@ -176,25 +176,25 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 1. THE Casino_Rezervasyon_Modülü SHALL tüm rezervasyonları Takvim_Görünümü üzerinde zaman çizelgesi olarak görüntülemelidir
 2. THE Takvim_Görünümü SHALL günlük, haftalık ve aylık görünüm seçenekleri sağlamalıdır
 3. THE Takvim_Görünümü SHALL her rezervasyonu durumuna göre renk kodlamasıyla (onay bekliyor: sarı, onaylandı: yeşil, reddedildi: kırmızı, iptal edildi: gri) göstermelidir
-4. WHEN Casino_Kullanıcısı takvimde bir rezervasyon üzerine tıkladığında, THE Casino_Rezervasyon_Modülü SHALL rezervasyon detaylarını (kabana, misafir, tarih, durum, konsept) özet olarak göstermelidir
+4. WHEN Casino_Kullanıcısı takvimde bir rezervasyon üzerine tıkladığında, THE Casino_Rezervasyon_Modülü SHALL rezervasyon detaylarını (Cabana, misafir, tarih, durum, konsept) özet olarak göstermelidir
 5. WHEN Casino_Kullanıcısı takvimde boş bir zaman dilimine tıkladığında, THE Casino_Rezervasyon_Modülü SHALL yeni Rezervasyon_Talebi oluşturma formunu açmalıdır
 6. WHEN Casino_Kullanıcısı takvimde mevcut bir rezervasyona sağ tıkladığında, THE Casino_Rezervasyon_Modülü SHALL Değişiklik_Talebi, İptal_Talebi ve Ek_Konsept_Talebi seçeneklerini içeren bir bağlam menüsü göstermelidir
-7. THE Takvim_Görünümü SHALL kabana bazında ve kabana sınıfı bazında filtreleme seçeneği sağlamalıdır
+7. THE Takvim_Görünümü SHALL Cabana bazında ve Cabana sınıfı bazında filtreleme seçeneği sağlamalıdır
 8. THE Takvim_Görünümü SHALL profesyonel, modern ve şık bir tasarıma sahip olmalıdır
-9. THE Takvim_Görünümü SHALL kabanaları satır olarak, tarihleri sütun olarak gösteren bir kaynak zaman çizelgesi (resource timeline) formatında görüntüleme seçeneği sağlamalıdır
+9. THE Takvim_Görünümü SHALL Cabanaları satır olarak, tarihleri sütun olarak gösteren bir kaynak zaman çizelgesi (resource timeline) formatında görüntüleme seçeneği sağlamalıdır
 
 ---
 
 ### Gereksinim 10: Casino Rezervasyon Talep Oluşturma
 
-**Kullanıcı Hikayesi:** Bir casino kullanıcısı olarak, misafirler ve VIP'ler için müsait bir kabana seçerek rezervasyon talebi oluşturmak istiyorum, böylece kabana ayırtma sürecini başlatabileyim.
+**Kullanıcı Hikayesi:** Bir casino kullanıcısı olarak, misafirler ve VIP'ler için müsait bir Cabana seçerek rezervasyon talebi oluşturmak istiyorum, böylece Cabana ayırtma sürecini başlatabileyim.
 
 #### Kabul Kriterleri
 
-1. WHEN Casino_Kullanıcısı müsait bir kabana seçtiğinde, THE Casino_Rezervasyon_Modülü SHALL misafir adı, başlangıç tarihi, bitiş tarihi ve özel notlar alanlarını içeren bir talep formu göstermelidir
+1. WHEN Casino_Kullanıcısı müsait bir Cabana seçtiğinde, THE Casino_Rezervasyon_Modülü SHALL misafir adı, başlangıç tarihi, bitiş tarihi ve özel notlar alanlarını içeren bir talep formu göstermelidir
 2. WHEN Casino_Kullanıcısı talep formunu doldurarak gönderdiğinde, THE Casino_Rezervasyon_Modülü SHALL Rezervasyon_Talebi durumunu "onay bekliyor" olarak kaydetmelidir
 3. WHEN Casino_Kullanıcısı talep formunu gönderdiğinde, THE Sistem SHALL Admin_Modülüne bildirim göndererek yeni talebi iletmelidir
-4. IF Casino_Kullanıcısı seçilen tarih aralığında zaten rezerve edilmiş bir kabana için talep oluşturursa, THEN THE Casino_Rezervasyon_Modülü SHALL "Seçilen tarih aralığında bu kabana müsait değildir" uyarısı göstermelidir
+4. IF Casino_Kullanıcısı seçilen tarih aralığında zaten rezerve edilmiş bir Cabana için talep oluşturursa, THEN THE Casino_Rezervasyon_Modülü SHALL "Seçilen tarih aralığında bu Cabana müsait değildir" uyarısı göstermelidir
 5. IF Casino_Kullanıcısı başlangıç tarihini bitiş tarihinden sonraya ayarlarsa, THEN THE Casino_Rezervasyon_Modülü SHALL "Başlangıç tarihi bitiş tarihinden önce olmalıdır" hata mesajı göstermelidir
 6. IF Casino_Kullanıcısı geçmiş bir tarih seçerse, THEN THE Casino_Rezervasyon_Modülü SHALL "Geçmiş tarihler için talep oluşturulamaz" hata mesajı göstermelidir
 
@@ -206,7 +206,7 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 
 #### Kabul Kriterleri
 
-1. WHEN Casino_Kullanıcısı mevcut bir rezervasyon için değişiklik talep ettiğinde, THE Casino_Rezervasyon_Modülü SHALL değiştirilmek istenen alanları (tarih, kabana, misafir bilgisi) içeren bir Değişiklik_Talebi formu göstermelidir
+1. WHEN Casino_Kullanıcısı mevcut bir rezervasyon için değişiklik talep ettiğinde, THE Casino_Rezervasyon_Modülü SHALL değiştirilmek istenen alanları (tarih, Cabana, misafir bilgisi) içeren bir Değişiklik_Talebi formu göstermelidir
 2. WHEN Casino_Kullanıcısı Değişiklik_Talebi formunu gönderdiğinde, THE Casino_Rezervasyon_Modülü SHALL talebi "değişiklik onayı bekliyor" durumunda kaydetmelidir
 3. WHEN Casino_Kullanıcısı mevcut bir rezervasyonun iptali için talep oluşturduğunda, THE Casino_Rezervasyon_Modülü SHALL iptal nedenini zorunlu alan olarak isteyerek İptal_Talebi kaydetmelidir
 4. WHEN Casino_Kullanıcısı mevcut bir rezervasyona ek konsept/ekstra talep ettiğinde, THE Casino_Rezervasyon_Modülü SHALL mevcut konsepte ek olarak seçilebilecek ürün ve hizmetleri listeleyerek Ek_Konsept_Talebi formu göstermelidir
@@ -223,7 +223,7 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 #### Kabul Kriterleri
 
 1. THE Admin_Modülü SHALL tüm bekleyen talepleri (Rezervasyon_Talebi, Değişiklik_Talebi, İptal_Talebi, Ek_Konsept_Talebi) tek bir listede görüntülemelidir
-2. WHEN Admin bir Rezervasyon_Talebi değerlendirdiğinde, THE Admin_Modülü SHALL talep detaylarını, kabana bilgilerini ve fiyat önerisini göstermelidir
+2. WHEN Admin bir Rezervasyon_Talebi değerlendirdiğinde, THE Admin_Modülü SHALL talep detaylarını, Cabana bilgilerini ve fiyat önerisini göstermelidir
 3. WHEN Admin bir talebi onayladığında, THE Sistem SHALL talep durumunu "onaylandı" olarak güncellemeli ve Casino_Kullanıcısına bildirim göndermelidir
 4. WHEN Admin bir talebi reddettiğinde, THE Admin_Modülü SHALL ret nedenini zorunlu alan olarak istemelidir
 5. WHEN Admin bir talebi reddettiğinde, THE Sistem SHALL talep durumunu "reddedildi" olarak güncellemeli, ret nedenini kaydetmeli ve Casino_Kullanıcısına bildirim göndermelidir
@@ -241,7 +241,7 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 #### Kabul Kriterleri
 
 1. THE Admin_Modülü SHALL tüm modüllerdeki aktiviteleri kuşbakışı (bird's eye view) olarak tek bir dashboard üzerinde görüntülemelidir
-2. THE Admin_Modülü SHALL kabana doluluk oranları, talep istatistikleri ve gelir analizlerini dashboard üzerinde göstermelidir
+2. THE Admin_Modülü SHALL Cabana doluluk oranları, talep istatistikleri ve gelir analizlerini dashboard üzerinde göstermelidir
 3. THE Admin_Modülü SHALL tüm rezervasyon taleplerini, onay/red durumlarını ve fiyatlandırma geçmişini raporlayabilmelidir
 4. WHEN Admin bir operasyonel rapor talep ettiğinde, THE Admin_Modülü SHALL raporu tarih aralığı, durum ve departman bazında filtreleme seçenekleriyle sunmalıdır
 5. THE Admin_Modülü SHALL F&B_Rezervasyon_Modülü tarafındaki konsept dışı ekstra ekleme aktivitelerini izleyebilmelidir
@@ -251,7 +251,7 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 
 ### Gereksinim 14: F&B Rezervasyon Görüntüleme ve Hizmet Yürütme
 
-**Kullanıcı Hikayesi:** Bir F&B kullanıcısı olarak, Casino departmanından gelen talepleri ve onaylanan rezervasyonları görüntülemek, konsept dışı ekstra ürün ve hizmetler eklemek istiyorum, böylece kabana hizmet sürecini yönetebilir ve misafir deneyimini zenginleştirebilirim.
+**Kullanıcı Hikayesi:** Bir F&B kullanıcısı olarak, Casino departmanından gelen talepleri ve onaylanan rezervasyonları görüntülemek, konsept dışı ekstra ürün ve hizmetler eklemek istiyorum, böylece Cabana hizmet sürecini yönetebilir ve misafir deneyimini zenginleştirebilirim.
 
 #### Kabul Kriterleri
 
@@ -261,7 +261,7 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 4. WHEN F&B_Kullanıcısı onaylanan bir rezervasyona Konsept_Dışı_Ekstra eklemek istediğinde, THE F&B_Rezervasyon_Modülü SHALL kayıtlı ürünler listesinden seçim yapılabilen bir ekstra ekleme formu göstermelidir
 5. WHEN F&B_Kullanıcısı Konsept_Dışı_Ekstra eklediğinde, THE F&B_Rezervasyon_Modülü SHALL eklenen ekstraları rezervasyon detayına kaydetmeli ve fiyat bilgisini göstermelidir
 6. THE F&B_Rezervasyon_Modülü SHALL talep onaylama, reddetme veya yeni talep oluşturma işlevlerini devre dışı bırakmalıdır
-7. THE F&B_Rezervasyon_Modülü SHALL rezervasyonları tarih, kabana ve durum bazında filtreleme seçeneği sağlamalıdır
+7. THE F&B_Rezervasyon_Modülü SHALL rezervasyonları tarih, Cabana ve durum bazında filtreleme seçeneği sağlamalıdır
 8. THE F&B_Rezervasyon_Modülü SHALL Değişiklik_Talebi, İptal_Talebi ve Ek_Konsept_Talebi kayıtlarını salt okunur olarak görüntülemelidir
 9. WHEN bir rezervasyon durumu değiştiğinde, THE F&B_Rezervasyon_Modülü SHALL güncellenen durumu gerçek zamanlı olarak yansıtmalıdır
 
@@ -269,16 +269,16 @@ Sistemin genel renk teması ve görsel kimliği `logo.png` dosyasından türetil
 
 ### Gereksinim 15: Raporlama ve Sunum Modülü
 
-**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, sistem verilerinden detaylı raporlar ve otomatik sunumlar oluşturmak istiyorum, böylece otel yönetimine kabana sayıları, konseptler, içerikler, maliyetler ve satış fiyatları hakkında profesyonel bir şekilde bilgi sunabileyim.
+**Kullanıcı Hikayesi:** Bir sistem yöneticisi olarak, sistem verilerinden detaylı raporlar ve otomatik sunumlar oluşturmak istiyorum, böylece otel yönetimine Cabana sayıları, konseptler, içerikler, maliyetler ve satış fiyatları hakkında profesyonel bir şekilde bilgi sunabileyim.
 
 #### Kabul Kriterleri
 
-1. THE Raporlama_Sunum_Modülü SHALL kabana sayıları, konseptler, konsept içerikleri, maliyetler ve satış fiyatları bazında detaylı raporlar oluşturabilmelidir
-2. WHEN Sistem_Yöneticisi bir rapor talep ettiğinde, THE Raporlama_Sunum_Modülü SHALL raporu filtreleme seçenekleriyle (tarih aralığı, kabana sınıfı, konsept) birlikte sunmalıdır
+1. THE Raporlama_Sunum_Modülü SHALL Cabana sayıları, konseptler, konsept içerikleri, maliyetler ve satış fiyatları bazında detaylı raporlar oluşturabilmelidir
+2. WHEN Sistem_Yöneticisi bir rapor talep ettiğinde, THE Raporlama_Sunum_Modülü SHALL raporu filtreleme seçenekleriyle (tarih aralığı, Cabana sınıfı, konsept) birlikte sunmalıdır
 3. THE Sunum_Motoru SHALL sistem verilerinden otomatik olarak otel yönetimine sunulabilecek formatta sunum oluşturabilmelidir
-4. WHEN Sistem_Yöneticisi sunum oluşturma işlemini başlattığında, THE Sunum_Motoru SHALL kabana yerleşimi, sınıf bilgileri, konseptler, fiyatlandırma ve görsel materyalleri içeren bir sunum hazırlamalıdır
+4. WHEN Sistem_Yöneticisi sunum oluşturma işlemini başlattığında, THE Sunum_Motoru SHALL Cabana yerleşimi, sınıf bilgileri, konseptler, fiyatlandırma ve görsel materyalleri içeren bir sunum hazırlamalıdır
 5. THE Raporlama_Sunum_Modülü SHALL raporları PDF ve Excel formatlarında dışa aktarma seçeneği sağlamalıdır
-6. THE Raporlama_Sunum_Modülü SHALL kabana doluluk oranları, talep istatistikleri, gelir analizleri ve maliyet karşılaştırma raporları sunabilmelidir
+6. THE Raporlama_Sunum_Modülü SHALL Cabana doluluk oranları, talep istatistikleri, gelir analizleri ve maliyet karşılaştırma raporları sunabilmelidir
 7. IF rapor oluşturma sırasında veri eksikliği tespit edilirse, THEN THE Raporlama_Sunum_Modülü SHALL eksik veri alanlarını belirterek "Eksik veri alanları: [alan listesi]" uyarısı göstermelidir
 
 ---

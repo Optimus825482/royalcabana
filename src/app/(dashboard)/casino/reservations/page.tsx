@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSSE } from "@/hooks/useSSE";
+import { SSE_EVENTS } from "@/lib/sse-events";
 import { ReservationStatus } from "@/types";
 import {
   formatPrice,
@@ -36,6 +38,16 @@ interface ReservationItem {
   totalPrice?: number;
   createdAt: string;
   cabana: { id: string; name: string };
+  _count?: {
+    statusHistory: number;
+    modifications: number;
+    cancellations: number;
+    extraConcepts: number;
+    extraItems: number;
+  };
+}
+
+interface ReservationDetail extends ReservationItem {
   statusHistory: Array<{
     toStatus: string;
     changedBy: string;
@@ -104,7 +116,15 @@ const ALL_STATUSES = Object.values(ReservationStatus);
 async function fetchMyReservations(): Promise<ReservationListResponse> {
   const res = await fetch("/api/reservations?limit=100");
   if (!res.ok) throw new Error("Rezervasyonlar yüklenemedi.");
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
+}
+
+async function fetchReservationDetail(id: string): Promise<ReservationDetail> {
+  const res = await fetch(`/api/reservations/${id}`);
+  if (!res.ok) throw new Error("Detay yüklenemedi.");
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 function formatDate(iso: string) {
@@ -126,6 +146,8 @@ export default function CasinoReservationsPage() {
 
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "">("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedDetail, setExpandedDetail] = useState<ReservationDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [editingReservation, setEditingReservation] =
     useState<ReservationItem | null>(null);
   const [editForm, setEditForm] = useState({
@@ -140,10 +162,26 @@ export default function CasinoReservationsPage() {
     queryKey: ["system-currency"],
     queryFn: fetchSystemCurrency,
   });
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["my-reservations"],
     queryFn: fetchMyReservations,
   });
+
+  const handleSSEEvent = useCallback((event: string) => {
+    if (
+      event === SSE_EVENTS.RESERVATION_UPDATED ||
+      event === SSE_EVENTS.RESERVATION_CREATED ||
+      event === SSE_EVENTS.RESERVATION_APPROVED ||
+      event === SSE_EVENTS.RESERVATION_REJECTED ||
+      event === SSE_EVENTS.RESERVATION_CANCELLED ||
+      event === SSE_EVENTS.RESERVATION_CHECKED_IN ||
+      event === SSE_EVENTS.RESERVATION_CHECKED_OUT
+    ) {
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+    }
+  }, [queryClient]);
+
+  useSSE({ onEvent: handleSSEEvent as (event: string, data: unknown) => void });
 
   const reservations = data?.reservations ?? [];
 
@@ -216,6 +254,19 @@ export default function CasinoReservationsPage() {
         <div className="flex flex-col items-center gap-2">
           <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-neutral-500 text-sm">Yükleniyor...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="bg-neutral-900 border border-red-800/40 rounded-xl px-8 py-6 text-center max-w-sm">
+          <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+          <p className="text-red-400 text-sm">
+            {(error as Error)?.message ?? "Rezervasyonlar yüklenemedi."}
+          </p>
         </div>
       </div>
     );
@@ -304,7 +355,22 @@ export default function CasinoReservationsPage() {
                 >
                   {/* Main row */}
                   <button
-                    onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                    onClick={async () => {
+                      if (isExpanded) {
+                        setExpandedId(null);
+                        setExpandedDetail(null);
+                      } else {
+                        setExpandedId(r.id);
+                        setDetailLoading(true);
+                        try {
+                          const detail = await fetchReservationDetail(r.id);
+                          setExpandedDetail(detail);
+                        } catch {
+                          setExpandedDetail(null);
+                        }
+                        setDetailLoading(false);
+                      }
+                    }}
                     className="w-full text-left px-4 py-4 flex items-center gap-3"
                   >
                     <StatusIcon
@@ -349,7 +415,7 @@ export default function CasinoReservationsPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
                         <div>
                           <span className="text-neutral-500 block mb-0.5">
-                            Kabana
+                            Cabana
                           </span>
                           <span className="text-neutral-200">
                             {r.cabana.name}
@@ -397,13 +463,18 @@ export default function CasinoReservationsPage() {
                           </button>
                         </div>
                       )}
-                      {r.statusHistory.length > 0 && (
+                      {detailLoading && expandedId === r.id ? (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
+                          <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                          Durum geçmişi yükleniyor...
+                        </div>
+                      ) : expandedDetail && expandedDetail.id === r.id && expandedDetail.statusHistory.length > 0 ? (
                         <div className="mt-3">
                           <span className="text-xs text-neutral-500 block mb-2">
                             Durum Geçmişi
                           </span>
                           <div className="space-y-1.5">
-                            {r.statusHistory.map((h, i) => (
+                            {expandedDetail.statusHistory.map((h, i) => (
                               <div
                                 key={i}
                                 className="flex items-center justify-between text-xs bg-neutral-800/60 rounded-lg px-3 py-2"
@@ -418,7 +489,7 @@ export default function CasinoReservationsPage() {
                             ))}
                           </div>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </div>

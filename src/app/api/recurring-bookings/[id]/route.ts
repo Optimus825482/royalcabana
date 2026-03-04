@@ -16,7 +16,7 @@ export const PATCH = withAuth(
 
     if (!existing) {
       return NextResponse.json(
-        { error: "Tekrarlayan rezervasyon bulunamadı." },
+        { success: false, error: "Tekrarlayan rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
@@ -38,7 +38,7 @@ export const PATCH = withAuth(
       newValue: { isActive: updated.isActive },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
 );
 
@@ -54,28 +54,32 @@ export const DELETE = withAuth(
 
     if (!existing) {
       return NextResponse.json(
-        { error: "Tekrarlayan rezervasyon bulunamadı." },
+        { success: false, error: "Tekrarlayan rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
 
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM recurring_bookings WHERE id = $1`,
-      id,
-    );
+    await (prisma as any).recurringBooking.update({
+      where: { id },
+      data: { isActive: false },
+    });
 
     logAudit({
       userId: session.user.id,
-      action: "DELETE",
+      action: "SOFT_DELETE",
       entity: "RecurringBooking",
       entityId: id,
       oldValue: {
         cabanaId: existing.cabanaId,
         guestName: existing.guestName,
         pattern: existing.pattern,
+        isActive: existing.isActive,
+      },
+      newValue: {
+        isActive: false,
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: null });
   },
 );

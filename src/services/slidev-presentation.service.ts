@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { DatabaseError } from "@/lib/errors";
+import { cached } from "@/lib/cache";
 
 // ===== Types =====
 
@@ -98,14 +100,12 @@ function esc(str: string): string {
 // ===== Data Fetching =====
 
 async function fetchPresentationData() {
-  const [cabanas, classes, concepts, priceRanges] = await Promise.all([
+  const [cabanas, classes, concepts] = await Promise.all([
     (prisma as any).cabana.findMany({
       where: { deletedAt: null },
       include: {
         cabanaClass: { include: { attributes: true } },
         concept: { include: { products: { include: { product: true } } } },
-        prices: { orderBy: { date: "asc" }, take: 30 },
-        priceRanges: { orderBy: { priority: "desc" } },
       },
       orderBy: { name: "asc" },
     }),
@@ -116,10 +116,6 @@ async function fetchPresentationData() {
     (prisma as any).concept.findMany({
       include: { products: { include: { product: true } } },
       orderBy: { name: "asc" },
-    }),
-    (prisma as any).cabanaPriceRange.findMany({
-      orderBy: { priority: "desc" },
-      include: { cabana: true },
     }),
   ]);
 
@@ -162,14 +158,22 @@ async function fetchPresentationData() {
     };
   });
 
-  // Price summary by class
+  // Price summary by class — konsept ürün fiyatları üzerinden hesaplanır
   const priceSummaries: PriceSummary[] = classList.map((cls) => {
     const classCabanas = cabanas.filter(
       (c: any) => c.cabanaClass.name === cls.name,
     );
-    const allPrices = classCabanas.flatMap((c: any) =>
-      c.prices.map((p: any) => Number(p.dailyPrice)),
-    );
+    const allPrices = classCabanas
+      .filter((c: any) => c.concept)
+      .map((c: any) => {
+        const conceptProducts = c.concept.products ?? [];
+        return conceptProducts.reduce(
+          (sum: number, cp: any) =>
+            sum + Number(cp.product.salePrice) * cp.quantity,
+          0,
+        );
+      })
+      .filter((p: number) => p > 0);
     return {
       className: cls.name,
       minPrice: allPrices.length > 0 ? Math.min(...allPrices) : 0,
@@ -197,23 +201,12 @@ async function fetchPresentationData() {
     })),
   };
 
-  // Season price ranges
-  const seasonRanges = priceRanges.map((pr: any) => ({
-    cabanaName: pr.cabana?.name ?? "—",
-    label: pr.label ?? "—",
-    startDate: new Date(pr.startDate).toLocaleDateString("tr-TR"),
-    endDate: new Date(pr.endDate).toLocaleDateString("tr-TR"),
-    dailyPrice: Number(pr.dailyPrice),
-    priority: pr.priority,
-  }));
-
   return {
     cabanaList,
     classList,
     conceptList,
     priceSummaries,
     inventory,
-    seasonRanges,
   };
 }
 
@@ -266,14 +259,14 @@ transition: slide-left
 
 # Sistem Tanımı
 
-**Royal Cabana Rezervasyon Sistemi**, Merit Royal Hotel bünyesindeki kabana alanlarının dijital yönetimini sağlayan kapsamlı bir platformdur.
+**Royal Cabana Rezervasyon Sistemi**, Merit Royal Hotel bünyesindeki Cabana alanlarının dijital yönetimini sağlayan kapsamlı bir platformdur.
 
 <v-clicks>
 
-- 🏖️ **Kabana Yönetimi** — Envanter, sınıf ve konsept takibi
+- 🏖️ **Cabana Yönetimi** — Envanter, sınıf ve konsept takibi
 - 📅 **Rezervasyon** — Gerçek zamanlı müsaitlik ve onay akışı
 - 💰 **Dinamik Fiyatlandırma** — Sezon, sınıf ve konsept bazlı
-- 🍽️ **F&B Entegrasyonu** — Kabana içi yiyecek-içecek siparişi
+- 🍽️ **F&B Servis Yönetimi** — Konsept ürünleri ve ekstra talep koordinasyonu
 - 👥 **Misafir Veritabanı** — VIP seviye ve geçmiş takibi
 - 📊 **Raporlama** — Doluluk, gelir ve performans analizleri
 
@@ -291,7 +284,7 @@ transition: slide-left
 | Backend | Next.js API Routes |
 | Veritabanı | PostgreSQL + Prisma |
 | Gerçek Zamanlı | Socket.IO |
-| Harita | Leaflet.js |
+| Harita | Three.js + React Three Fiber |
 | Sunum | Slidev |
 
 </div>
@@ -308,7 +301,7 @@ function generateInventorySlide(inventory: InventoryStats): string {
 
   let classBreakdownMd = "";
   for (const cls of inventory.classBreakdown) {
-    classBreakdownMd += `  - **${esc(cls.name)}**: ${cls.count} kabana\n`;
+    classBreakdownMd += `  - **${esc(cls.name)}**: ${cls.count} Cabana\n`;
   }
 
   return `---
@@ -316,12 +309,12 @@ layout: default
 transition: slide-left
 ---
 
-# Kabana Envanteri
+# Cabana Envanteri
 
 <div class="grid grid-cols-4 gap-4 mt-8">
   <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
     <div class="text-3xl font-bold text-blue-400">${inventory.total}</div>
-    <div class="text-sm text-blue-300 mt-1">Toplam Kabana</div>
+    <div class="text-sm text-blue-300 mt-1">Toplam Cabana</div>
   </div>
   <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
     <div class="text-3xl font-bold text-green-400">${inventory.available}</div>
@@ -348,7 +341,7 @@ ${classBreakdownMd}
 
 ### Rezervasyona Açık
 
-- **${inventory.openForReservation}** / ${inventory.total} kabana aktif olarak rezervasyona açık
+- **${inventory.openForReservation}** / ${inventory.total} Cabana aktif olarak rezervasyona açık
 
   </div>
 </div>
@@ -372,11 +365,11 @@ layout: default
 transition: slide-left
 ---
 
-# Kabana Yerleşim Planı
+# Cabana Yerleşim Planı
 
 <div class="mt-4 text-xs">
 
-| Kabana | Sınıf | Konsept | Durum | Rez. Açık |
+| Cabana | Sınıf | Konsept | Durum | Rez. Açık |
 |--------|-------|---------|-------|-----------|
 ${tableRows}
 </div>
@@ -405,7 +398,7 @@ function generateClassesSlide(classes: ClassData[]): string {
   <div class="bg-white/5 border border-white/10 rounded-xl p-4">
     <div class="flex justify-between items-center mb-2">
       <span class="text-lg font-bold text-amber-400">${esc(cls.name)}</span>
-      <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full text-xs">${cls.cabanaCount} kabana</span>
+      <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full text-xs">${cls.cabanaCount} cabana</span>
     </div>
     <p class="text-sm text-neutral-300 mb-2">${desc}</p>
     ${attrs ? `<div class="text-xs text-neutral-500">${attrs}</div>` : ""}
@@ -418,7 +411,7 @@ layout: default
 transition: slide-left
 ---
 
-# Kabana Sınıfları
+# Cabana Sınıfları
 
 <div class="grid grid-cols-2 gap-4 mt-6">
 ${classCards}
@@ -483,20 +476,11 @@ h1 { color: #fbbf24 !important; }
 </style>`;
 }
 
-function generatePricingPolicySlide(
-  priceSummaries: PriceSummary[],
-  seasonRanges: any[],
-): string {
+function generatePricingPolicySlide(priceSummaries: PriceSummary[]): string {
   let summaryRows = "";
   for (const ps of priceSummaries) {
     if (ps.cabanaCount === 0) continue;
     summaryRows += `| ${esc(ps.className)} | ${ps.cabanaCount} | ₺${formatCurrency(ps.minPrice)} | ₺${formatCurrency(ps.maxPrice)} | ₺${formatCurrency(ps.avgPrice)} |\n`;
-  }
-
-  let seasonRows = "";
-  const uniqueSeasons = seasonRanges.slice(0, 8);
-  for (const sr of uniqueSeasons) {
-    seasonRows += `| ${esc(sr.label)} | ${sr.startDate} — ${sr.endDate} | ₺${formatCurrency(sr.dailyPrice)} |\n`;
   }
 
   return `---
@@ -508,17 +492,16 @@ transition: slide-left
 
 ### Sınıf Bazlı Fiyat Özeti
 
-| Sınıf | Kabana | Min | Max | Ort |
+| Sınıf | Cabana | Min | Max | Ort |
 |-------|--------|-----|-----|-----|
 ${summaryRows || "| — | — | — | — | — |\n"}
 
 <v-clicks>
 
 **Fiyatlandırma Katmanları:**
-1. 📌 Kabana bazlı günlük fiyat
-2. 📅 Sezon/dönem bazlı aralık fiyatı
-3. 🎯 Konsept bazlı ürün fiyatı
-4. ➕ Ekstra ürün/hizmet fiyatı
+1. 🎯 Konsept bazlı ürün fiyatı (Product.salePrice × miktar)
+2. ➕ Ekstra ürün/hizmet fiyatı
+3. 💰 Hizmet ücreti (serviceFee)
 
 </v-clicks>
 
@@ -526,15 +509,9 @@ ${summaryRows || "| — | — | — | — | — |\n"}
 
 <div class="ml-4 mt-12">
 
-### Sezon Fiyatları
+### Basit Fiyat Formülü
 
-${
-  seasonRows
-    ? `| Dönem | Tarih Aralığı | Fiyat |
-|-------|---------------|-------|
-${seasonRows}`
-    : "*Henüz sezon fiyatı tanımlanmamış.*"
-}
+**Toplam = Σ(Ürün Fiyatı × Miktar) + Σ(Ekstra Hizmet) + Hizmet Ücreti**
 
 </div>
 
@@ -557,17 +534,17 @@ transition: slide-left
   <div class="text-center">
     <div class="text-4xl mb-3">📋</div>
     <h3 class="text-amber-400 font-bold mb-2">1. Talep</h3>
-    <p class="text-sm text-neutral-300">Casino kullanıcısı kabana seçer, tarih ve misafir bilgilerini girerek rezervasyon talebi oluşturur.</p>
+    <p class="text-sm text-neutral-300">Casino kullanıcısı Cabana seçer, tarih ve misafir bilgilerini girerek rezervasyon talebi oluşturur.</p>
   </div>
   <div class="text-center">
     <div class="text-4xl mb-3">✅</div>
     <h3 class="text-amber-400 font-bold mb-2">2. Onay</h3>
-    <p class="text-sm text-neutral-300">Admin talepleri inceler, uygunsa onaylar. Otomatik fiyat hesaplaması yapılır. Misafire bildirim gönderilir.</p>
+    <p class="text-sm text-neutral-300">Admin talepleri inceler, uygunsa onaylar. Otomatik fiyat hesaplaması yapılır. Casino kullanıcısına bildirim gönderilir.</p>
   </div>
   <div class="text-center">
     <div class="text-4xl mb-3">🏖️</div>
     <h3 class="text-amber-400 font-bold mb-2">3. Kullanım</h3>
-    <p class="text-sm text-neutral-300">Check-in/out takibi, F&B sipariş yönetimi, ekstra konsept talepleri gerçek zamanlı işlenir.</p>
+    <p class="text-sm text-neutral-300">F&B veya admin günün listesinden misafir check-in/out doğrulaması yapar, konsept ürünleri ve ekstra talepler koordine edilir.</p>
   </div>
 </div>
 
@@ -630,7 +607,7 @@ transition: slide-left
       <span class="text-lg font-bold text-amber-400">Casino User</span>
     </div>
     <ul class="text-sm text-neutral-300 space-y-1">
-      <li>• Kabana müsaitlik görüntüleme</li>
+      <li>• Cabana müsaitlik görüntüleme</li>
       <li>• Rezervasyon talebi oluşturma</li>
       <li>• Değişiklik ve iptal talepleri</li>
       <li>• Ekstra konsept talepleri</li>
@@ -643,8 +620,9 @@ transition: slide-left
       <span class="text-lg font-bold text-green-400">F&B User</span>
     </div>
     <ul class="text-sm text-neutral-300 space-y-1">
-      <li>• Kabana F&B sipariş yönetimi</li>
-      <li>• Sipariş durumu takibi</li>
+      <li>• Konsept ürünlerinin cabana'ya servis edilmesi</li>
+      <li>• Ekstra taleplerin hazırlanması ve teslimi</li>
+      <li>• Günün listesinden check-in/out doğrulama</li>
       <li>• Günlük sipariş özeti</li>
       <li>• Stok ve ürün bilgisi görüntüleme</li>
     </ul>
@@ -678,7 +656,7 @@ transition: slide-left
   <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
     <div class="text-3xl mb-2">🗺️</div>
     <h3 class="text-amber-400 font-bold text-sm mb-2">Görsel Harita</h3>
-    <p class="text-xs text-neutral-400">Kabana yerleşimini interaktif harita üzerinde görüntüleme</p>
+    <p class="text-xs text-neutral-400">Cabana yerleşimini interaktif harita üzerinde görüntüleme</p>
   </div>
   <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
     <div class="text-3xl mb-2">📱</div>
@@ -754,9 +732,9 @@ const ALL_SLIDE_TYPES: readonly SlideType[] = [
 const SLIDE_LABELS: Record<SlideType, string> = {
   cover: "Kapak",
   "system-overview": "Sistem Tanımı",
-  inventory: "Kabana Envanteri",
-  layout: "Kabana Yerleşimi",
-  classes: "Kabana Sınıfları",
+  inventory: "Cabana Envanteri",
+  layout: "Cabana Yerleşimi",
+  classes: "Cabana Sınıfları",
   concepts: "Konsept Tanımları",
   "pricing-policy": "Fiyatlandırma Politikaları",
   workflow: "Çalışma Prensipleri",
@@ -769,7 +747,14 @@ const SLIDE_LABELS: Record<SlideType, string> = {
  * Veritabanından veri çekerek tam bir Slidev markdown dosyası üretir.
  */
 export async function generateSlidevMarkdown(): Promise<string> {
-  return generateSlidevMarkdownCustom({});
+  try {
+    return await generateSlidevMarkdownCustom({});
+  } catch (error) {
+    if (error instanceof DatabaseError) throw error;
+    throw new DatabaseError("Slidev markdown oluşturulamadı", {
+      originalError: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 /**
@@ -778,43 +763,43 @@ export async function generateSlidevMarkdown(): Promise<string> {
 export async function generateSlidevMarkdownCustom(
   options: SlidevOptions = {},
 ): Promise<string> {
-  const title = options.title ?? "Kabana Yönetim Sistemi";
-  const selectedSlides = options.slides ?? [...ALL_SLIDE_TYPES];
+  try {
+    const title = options.title ?? "Cabana Yönetim Sistemi";
+    const selectedSlides = options.slides ?? [...ALL_SLIDE_TYPES];
 
-  const {
-    cabanaList,
-    classList,
-    conceptList,
-    priceSummaries,
-    inventory,
-    seasonRanges,
-  } = await fetchPresentationData();
+    const { cabanaList, classList, conceptList, priceSummaries, inventory } =
+      await cached("presentation:slidev", 300, () => fetchPresentationData());
 
-  const slideGenerators: Record<string, () => string> = {
-    cover: () => generateCoverSlide(title),
-    "system-overview": () => generateSystemOverviewSlide(),
-    inventory: () => generateInventorySlide(inventory),
-    layout: () => generateLayoutSlide(cabanaList),
-    classes: () => generateClassesSlide(classList),
-    concepts: () => generateConceptsSlide(conceptList),
-    "pricing-policy": () =>
-      generatePricingPolicySlide(priceSummaries, seasonRanges),
-    workflow: () => generateWorkflowSlide(),
-    roles: () => generateRolesSlide(),
-    advantages: () => generateAdvantagesSlide(),
-    closing: () => generateClosingSlide(),
-  };
+    const slideGenerators: Record<string, () => string> = {
+      cover: () => generateCoverSlide(title),
+      "system-overview": () => generateSystemOverviewSlide(),
+      inventory: () => generateInventorySlide(inventory),
+      layout: () => generateLayoutSlide(cabanaList),
+      classes: () => generateClassesSlide(classList),
+      concepts: () => generateConceptsSlide(conceptList),
+      "pricing-policy": () => generatePricingPolicySlide(priceSummaries),
+      workflow: () => generateWorkflowSlide(),
+      roles: () => generateRolesSlide(),
+      advantages: () => generateAdvantagesSlide(),
+      closing: () => generateClosingSlide(),
+    };
 
-  const parts: string[] = [];
+    const parts: string[] = [];
 
-  for (const slideType of selectedSlides) {
-    const generator = slideGenerators[slideType];
-    if (generator) {
-      parts.push(generator());
+    for (const slideType of selectedSlides) {
+      const generator = slideGenerators[slideType];
+      if (generator) {
+        parts.push(generator());
+      }
     }
-  }
 
-  return parts.join("\n\n");
+    return parts.join("\n\n");
+  } catch (error) {
+    if (error instanceof DatabaseError) throw error;
+    throw new DatabaseError("Özel Slidev markdown oluşturulamadı", {
+      originalError: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 export { ALL_SLIDE_TYPES, SLIDE_LABELS, type SlidevOptions, type SlideType };

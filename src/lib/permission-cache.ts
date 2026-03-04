@@ -1,39 +1,54 @@
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
+import redis from "@/lib/redis";
 
-/**
- * In-memory permission cache with TTL.
- * Production'da Redis tercih edilmeli — şimdilik process-level cache yeterli.
- *
- * Cache key: Role enum string
- * Cache value: Set<string> (permission keys)
- * TTL: 60 saniye — rol yetki değişikliği max 1 dk'da yansır
- */
+const CACHE_TTL_SECONDS = 300;
+const CACHE_KEY_PREFIX = "permissions:";
+const CACHE_VERSION = "v1";
 
-interface CacheEntry {
+interface MemEntry {
   permissions: Set<string>;
   expiresAt: number;
 }
 
-const cache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60_000; // 60 saniye
+const memCache = new Map<string, MemEntry>();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = prisma as typeof prisma & Record<string, any>;
 
+function cacheKey(role: Role): string {
+  return `${CACHE_KEY_PREFIX}${role}:${CACHE_VERSION}`;
+}
+
 /**
  * Belirli bir rolün aktif permission key'lerini döndürür.
- * Önce cache'e bakar, yoksa DB'den çeker ve cache'ler.
+ * Redis → in-memory fallback → DB sırasıyla dener.
  */
 export async function getPermissionsForRole(role: Role): Promise<Set<string>> {
   const now = Date.now();
-  const cached = cache.get(role);
+  const key = cacheKey(role);
 
-  if (cached && now < cached.expiresAt) {
-    return cached.permissions;
+  // L1: in-memory
+  const mem = memCache.get(key);
+  if (mem && now < mem.expiresAt) {
+    return mem.permissions;
   }
 
-  // DB'den çek
+  // L2: Redis
+  if (redis) {
+    try {
+      const hit = await redis.get(key);
+      if (hit) {
+        const keys = new Set<string>(JSON.parse(hit) as string[]);
+        memCache.set(key, { permissions: keys, expiresAt: now + CACHE_TTL_SECONDS * 1000 });
+        return keys;
+      }
+    } catch {
+      // Redis read failed — fall through to DB
+    }
+  }
+
+  // L3: DB
   const roleDef = await db.roleDefinition.findFirst({
     where: {
       role,
@@ -64,9 +79,21 @@ export async function getPermissionsForRole(role: Role): Promise<Set<string>> {
     ) ?? [],
   );
 
-  cache.set(role, {
+  const arr = [...keys];
+
+  // Write to Redis
+  if (redis) {
+    try {
+      await redis.setex(key, CACHE_TTL_SECONDS, JSON.stringify(arr));
+    } catch {
+      // Redis write failed — continue with memory
+    }
+  }
+
+  // Write to memory
+  memCache.set(key, {
     permissions: keys,
-    expiresAt: now + CACHE_TTL_MS,
+    expiresAt: now + CACHE_TTL_SECONDS * 1000,
   });
 
   return keys;
@@ -114,11 +141,38 @@ export async function hasAllPermissions(
 
 /**
  * Cache'i temizle — rol yetkileri güncellendiğinde çağrılmalı.
+ * Redis + in-memory her ikisini de temizler.
  */
-export function invalidatePermissionCache(role?: Role): void {
+export async function invalidatePermissionCache(role?: Role): Promise<void> {
   if (role) {
-    cache.delete(role);
+    const key = cacheKey(role);
+    memCache.delete(key);
+    if (redis) {
+      try {
+        await redis.del(key);
+      } catch {
+        // ignore
+      }
+    }
   } else {
-    cache.clear();
+    memCache.clear();
+    if (redis) {
+      try {
+        let cursor = "0";
+        do {
+          const [next, keys] = await redis.scan(
+            cursor,
+            "MATCH",
+            `${CACHE_KEY_PREFIX}*`,
+            "COUNT",
+            100,
+          );
+          cursor = next;
+          if (keys.length > 0) await redis.del(...keys);
+        } while (cursor !== "0");
+      } catch {
+        // ignore
+      }
+    }
   }
 }

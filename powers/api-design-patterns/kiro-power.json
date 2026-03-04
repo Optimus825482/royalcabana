@@ -1,0 +1,14 @@
+{
+  "name": "api-design-patterns",
+  "displayName": "API Design Patterns",
+  "description": "Framework-agnostic REST and GraphQL API design patterns. Response formats, error handling, pagination, versioning, authentication, rate limiting, and documentation.",
+  "keywords": [
+    "api-design",
+    "rest-api",
+    "error-handling",
+    "pagination",
+    "api-versioning",
+    "rate-limiting"
+  ],
+  "author": "Erkan"
+}

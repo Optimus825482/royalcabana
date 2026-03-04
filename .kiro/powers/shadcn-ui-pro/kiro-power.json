@@ -1,0 +1,13 @@
+{
+  "name": "shadcn-ui-pro",
+  "displayName": "shadcn/ui Pro Patterns",
+  "description": "Professional UI patterns with shadcn/ui new-york style for dashboard applications. Data tables, forms, modals, responsive layouts, and theming patterns.",
+  "keywords": [
+    "shadcn",
+    "ui-component",
+    "dashboard-layout",
+    "data-table",
+    "form-pattern"
+  ],
+  "author": "Erkan"
+}

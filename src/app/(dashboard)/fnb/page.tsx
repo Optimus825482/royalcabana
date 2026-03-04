@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// WeatherWidget moved to StickyHeader
+import { useSSE } from "@/hooks/useSSE";
+import { SSE_EVENTS } from "@/lib/sse-events";
 import {
   Plus,
   Clock,
@@ -30,6 +31,7 @@ import {
   type CurrencyCode,
   DEFAULT_CURRENCY,
 } from "@/lib/currency";
+import PermissionGate from "@/components/shared/PermissionGate";
 
 // ── Types ──
 
@@ -162,7 +164,9 @@ async function fetchOrders(
   const res = await fetch(`/api/fnb/orders?${params}`);
   if (!res.ok) throw new Error("Siparişler yüklenemedi");
   const data = await res.json();
-  return data.orders ?? data;
+  const resolved = data.data ?? data;
+  if (Array.isArray(resolved)) return resolved;
+  return Array.isArray(resolved.orders) ? resolved.orders : [];
 }
 
 async function fetchActiveReservations(): Promise<{
@@ -170,16 +174,18 @@ async function fetchActiveReservations(): Promise<{
 }> {
   const params = new URLSearchParams({ limit: "200" });
   // Fetch CHECKED_IN and APPROVED reservations
-  const [checkedIn, approved] = await Promise.all([
+  const [checkedInRaw, approvedRaw] = await Promise.all([
     fetch(`/api/reservations?status=CHECKED_IN&${params}`).then((r) =>
       r.json(),
     ),
     fetch(`/api/reservations?status=APPROVED&${params}`).then((r) => r.json()),
   ]);
+  const checkedIn = checkedInRaw.data ?? checkedInRaw;
+  const approved = approvedRaw.data ?? approvedRaw;
   return {
     reservations: [
-      ...(checkedIn.reservations ?? []),
-      ...(approved.reservations ?? []),
+      ...(Array.isArray(checkedIn.reservations) ? checkedIn.reservations : []),
+      ...(Array.isArray(approved.reservations) ? approved.reservations : []),
     ],
   };
 }
@@ -187,7 +193,9 @@ async function fetchActiveReservations(): Promise<{
 async function fetchProducts(): Promise<Product[]> {
   const res = await fetch("/api/products?active=true");
   if (!res.ok) throw new Error("Ürünler yüklenemedi");
-  return res.json();
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
 }
 
 // ── Status Badge ──
@@ -242,7 +250,7 @@ function OrderCard({
       {/* Items */}
       <div className="px-4 pb-3">
         <ul className="space-y-1">
-          {order.items.map((item) => (
+          {(order.items ?? []).map((item) => (
             <li
               key={item.id}
               className="flex items-center justify-between text-xs"
@@ -358,6 +366,7 @@ function NewOrderModal({
   });
 
   const reservations = reservationData?.reservations ?? [];
+  const productsList = Array.isArray(products) ? products : [];
 
   const handleReservationChange = useCallback(
     (id: string) => {
@@ -378,7 +387,7 @@ function NewOrderModal({
             l.productId === productId ? { ...l, quantity: qty } : l,
           );
         }
-        const product = products?.find((p) => p.id === productId);
+        const product = productsList.find((p) => p.id === productId);
         if (!product) return prev;
         return [
           ...prev,
@@ -391,7 +400,7 @@ function NewOrderModal({
         ];
       });
     },
-    [products],
+    [productsList],
   );
 
   const grandTotal = lines.reduce(
@@ -421,7 +430,8 @@ function NewOrderModal({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Sipariş oluşturulamadı");
       }
-      return res.json();
+      const json = await res.json();
+      return json.data ?? json;
     },
     onSuccess: () => {
       onSuccess();
@@ -435,16 +445,15 @@ function NewOrderModal({
 
   // Group products by their group
   const groupedProducts = useMemo(() => {
-    if (!products) return [];
     const groups = new Map<string, { name: string; products: Product[] }>();
-    for (const p of products) {
+    for (const p of productsList) {
       const gKey = p.group?.id ?? "__ungrouped";
       const gName = p.group?.name ?? "Diğer";
       if (!groups.has(gKey)) groups.set(gKey, { name: gName, products: [] });
       groups.get(gKey)!.products.push(p);
     }
     return Array.from(groups.values());
-  }, [products]);
+  }, [productsList]);
 
   return (
     <Modal title="Yeni Sipariş" onClose={onClose}>
@@ -689,8 +698,21 @@ export default function FnbPage() {
         statusFilter !== "ALL" ? statusFilter : null,
         cabanaFilter || null,
       ),
-    refetchInterval: 30_000,
   });
+
+  const handleSSEEvent = useCallback((event: string) => {
+    if (
+      event === SSE_EVENTS.FNB_ORDER_CREATED ||
+      event === SSE_EVENTS.FNB_ORDER_UPDATED ||
+      event === SSE_EVENTS.RESERVATION_UPDATED ||
+      event === SSE_EVENTS.RESERVATION_CHECKED_IN ||
+      event === SSE_EVENTS.RESERVATION_CHECKED_OUT
+    ) {
+      queryClient.invalidateQueries({ queryKey: ["fnb-orders"] });
+    }
+  }, [queryClient]);
+
+  useSSE({ onEvent: handleSSEEvent as (event: string, data: unknown) => void });
 
   // Unique cabanas from orders for filter dropdown
   const cabanaOptions = useMemo(() => {
@@ -715,7 +737,8 @@ export default function FnbPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Durum güncellenemedi");
       }
-      return res.json();
+      const json = await res.json();
+      return json.data ?? json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fnb-orders"] });
@@ -734,126 +757,135 @@ export default function FnbPage() {
   }, [queryClient]);
 
   return (
-    <div className="text-neutral-100 p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-yellow-400">
-            F&B Sipariş Yönetimi
-          </h1>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowModal(true)}
-              className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 text-neutral-950 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Yeni Sipariş
-            </button>
-          </div>
+    <PermissionGate
+      permission="fnb.view"
+      fallback={
+        <div className="flex items-center justify-center h-64 text-neutral-400">
+          Bu sayfaya erişim yetkiniz bulunmamaktadır.
         </div>
-
-        {/* Filter Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-lg p-3">
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1 flex-wrap flex-1">
-            {FILTER_TABS.map((tab) => {
-              const isActive = statusFilter === tab.key;
-              const cfg = tab.key !== "ALL" ? STATUS_CONFIG[tab.key] : null;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setStatusFilter(tab.key)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    isActive
-                      ? cfg
-                        ? `${cfg.bg} ${cfg.color} ${cfg.border} border`
-                        : "bg-yellow-600/20 text-yellow-400 border border-yellow-500/30"
-                      : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+      }
+    >
+      <div className="text-neutral-100 p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto space-y-5">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-yellow-400">
+              F&B Sipariş Yönetimi
+            </h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowModal(true)}
+                className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 text-neutral-950 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Yeni Sipariş
+              </button>
+            </div>
           </div>
 
-          {/* Today Toggle */}
-          <button
-            onClick={() => setTodayOnly((p) => !p)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors shrink-0 ${
-              todayOnly
-                ? "bg-yellow-600/20 text-yellow-400 border-yellow-500/30"
-                : "text-neutral-400 border-neutral-700 hover:text-neutral-200"
-            }`}
-          >
-            <Clock className="w-3 h-3" />
-            Sadece Bugün
-          </button>
+          {/* Filter Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-lg p-3">
+            {/* Status Tabs */}
+            <div className="flex items-center gap-1 flex-wrap flex-1">
+              {FILTER_TABS.map((tab) => {
+                const isActive = statusFilter === tab.key;
+                const cfg = tab.key !== "ALL" ? STATUS_CONFIG[tab.key] : null;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setStatusFilter(tab.key)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      isActive
+                        ? cfg
+                          ? `${cfg.bg} ${cfg.color} ${cfg.border} border`
+                          : "bg-yellow-600/20 text-yellow-400 border border-yellow-500/30"
+                        : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Cabana Filter */}
-          {cabanaOptions.length > 0 && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Filter className="w-3 h-3 text-neutral-500" />
-              <select
-                value={cabanaFilter}
-                onChange={(e) => setCabanaFilter(e.target.value)}
-                className="bg-neutral-800 border border-neutral-700 text-neutral-300 rounded-md text-xs px-2 py-1.5 outline-none min-h-[32px]"
-              >
-                <option value="">Tüm Kabanalar</option>
-                {cabanaOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+            {/* Today Toggle */}
+            <button
+              onClick={() => setTodayOnly((p) => !p)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors shrink-0 ${
+                todayOnly
+                  ? "bg-yellow-600/20 text-yellow-400 border-yellow-500/30"
+                  : "text-neutral-400 border-neutral-700 hover:text-neutral-200"
+              }`}
+            >
+              <Clock className="w-3 h-3" />
+              Sadece Bugün
+            </button>
+
+            {/* Cabana Filter */}
+            {cabanaOptions.length > 0 && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Filter className="w-3 h-3 text-neutral-500" />
+                <select
+                  value={cabanaFilter}
+                  onChange={(e) => setCabanaFilter(e.target.value)}
+                  className="bg-neutral-800 border border-neutral-700 text-neutral-300 rounded-md text-xs px-2 py-1.5 outline-none min-h-[32px]"
+                >
+                  <option value="">Tüm Cabanalar</option>
+                  {cabanaOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Orders Grid */}
+          {isLoading && <OrdersSkeleton />}
+
+          {isError && (
+            <ErrorMsg msg="Siparişler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin." />
+          )}
+
+          {!isLoading && !isError && orders.length === 0 && (
+            <div className="text-center py-16">
+              <ChefHat className="w-12 h-12 text-neutral-700 mx-auto mb-3" />
+              <p className="text-neutral-500 text-sm">
+                {statusFilter !== "ALL"
+                  ? `"${STATUS_CONFIG[statusFilter].label}" durumunda sipariş bulunamadı.`
+                  : "Henüz sipariş bulunmuyor."}
+              </p>
             </div>
           )}
+
+          {!isLoading && !isError && orders.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {orders.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  onStatusChange={handleStatusChange}
+                  isUpdating={statusMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Daily Summary */}
+          {!isLoading && !isError && orders.length > 0 && todayOnly && (
+            <DailySummary orders={orders} />
+          )}
+
+          {/* New Order Modal */}
+          {showModal && (
+            <NewOrderModal
+              onClose={() => setShowModal(false)}
+              onSuccess={handleOrderSuccess}
+            />
+          )}
         </div>
-
-        {/* Orders Grid */}
-        {isLoading && <OrdersSkeleton />}
-
-        {isError && (
-          <ErrorMsg msg="Siparişler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin." />
-        )}
-
-        {!isLoading && !isError && orders.length === 0 && (
-          <div className="text-center py-16">
-            <ChefHat className="w-12 h-12 text-neutral-700 mx-auto mb-3" />
-            <p className="text-neutral-500 text-sm">
-              {statusFilter !== "ALL"
-                ? `"${STATUS_CONFIG[statusFilter].label}" durumunda sipariş bulunamadı.`
-                : "Henüz sipariş bulunmuyor."}
-            </p>
-          </div>
-        )}
-
-        {!isLoading && !isError && orders.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {orders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onStatusChange={handleStatusChange}
-                isUpdating={statusMutation.isPending}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Daily Summary */}
-        {!isLoading && !isError && orders.length > 0 && todayOnly && (
-          <DailySummary orders={orders} />
-        )}
-
-        {/* New Order Modal */}
-        {showModal && (
-          <NewOrderModal
-            onClose={() => setShowModal(false)}
-            onSuccess={handleOrderSuccess}
-          />
-        )}
       </div>
-    </div>
+    </PermissionGate>
   );
 }

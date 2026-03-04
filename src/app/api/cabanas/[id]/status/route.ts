@@ -18,7 +18,7 @@ export const PATCH = withAuth(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Validation error", errors: parsed.error.flatten() },
+        { success: false, error: "Validation error", errors: parsed.error.flatten() },
         { status: 400 },
       );
     }
@@ -29,10 +29,10 @@ export const PATCH = withAuth(
         data: { status: parsed.data.status },
         select: { id: true, name: true, status: true },
       });
-      return NextResponse.json(updated);
+      return NextResponse.json({ success: true, data: updated });
     } catch {
       return NextResponse.json(
-        { error: "Kabana bulunamadı." },
+        { success: false, error: "Cabana bulunamadı." },
         { status: 404 },
       );
     }

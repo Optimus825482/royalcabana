@@ -25,7 +25,7 @@ export const POST = withAuth(
     const parsed = previewSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Validation error", errors: parsed.error.flatten() },
+        { success: false, error: "Validation error" },
         { status: 400 },
       );
     }
@@ -41,7 +41,7 @@ export const POST = withAuth(
       extraItems: extraItems ?? [],
     });
 
-    return NextResponse.json(breakdown);
+    return NextResponse.json({ success: true, data: breakdown });
   },
   { requiredPermissions: ["pricing.view"] },
 );

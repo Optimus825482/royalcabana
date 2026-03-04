@@ -57,14 +57,14 @@ export const GET = withAuth(
     });
 
     if (!config) {
-      return NextResponse.json(DEFAULT_POLICY);
+      return NextResponse.json({ success: true, data: DEFAULT_POLICY });
     }
 
     try {
       const policy = JSON.parse(config.value) as CancellationPolicy;
-      return NextResponse.json(policy);
+      return NextResponse.json({ success: true, data: policy });
     } catch {
-      return NextResponse.json(DEFAULT_POLICY);
+      return NextResponse.json({ success: true, data: DEFAULT_POLICY });
     }
   },
   { requiredPermissions: ["system.config.view"] },
@@ -77,7 +77,7 @@ export const PUT = withAuth(
 
     if (!isValidPolicy(body)) {
       return NextResponse.json(
-        { message: "Geçersiz iptal politikası verisi" },
+        { success: false, error: "Geçersiz iptal politikası verisi" },
         { status: 400 },
       );
     }
@@ -105,7 +105,7 @@ export const PUT = withAuth(
       newValue: body as unknown as Record<string, unknown>,
     });
 
-    return NextResponse.json(JSON.parse(config.value));
+    return NextResponse.json({ success: true, data: JSON.parse(config.value) });
   },
   { requiredPermissions: ["system.config.update"] },
 );

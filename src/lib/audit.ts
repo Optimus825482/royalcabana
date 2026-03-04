@@ -19,7 +19,8 @@ export type AuditAction =
   | "EXTRA_REQUEST"
   | "EXTRA_ADD"
   | "CHECK_IN"
-  | "CHECK_OUT";
+  | "CHECK_OUT"
+  | "SOFT_DELETE";
 
 export type AuditEntity =
   | "User"
@@ -29,8 +30,7 @@ export type AuditEntity =
   | "Product"
   | "ProductGroup"
   | "Reservation"
-  | "CabanaPrice"
-  | "ConceptPrice"
+  | "Review"
   | "SystemConfig"
   | "Profile"
   | "ExtraItem"
@@ -46,7 +46,12 @@ export type AuditEntity =
   | "TaskDefinition"
   | "RoleDefinition"
   | "Permission"
-  | "RolePermission";
+  | "RolePermission"
+  | "ReservationExtraRequest"
+  | "ServicePoint"
+  | "ServicePointStaff"
+  | "ExtraService"
+  | "ClassAttribute";
 
 interface AuditParams {
   userId: string;

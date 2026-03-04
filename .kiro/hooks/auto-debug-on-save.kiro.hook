@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Auto Debug on Save",
+  "version": "1",
+  "description": "TypeScript/JavaScript dosyasi kaydedildiginde syntax, type ve lint hatalarini kontrol eder.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["*.ts", "*.tsx", "*.js", "*.jsx"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Kaydedilen dosyayi kontrol et. Syntax hatalari, type errors veya belirgin linting sorunlari varsa tespit et ve duzeltme onerileri sun. Sorun yoksa sessizce gec."
+  }
+}

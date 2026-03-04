@@ -32,11 +32,11 @@ function SidebarHeader({
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="relative px-3 py-4">
+    <div className="relative px-1 py-2">
       {/* Collapse toggle - top right corner, desktop only */}
       <button
         onClick={onToggle}
-        className="hidden lg:flex absolute top-2 right-2 items-center justify-center w-7 h-7 text-neutral-500 hover:text-amber-400 hover:bg-neutral-800/50 rounded-md transition-colors"
+        className="hidden lg:flex absolute top-1 right-1 items-center justify-center w-7 h-7 text-neutral-500 hover:text-amber-400 hover:bg-neutral-800/50 rounded-md transition-colors z-10"
         aria-label={collapsed ? "Menüyü genişlet" : "Menüyü daralt"}
       >
         <ChevronDown
@@ -52,9 +52,9 @@ function SidebarHeader({
           <Image
             src="/logo.png"
             alt="Royal Cabana"
-            width={collapsed ? 44 : 100}
-            height={collapsed ? 44 : 100}
-            className="rounded-xl"
+              width={collapsed ? 44 : 175}
+              height={collapsed ? 44 : 175}
+              className="rounded-lg mix-blend-lighten transition-all duration-200"
             onError={() => setImgError(true)}
             priority
           />
@@ -95,7 +95,7 @@ function SidebarGroup({
     return (
       <div className="relative group/tip">
         <div
-          className={`flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-colors ${
+          className={`flex items-center justify-center w-11 h-11 mx-auto rounded-lg transition-colors ${
             isGroupActive ? "bg-neutral-800" : "hover:bg-neutral-800"
           }`}
         >
@@ -147,7 +147,7 @@ function SidebarGroup({
                 key={child.href}
                 href={child.href}
                 onClick={onNavigate}
-                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors ${
+                className={`flex items-center gap-2 px-3 min-h-[44px] py-2.5 text-sm rounded-md transition-colors ${
                   isActive ? "bg-neutral-800/70" : "hover:bg-neutral-800/50"
                 }`}
               >
@@ -194,7 +194,7 @@ function SidebarLink({
         <Link
           href={item.href}
           onClick={onNavigate}
-          className={`flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-colors ${
+          className={`flex items-center justify-center w-11 h-11 mx-auto rounded-lg transition-colors ${
             isActive ? "bg-neutral-800" : "hover:bg-neutral-800"
           }`}
         >
@@ -257,7 +257,8 @@ export default function Sidebar({
     queryFn: async () => {
       const res = await fetch("/api/system/modules");
       if (!res.ok) throw new Error("Module config fetch failed");
-      return res.json();
+      const json = await res.json();
+      return json.data ?? json;
     },
     staleTime: 60_000,
     enabled: !!session,
@@ -274,7 +275,7 @@ export default function Sidebar({
           if (!isGroup(item) || item.label !== "Deneyim") return item;
           const filtered = item.children.filter((c) => {
             if (c.href === "/casino/reviews")
-              return moduleConfig.reviews.enabled;
+              return moduleConfig?.reviews?.enabled ?? true;
             return true;
           });
           if (filtered.length === 0) return null;
@@ -343,28 +344,40 @@ export default function Sidebar({
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1 rc-scrollbar">
-          {navItems.map((item) => {
-            if (isGroup(item)) {
+          {!session ? (
+            /* Skeleton — prevents hydration mismatch (server has no session) */
+            <div className="space-y-2 px-1">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-9 rounded-lg bg-neutral-800/40 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            navItems.map((item) => {
+              if (isGroup(item)) {
+                return (
+                  <SidebarGroup
+                    key={item.label}
+                    group={item}
+                    pathname={pathname}
+                    collapsed={collapsed}
+                    onNavigate={handleMobileNavigate}
+                  />
+                );
+              }
               return (
-                <SidebarGroup
-                  key={item.label}
-                  group={item}
+                <SidebarLink
+                  key={item.href}
+                  item={item}
                   pathname={pathname}
                   collapsed={collapsed}
                   onNavigate={handleMobileNavigate}
                 />
               );
-            }
-            return (
-              <SidebarLink
-                key={item.href}
-                item={item}
-                pathname={pathname}
-                collapsed={collapsed}
-                onNavigate={handleMobileNavigate}
-              />
-            );
-          })}
+            })
+          )}
         </nav>
 
         {/* Bottom section - mobile only (profile + logout) */}

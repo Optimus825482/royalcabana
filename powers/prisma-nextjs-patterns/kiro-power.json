@@ -1,0 +1,12 @@
+{
+  "name": "prisma-nextjs-patterns",
+  "displayName": "Prisma + Next.js Patterns",
+  "description": "Production patterns for Prisma ORM with Next.js 15 App Router. Covers client singleton, soft delete, Decimal handling, type-safe API responses, pagination, and N+1 prevention.",
+  "keywords": [
+    "prisma-pattern",
+    "nextjs-api",
+    "soft-delete",
+    "decimal-handling",
+    "type-safe-response"
+  ]
+}

@@ -97,7 +97,12 @@ export default function RoleDefinitionsPage() {
   const [deleteTarget, setDeleteTarget] = useState<RoleDefinition | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const { data: roleDefinitions = [], isLoading } = useQuery<RoleDefinition[]>({
+  const {
+    data: roleDefinitions = [],
+    isLoading,
+    isError: isRolesError,
+    error: rolesError,
+  } = useQuery<RoleDefinition[]>({
     queryKey: ["role-definitions"],
     queryFn: async () => {
       const res = await fetch("/api/system-admin/role-definitions");
@@ -366,7 +371,7 @@ export default function RoleDefinitionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
-            Rol Tanımları
+            Rol & Yetki Tanımlama
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
             Rolleri ve yetki atamalarını yönet
@@ -400,6 +405,13 @@ export default function RoleDefinitionsPage() {
       {isLoading ? (
         <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
           Yükleniyor...
+        </div>
+      ) : isRolesError ? (
+        <div className="text-center py-12">
+          <p className="text-red-400 text-sm">
+            {(rolesError as Error)?.message ??
+              "Veriler yüklenirken bir hata oluştu."}
+          </p>
         </div>
       ) : roleDefinitions.length === 0 ? (
         <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">

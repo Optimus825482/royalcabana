@@ -39,9 +39,8 @@ export const GET = withAuth(
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json(cabanas);
+    return NextResponse.json({ success: true, data: cabanas });
   },
-  { requiredPermissions: ["map.view"] },
 );
 
 export const POST = withAuth(
@@ -52,7 +51,11 @@ export const POST = withAuth(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -72,7 +75,7 @@ export const POST = withAuth(
     const existing = await prisma.cabana.findUnique({ where: { name } });
     if (existing) {
       return NextResponse.json(
-        { error: "Bu isimde bir kabana zaten mevcut." },
+        { success: false, error: "Bu isimde bir Cabana zaten mevcut." },
         { status: 409 },
       );
     }
@@ -103,7 +106,6 @@ export const POST = withAuth(
       newValue: { name, classId, conceptId, coordX, coordY },
     });
 
-    return NextResponse.json(cabana, { status: 201 });
+    return NextResponse.json({ success: true, data: cabana }, { status: 201 });
   },
-  { requiredPermissions: ["map.update"] },
 );

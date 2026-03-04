@@ -27,6 +27,12 @@ interface WeatherData {
   mock: boolean;
 }
 
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: Partial<T>;
+  error?: string;
+}
+
 const ICON_MAP: Record<string, typeof Sun> = {
   "01": Sun,
   "02": Cloud,
@@ -39,9 +45,11 @@ const ICON_MAP: Record<string, typeof Sun> = {
   "50": CloudFog,
 };
 
-function getWeatherIcon(iconCode: string) {
+function getWeatherIcon(iconCode?: string | null) {
+  if (!iconCode || typeof iconCode !== "string" || iconCode.length < 2)
+    return Cloud;
   const prefix = iconCode.slice(0, 2);
-  return ICON_MAP[prefix] || Cloud;
+  return ICON_MAP[prefix] ?? Cloud;
 }
 
 export default function WeatherCard() {
@@ -50,7 +58,18 @@ export default function WeatherCard() {
     queryFn: async () => {
       const res = await fetch("/api/weather");
       if (!res.ok) throw new Error("Weather fetch failed");
-      return res.json();
+      const payload: ApiEnvelope<WeatherData> = await res.json();
+
+      return {
+        temp: payload.data?.temp ?? 0,
+        feelsLike: payload.data?.feelsLike ?? 0,
+        description: payload.data?.description ?? "-",
+        icon: payload.data?.icon ?? "",
+        humidity: payload.data?.humidity ?? 0,
+        windSpeed: payload.data?.windSpeed ?? 0,
+        city: payload.data?.city ?? "",
+        mock: payload.data?.mock ?? true,
+      };
     },
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -72,7 +91,7 @@ export default function WeatherCard() {
 
   if (!data) return null;
 
-  const WeatherIcon = getWeatherIcon(data.icon);
+  const WeatherIcon = getWeatherIcon(data?.icon);
 
   return (
     <div className="bg-gradient-to-br from-neutral-900 to-neutral-900/80 border border-neutral-800 rounded-xl p-5 hover:border-amber-500/30 transition-colors">

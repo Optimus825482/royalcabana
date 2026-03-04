@@ -164,12 +164,10 @@ interface ReservationTimelineProps {
   onReservationClick?: (reservation: TimelineReservation) => void;
   onCabanaClick?: (cabana: TimelineCabana) => void;
   onCellClick?: (cabanaId: string, date: string) => void;
-  onQuickAction?: (
-    action: string,
-    reservationId: string,
-  ) => void | Promise<void>;
-  isAdmin?: boolean;
   compact?: boolean;
+  initialViewMode?: ViewMode;
+  initialDate?: string;
+  focusCabanaId?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────
@@ -179,19 +177,24 @@ export default function ReservationTimelineInner({
   onReservationClick,
   onCabanaClick,
   onCellClick,
-  onQuickAction,
-  isAdmin = false,
   compact = false,
+  initialViewMode = "week",
+  initialDate,
+  focusCabanaId,
 }: ReservationTimelineProps) {
+  const parsedInitialDate = useMemo(() => {
+    if (!initialDate) return null;
+    const date = new Date(`${initialDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }, [initialDate]);
+
   // State
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => initialViewMode);
   const [baseDate, setBaseDate] = useState<Date>(() => {
-    const d = new Date();
+    const d = parsedInitialDate ? new Date(parsedInitialDate) : new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   });
-  const [selectedReservation, setSelectedReservation] =
-    useState<TimelineReservation | null>(null);
   const [hoveredReservation, setHoveredReservation] =
     useState<TimelineReservation | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -281,8 +284,12 @@ export default function ReservationTimelineInner({
     (r: TimelineReservation) => {
       if (!r.startDate || !r.endDate) return null;
 
-      const rStart = new Date(r.startDate + "T00:00:00");
-      const rEnd = new Date(r.endDate + "T00:00:00");
+      const rStartStr =
+        r.startDate.length > 10 ? r.startDate.slice(0, 10) : r.startDate;
+      const rEndStr =
+        r.endDate.length > 10 ? r.endDate.slice(0, 10) : r.endDate;
+      const rStart = new Date(rStartStr + "T00:00:00");
+      const rEnd = new Date(rEndStr + "T00:00:00");
 
       // Guard against invalid dates producing NaN
       if (isNaN(rStart.getTime()) || isNaN(rEnd.getTime())) return null;
@@ -324,7 +331,6 @@ export default function ReservationTimelineInner({
 
   const handleBarClick = useCallback(
     (r: TimelineReservation) => {
-      setSelectedReservation(r);
       onReservationClick?.(r);
     },
     [onReservationClick],
@@ -357,13 +363,20 @@ export default function ReservationTimelineInner({
       if (e.key === "ArrowRight") navigate(1);
       if (e.key === "t" || e.key === "T") goToToday();
       if (e.key === "Escape") {
-        setSelectedReservation(null);
         setHoveredReservation(null);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [navigate, goToToday]);
+
+  useEffect(() => {
+    if (!focusCabanaId || !gridRef.current) return;
+    const target = gridRef.current.querySelector<HTMLElement>(
+      `[data-cabana-id="${focusCabanaId}"]`,
+    );
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusCabanaId, filteredCabanas]);
 
   // ── Status filter ──────────────────────────────────────────────────
 
@@ -603,7 +616,7 @@ export default function ReservationTimelineInner({
                 style={{ minWidth: 160, width: 160 }}
               >
                 <span className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider">
-                  Kabana
+                    Cabana
                 </span>
               </div>
 
@@ -651,8 +664,10 @@ export default function ReservationTimelineInner({
               return (
                 <div
                   key={cabana.id}
+                  data-cabana-id={cabana.id}
                   className={`flex border-b border-neutral-800/20 transition-colors
                     ${rowIdx % 2 === 0 ? "bg-neutral-950/40" : "bg-neutral-900/20"}
+                    ${focusCabanaId === cabana.id ? "ring-1 ring-amber-500/50" : ""}
                     hover:bg-neutral-800/15`}
                   style={{ minHeight: rowHeight }}
                 >
@@ -718,8 +733,16 @@ export default function ReservationTimelineInner({
 
                     {/* Blackout date overlays */}
                     {rowBlackouts.map((b) => {
-                      const bStart = new Date(b.startDate + "T00:00:00");
-                      const bEnd = new Date(b.endDate + "T00:00:00");
+                      const bStartStr =
+                        b.startDate.length > 10
+                          ? b.startDate.slice(0, 10)
+                          : b.startDate;
+                      const bEndStr =
+                        b.endDate.length > 10
+                          ? b.endDate.slice(0, 10)
+                          : b.endDate;
+                      const bStart = new Date(bStartStr + "T00:00:00");
+                      const bEnd = new Date(bEndStr + "T00:00:00");
                       const startOff = daysBetween(startDate, bStart);
                       const endOff = daysBetween(startDate, bEnd);
                       const cStart = clamp(startOff, 0, dayCount);
@@ -751,7 +774,6 @@ export default function ReservationTimelineInner({
                       if (!geo) return null;
 
                       const StatusIcon = STATUS_ICON[r.status];
-                      const isSelected = selectedReservation?.id === r.id;
 
                       return (
                         <div
@@ -761,7 +783,6 @@ export default function ReservationTimelineInner({
                             border-l-[3px]
                             ${STATUS_COLORS[r.status]}
                             ${STATUS_BORDER[r.status]}
-                            ${isSelected ? "ring-2 ring-amber-400/60 ring-offset-1 ring-offset-neutral-950 scale-[1.02] z-[8]" : ""}
                             ${geo.startsBeforeView ? "rounded-l-none" : ""}
                             ${geo.endsAfterView ? "rounded-r-none" : ""}
                           `}
@@ -815,8 +836,8 @@ export default function ReservationTimelineInner({
               <div className="flex items-center justify-center h-40 text-neutral-500">
                 <p className="text-sm">
                   {classFilter
-                    ? "Bu sınıfa ait kabana bulunamadı."
-                    : "Kabana verisi bulunamadı."}
+                      ? "Bu sınıfa ait cabana bulunamadı."
+                      : "Cabana verisi bulunamadı."}
                 </p>
               </div>
             )}
@@ -855,16 +876,6 @@ export default function ReservationTimelineInner({
           reservation={hoveredReservation}
           x={tooltipPos.x}
           y={tooltipPos.y}
-        />
-      )}
-
-      {/* ── Selected Reservation Detail Panel ──────────────────────── */}
-      {selectedReservation && (
-        <ReservationDetailPanel
-          reservation={selectedReservation}
-          isAdmin={isAdmin}
-          onClose={() => setSelectedReservation(null)}
-          onAction={onQuickAction}
         />
       )}
     </div>
@@ -954,212 +965,6 @@ function ReservationTooltip({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function ReservationDetailPanel({
-  reservation: r,
-  isAdmin,
-  onClose,
-  onAction,
-}: {
-  reservation: TimelineReservation;
-  isAdmin: boolean;
-  onClose: () => void;
-  onAction?: (action: string, id: string) => void | Promise<void>;
-}) {
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  const handleAction = async (action: string) => {
-    if (!onAction) return;
-    setActionLoading(action);
-    try {
-      await onAction(action, r.id);
-    } catch {
-      // Error handled by parent
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const StatusIcon = STATUS_ICON[r.status];
-
-  return (
-    <div className="absolute right-0 top-0 bottom-0 w-80 bg-neutral-900/95 backdrop-blur-xl border-l border-neutral-800/60 z-[50] flex flex-col animate-in slide-in-from-right duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800/40">
-        <h3 className="text-sm font-bold text-white">Rezervasyon Detay</h3>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-neutral-800 rounded-lg transition-colors"
-        >
-          <XCircle className="w-4 h-4 text-neutral-500" />
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 rc-scrollbar">
-        {/* Guest info */}
-        <div className="space-y-2">
-          <h4 className="text-[10px] text-neutral-500 uppercase tracking-wider">
-            Misafir
-          </h4>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-600/20 flex items-center justify-center">
-              <span className="text-sm font-bold text-amber-400">
-                {r.guestName.charAt(0)}
-              </span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">{r.guestName}</p>
-              {r.guest?.vipLevel && r.guest.vipLevel !== "STANDARD" && (
-                <p className="text-[10px] text-amber-400">
-                  VIP {r.guest.vipLevel}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Status */}
-        <div className="space-y-2">
-          <h4 className="text-[10px] text-neutral-500 uppercase tracking-wider">
-            Durum
-          </h4>
-          <div
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${STATUS_BORDER[r.status]} bg-neutral-800/40`}
-          >
-            <StatusIcon className="w-4 h-4 text-neutral-300" />
-            <span className="text-sm font-medium text-neutral-200">
-              {STATUS_LABELS[r.status]}
-            </span>
-          </div>
-        </div>
-
-        {/* Dates */}
-        <div className="space-y-2">
-          <h4 className="text-[10px] text-neutral-500 uppercase tracking-wider">
-            Tarihler
-          </h4>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-neutral-800/40 rounded-lg p-2">
-              <p className="text-[9px] text-neutral-500">Giriş</p>
-              <p className="text-xs font-medium text-neutral-200">
-                {new Date(r.startDate).toLocaleDateString("tr-TR")}
-              </p>
-            </div>
-            <div className="bg-neutral-800/40 rounded-lg p-2">
-              <p className="text-[9px] text-neutral-500">Çıkış</p>
-              <p className="text-xs font-medium text-neutral-200">
-                {new Date(r.endDate).toLocaleDateString("tr-TR")}
-              </p>
-            </div>
-          </div>
-          {r.checkInAt && (
-            <p className="text-[10px] text-teal-400">
-              Check-in:{" "}
-              {new Date(r.checkInAt).toLocaleTimeString("tr-TR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
-          {r.checkOutAt && (
-            <p className="text-[10px] text-slate-400">
-              Check-out:{" "}
-              {new Date(r.checkOutAt).toLocaleTimeString("tr-TR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
-        </div>
-
-        {/* Cabana */}
-        <div className="space-y-2">
-          <h4 className="text-[10px] text-neutral-500 uppercase tracking-wider">
-            Kabana
-          </h4>
-          <p className="text-sm font-medium text-neutral-200">
-            {r.cabana.name}
-          </p>
-        </div>
-
-        {/* Notes */}
-        {r.notes && (
-          <div className="space-y-2">
-            <h4 className="text-[10px] text-neutral-500 uppercase tracking-wider">
-              Notlar
-            </h4>
-            <p className="text-xs text-neutral-400 bg-neutral-800/40 rounded-lg p-2">
-              {r.notes}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Quick actions */}
-      {isAdmin && onAction && (
-        <div className="p-4 border-t border-neutral-800/40 space-y-2">
-          {r.status === ReservationStatus.PENDING && (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => handleAction("approve")}
-                disabled={actionLoading !== null}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-700/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-              >
-                {actionLoading === "approve" ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-3 h-3" />
-                )}
-                Onayla
-              </button>
-              <button
-                onClick={() => handleAction("reject")}
-                disabled={actionLoading !== null}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-700/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-              >
-                {actionLoading === "reject" ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                ) : (
-                  <XCircle className="w-3 h-3" />
-                )}
-                Reddet
-              </button>
-            </div>
-          )}
-          {r.status === ReservationStatus.APPROVED && (
-            <button
-              onClick={() => handleAction("check-in")}
-              disabled={actionLoading !== null}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-teal-600/20 hover:bg-teal-600/30 text-teal-400 border border-teal-700/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-            >
-              {actionLoading === "check-in" ? (
-                <RefreshCw className="w-3 h-3 animate-spin" />
-              ) : (
-                <LogIn className="w-3 h-3" />
-              )}
-              Check-in Yap
-            </button>
-          )}
-          {r.status === ReservationStatus.CHECKED_IN && (
-            <button
-              onClick={() => handleAction("check-out")}
-              disabled={actionLoading !== null}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-600/20 hover:bg-slate-600/30 text-slate-400 border border-slate-700/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-            >
-              {actionLoading === "check-out" ? (
-                <RefreshCw className="w-3 h-3 animate-spin" />
-              ) : (
-                <LogOut className="w-3 h-3" />
-              )}
-              Check-out Yap
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

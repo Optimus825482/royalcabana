@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -11,10 +11,9 @@ import {
   ChevronRight,
   ChevronLeft,
   Users,
-  ClipboardList,
   MapPin,
-  CheckCircle2,
-  Circle,
+  Trash2,
+  Settings2,
 } from "lucide-react";
 import {
   Modal,
@@ -34,6 +33,12 @@ interface CabanaOption {
   name: string;
 }
 
+interface ServicePointOption {
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface StaffAssignment {
   id: string;
   cabanaId: string;
@@ -42,13 +47,13 @@ interface StaffAssignment {
   shift: string | null;
 }
 
-interface StaffTask {
+interface ServicePointAssignment {
   id: string;
-  title: string;
-  description: string | null;
+  servicePointId: string;
+  servicePoint?: { name: string; type: string };
+  role: string;
   date: string;
-  isCompleted: boolean;
-  completedAt: string | null;
+  shift: string | null;
 }
 
 interface StaffRow {
@@ -59,73 +64,50 @@ interface StaffRow {
   position: string;
   isActive: boolean;
   assignments?: StaffAssignment[];
-  tasks?: StaffTask[];
+  servicePointAssignments?: ServicePointAssignment[];
 }
 
 interface StaffForm {
   name: string;
-  phone: string;
-  email: string;
   position: string;
 }
 
 interface AssignmentForm {
   staffId: string;
   cabanaId: string;
-  date: string;
-  shift: string;
 }
-
-interface TaskForm {
-  staffId: string;
-  taskDefinitionId: string;
-  title: string;
-  description: string;
-  date: string;
-}
-
-const SHIFT_OPTIONS = [
-  { value: "MORNING", label: "Sabah" },
-  { value: "AFTERNOON", label: "Öğleden Sonra" },
-  { value: "FULL_DAY", label: "Tam Gün" },
-];
 
 const defaultStaffForm: StaffForm = {
   name: "",
-  phone: "",
-  email: "",
   position: "",
 };
 const defaultAssignmentForm: AssignmentForm = {
   staffId: "",
   cabanaId: "",
-  date: "",
-  shift: "FULL_DAY",
 };
-const defaultTaskForm: TaskForm = {
-  staffId: "",
-  taskDefinitionId: "",
-  title: "",
-  description: "",
-  date: "",
-};
-
 const PAGE_SIZE = 20;
-
-const formatDate = (dateStr: string) =>
-  new Intl.DateTimeFormat("tr-TR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(dateStr));
 
 // ── API helpers ──
 
 async function fetchCabanas(): Promise<CabanaOption[]> {
   const res = await fetch("/api/cabanas");
-  if (!res.ok) throw new Error("Kabana listesi yüklenemedi.");
+  if (!res.ok) throw new Error("Cabana listesi yüklenemedi.");
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
+}
+
+async function fetchServicePoints(): Promise<ServicePointOption[]> {
+  const res = await fetch("/api/service-points?lightweight=true");
+  if (!res.ok) throw new Error("Hizmet noktaları yüklenemedi.");
   const data = await res.json();
-  return data.cabanas ?? data;
+  const resolved = data.data ?? data;
+  const items = Array.isArray(resolved) ? resolved : (resolved.items ?? []);
+  return items.map((sp: { id: string; name: string; type: string }) => ({
+    id: sp.id,
+    name: sp.name,
+    type: sp.type,
+  }));
 }
 
 async function fetchStaff(
@@ -139,13 +121,26 @@ async function fetchStaff(
   const res = await fetch(url);
   if (!res.ok) throw new Error("Personel listesi yüklenemedi.");
   const data = await res.json();
-  return data.items ?? data.staff ?? data;
+  const resolved = data.data ?? data;
+  if (Array.isArray(resolved)) return resolved;
+  return resolved.items ?? resolved.staff ?? [];
+}
+
+function normalizeStaffRows(data: unknown): StaffRow[] {
+  if (Array.isArray(data)) return data as StaffRow[];
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as StaffRow[];
+    if (Array.isArray(obj.staff)) return obj.staff as StaffRow[];
+  }
+  return [];
 }
 
 async function fetchStaffDetail(id: string): Promise<StaffRow> {
   const res = await fetch(`/api/staff/${id}`);
   if (!res.ok) throw new Error("Personel detayı yüklenemedi.");
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function createStaff(data: StaffForm): Promise<StaffRow> {
@@ -156,9 +151,10 @@ async function createStaff(data: StaffForm): Promise<StaffRow> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Personel oluşturulamadı.");
+    throw new Error(err.error || err.message || "Personel oluşturulamadı.");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function updateStaff(
@@ -172,9 +168,10 @@ async function updateStaff(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Personel güncellenemedi.");
+    throw new Error(err.error || err.message || "Personel güncellenemedi.");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function deactivateStaff(id: string): Promise<void> {
@@ -187,49 +184,24 @@ async function deactivateStaff(id: string): Promise<void> {
 
 async function createAssignment(
   data: AssignmentForm,
-): Promise<StaffAssignment> {
-  const res = await fetch("/api/staff/assignments", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Atama oluşturulamadı.");
-  }
-  return res.json();
-}
-
-async function createTask(data: TaskForm): Promise<StaffTask> {
-  const res = await fetch("/api/staff/tasks", {
+): Promise<{ created: number; skipped: number; total: number }> {
+  const today = new Date().toISOString().split("T")[0];
+  const res = await fetch("/api/staff/assignments/bulk", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...data,
-      taskDefinitionId: data.taskDefinitionId || undefined,
+      staffId: data.staffId,
+      targetId: data.cabanaId,
+      startDate: today,
+      endDate: today,
     }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Görev oluşturulamadı.");
+    throw new Error(err.error || err.message || "Atama oluşturulamadı.");
   }
-  return res.json();
-}
-
-async function toggleTaskCompletion(
-  id: string,
-  isCompleted: boolean,
-): Promise<StaffTask> {
-  const res = await fetch(`/api/staff/tasks/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ isCompleted }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Görev durumu güncellenemedi.");
-  }
-  return res.json();
+  const json = await res.json();
+  return json.data;
 }
 
 // ── Component ──
@@ -258,8 +230,8 @@ export default function StaffPage() {
     defaultAssignmentForm,
   );
 
-  const [showTask, setShowTask] = useState(false);
-  const [taskForm, setTaskForm] = useState<TaskForm>(defaultTaskForm);
+  const [showTaskDefManager, setShowTaskDefManager] = useState(false);
+  const [newTaskDefTitle, setNewTaskDefTitle] = useState("");
 
   const [toast, setToast] = useState<{
     type: "success" | "error";
@@ -288,6 +260,11 @@ export default function StaffPage() {
     queryFn: fetchCabanas,
   });
 
+  const { data: servicePoints = [] } = useQuery({
+    queryKey: ["service-points"],
+    queryFn: fetchServicePoints,
+  });
+
   const { data: taskDefs = [] } = useQuery<
     {
       id: string;
@@ -301,13 +278,16 @@ export default function StaffPage() {
       const res = await fetch("/api/task-definitions");
       if (!res.ok) return [];
       const data = await res.json();
-      return data.items ?? data;
+      const resolved = data.data ?? data;
+      if (Array.isArray(resolved)) return resolved;
+      return resolved.items ?? [];
     },
   });
 
-  const { data: allStaff = [], isLoading } = useQuery({
+  const { data: allStaff = [], isLoading } = useQuery<unknown, Error, StaffRow[]>({
     queryKey: ["staff", debouncedSearch, activeFilter],
     queryFn: () => fetchStaff(debouncedSearch, activeFilter),
+    select: normalizeStaffRows,
   });
 
   const { data: staffDetail } = useQuery({
@@ -357,6 +337,7 @@ export default function StaffPage() {
   const assignmentMutation = useMutation({
     mutationFn: createAssignment,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
       queryClient.invalidateQueries({ queryKey: ["staff-detail"] });
       setShowAssignment(false);
       setAssignmentForm(defaultAssignmentForm);
@@ -365,44 +346,55 @@ export default function StaffPage() {
     onError: (e: Error) => showToast("error", e.message),
   });
 
-  const taskMutation = useMutation({
-    mutationFn: createTask,
+  const createTaskDefMutation = useMutation({
+    mutationFn: async (title: string) => {
+      const res = await fetch("/api/task-definitions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Görev tanımı oluşturulamadı.");
+      }
+      const json = await res.json();
+      return json.data ?? json;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staff-detail"] });
-      setShowTask(false);
-      setTaskForm(defaultTaskForm);
-      showToast("success", "Görev başarıyla oluşturuldu.");
+      queryClient.invalidateQueries({ queryKey: ["task-definitions"] });
+      setNewTaskDefTitle("");
+      showToast("success", "Görev tanımı eklendi.");
     },
     onError: (e: Error) => showToast("error", e.message),
   });
 
-  const toggleTaskMutation = useMutation({
-    mutationFn: ({ id, isCompleted }: { id: string; isCompleted: boolean }) =>
-      toggleTaskCompletion(id, isCompleted),
+  const deleteTaskDefMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/task-definitions/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Görev tanımı silinemedi.");
+      }
+      const json = await res.json();
+      return json.data ?? json;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staff-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["task-definitions"] });
+      showToast("success", "Görev tanımı kaldırıldı.");
     },
     onError: (e: Error) => showToast("error", e.message),
   });
 
   function openEdit(s: StaffRow) {
     setEditStaff(s);
-    setEditForm({
-      name: s.name,
-      phone: s.phone ?? "",
-      email: s.email ?? "",
-      position: s.position,
-    });
+    setEditForm({ name: s.name, position: s.position });
   }
 
   function openAssignment(staffId: string) {
     setAssignmentForm({ ...defaultAssignmentForm, staffId });
     setShowAssignment(true);
-  }
-
-  function openTask(staffId: string) {
-    setTaskForm({ ...defaultTaskForm, staffId });
-    setShowTask(true);
   }
 
   function toggleExpand(id: string) {
@@ -411,111 +403,26 @@ export default function StaffPage() {
 
   // ── Expanded Detail Section ──
   function StaffDetail({ staff }: { staff: StaffRow }) {
-    const assignments = staff.assignments ?? [];
-    const tasks = staff.tasks ?? [];
-
     return (
-      <div className="bg-neutral-800/40 border-t border-neutral-800 px-4 py-4 space-y-4">
-        {/* Assignments */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-amber-400" /> Atamalar
-            </h4>
-            <PermissionGate permission="staff.update">
-              <button
-                onClick={() => openAssignment(staff.id)}
-                className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
-              >
-                + Atama Ekle
-              </button>
-            </PermissionGate>
-          </div>
-          {assignments.length === 0 ? (
-            <p className="text-xs text-neutral-500">Henüz atama yok.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {assignments.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between text-xs bg-neutral-900/60 rounded-lg px-3 py-2 border border-neutral-800/60"
-                >
-                  <span className="text-neutral-200">
-                    {a.cabana?.name ?? "—"}
-                  </span>
-                  <span className="text-neutral-400">{formatDate(a.date)}</span>
-                  <span className="text-neutral-500">
-                    {SHIFT_OPTIONS.find((s) => s.value === a.shift)?.label ??
-                      a.shift ??
-                      "—"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Tasks */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
-              <ClipboardList className="w-3.5 h-3.5 text-amber-400" /> Görevler
-            </h4>
-            <PermissionGate permission="staff.update">
-              <button
-                onClick={() => openTask(staff.id)}
-                className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
-              >
-                + Görev Ekle
-              </button>
-            </PermissionGate>
-          </div>
-          {tasks.length === 0 ? (
-            <p className="text-xs text-neutral-500">Henüz görev yok.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {tasks.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center gap-3 text-xs bg-neutral-900/60 rounded-lg px-3 py-2 border border-neutral-800/60"
-                >
-                  <button
-                    onClick={() =>
-                      toggleTaskMutation.mutate({
-                        id: t.id,
-                        isCompleted: !t.isCompleted,
-                      })
-                    }
-                    className="shrink-0"
-                    title={
-                      t.isCompleted
-                        ? "Tamamlanmadı olarak işaretle"
-                        : "Tamamlandı olarak işaretle"
-                    }
-                  >
-                    {t.isCompleted ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <Circle className="w-4 h-4 text-neutral-500 hover:text-neutral-300 transition-colors" />
-                    )}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-neutral-200 ${t.isCompleted ? "line-through text-neutral-500" : ""}`}
-                    >
-                      {t.title}
-                    </p>
-                    {t.description && (
-                      <p className="text-neutral-500 mt-0.5">{t.description}</p>
-                    )}
-                  </div>
-                  <span className="text-neutral-500 shrink-0">
-                    {formatDate(t.date)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="bg-neutral-800/40 border-t border-neutral-800 px-4 py-4">
+        <div className="flex items-center gap-1.5">
+          <MapPin className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-xs font-semibold text-neutral-300">
+            Görev Noktası:
+          </span>
+          {(() => {
+            const cabanaName = staff.assignments?.[0]?.cabana?.name;
+            const sp = staff.servicePointAssignments?.[0];
+            const spLabel = sp
+              ? `${sp.servicePoint?.name ?? "—"} (${sp.servicePoint?.type ?? sp.role})`
+              : null;
+            const assigned = cabanaName || spLabel;
+            return assigned ? (
+              <span className="text-sm text-amber-400/90">{assigned}</span>
+            ) : (
+              <span className="text-xs text-neutral-500">Henüz atama yok</span>
+            );
+          })()}
         </div>
       </div>
     );
@@ -567,7 +474,7 @@ export default function StaffPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ad veya pozisyon ile ara..."
+            placeholder="Ad veya görev ile ara..."
             className={`${inputCls} pl-10`}
           />
         </div>
@@ -614,19 +521,18 @@ export default function StaffPage() {
                 key={s.id}
                 className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden"
               >
-                <div className="flex items-center gap-3 p-4">
+                <div
+                  className="flex items-center gap-3 p-4 cursor-pointer hover:bg-neutral-800/40 transition-colors"
+                  onClick={() => toggleExpand(s.id)}
+                >
                   {/* Expand toggle */}
-                  <button
-                    onClick={() => toggleExpand(s.id)}
-                    className="shrink-0 p-1 text-neutral-500 hover:text-neutral-300 transition-colors"
-                    title="Detayları göster"
-                  >
+                  <span className="shrink-0 p-1 text-neutral-500">
                     {isExpanded ? (
                       <ChevronDown className="w-4 h-4" />
                     ) : (
                       <ChevronRight className="w-4 h-4" />
                     )}
-                  </button>
+                  </span>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -641,13 +547,27 @@ export default function StaffPage() {
                       )}
                     </div>
                     <p className="text-xs text-neutral-400 mt-0.5">
-                      {s.position} · {s.phone || "Telefon yok"} ·{" "}
-                      {s.email || "E-posta yok"}
+                      {s.position}
+                      {(() => {
+                        const cabanaName = s.assignments?.[0]?.cabana?.name;
+                        const spName =
+                          s.servicePointAssignments?.[0]?.servicePoint?.name;
+                        const assignedTo = cabanaName || spName;
+                        return assignedTo ? (
+                          <span className="text-amber-400/80">
+                            {" "}
+                            · {assignedTo}
+                          </span>
+                        ) : null;
+                      })()}
                     </p>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div
+                    className="flex items-center gap-1.5 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <PermissionGate permission="staff.update">
                       <button
                         onClick={() => openEdit(s)}
@@ -655,6 +575,15 @@ export default function StaffPage() {
                         className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
                       >
                         <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </PermissionGate>
+                    <PermissionGate permission="staff.update">
+                      <button
+                        onClick={() => openAssignment(s.id)}
+                        title="Görev Noktası Ata"
+                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-amber-950/50 hover:bg-amber-900/50 text-amber-400 border border-amber-800/30 transition-colors"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
                       </button>
                     </PermissionGate>
                     {s.isActive && (
@@ -731,39 +660,32 @@ export default function StaffPage() {
                 placeholder="Personel adı"
               />
             </Field>
-            <Field label="Telefon">
-              <input
-                type="tel"
-                value={createForm.phone}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, phone: e.target.value }))
-                }
-                className={inputCls}
-                placeholder="+90 5XX XXX XX XX"
-              />
-            </Field>
-            <Field label="E-posta">
-              <input
-                type="email"
-                value={createForm.email}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, email: e.target.value }))
-                }
-                className={inputCls}
-                placeholder="ornek@email.com"
-              />
-            </Field>
-            <Field label="Pozisyon">
-              <input
-                type="text"
-                required
-                value={createForm.position}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, position: e.target.value }))
-                }
-                className={inputCls}
-                placeholder="Garson, Temizlik, vb."
-              />
+            <Field label="Görev">
+              <div className="flex gap-2">
+                <select
+                  required
+                  value={createForm.position}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({ ...f, position: e.target.value }))
+                  }
+                  className={`${selectCls} flex-1`}
+                >
+                  <option value="">Görev seçin</option>
+                  {taskDefs.map((d) => (
+                    <option key={d.id} value={d.title}>
+                      {d.title}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowTaskDefManager(true)}
+                  className="shrink-0 min-h-[44px] px-3 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 transition-colors"
+                  title="Görevleri Yönet"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
+              </div>
             </Field>
             {createMutation.isError && (
               <ErrorMsg msg={(createMutation.error as Error).message} />
@@ -816,38 +738,41 @@ export default function StaffPage() {
                 className={inputCls}
               />
             </Field>
-            <Field label="Telefon">
-              <input
-                type="tel"
-                value={editForm.phone}
-                onChange={(e) =>
-                  setEditForm((f) => (f ? { ...f, phone: e.target.value } : f))
-                }
-                className={inputCls}
-              />
-            </Field>
-            <Field label="E-posta">
-              <input
-                type="email"
-                value={editForm.email}
-                onChange={(e) =>
-                  setEditForm((f) => (f ? { ...f, email: e.target.value } : f))
-                }
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Pozisyon">
-              <input
-                type="text"
-                required
-                value={editForm.position}
-                onChange={(e) =>
-                  setEditForm((f) =>
-                    f ? { ...f, position: e.target.value } : f,
-                  )
-                }
-                className={inputCls}
-              />
+            <Field label="Görev">
+              <div className="flex gap-2">
+                <select
+                  required
+                  value={editForm.position}
+                  onChange={(e) =>
+                    setEditForm((f) =>
+                      f ? { ...f, position: e.target.value } : f,
+                    )
+                  }
+                  className={`${selectCls} flex-1`}
+                >
+                  <option value="">Görev seçin</option>
+                  {taskDefs.map((d) => (
+                    <option key={d.id} value={d.title}>
+                      {d.title}
+                    </option>
+                  ))}
+                  {/* Mevcut pozisyon listede yoksa göster */}
+                  {editForm.position &&
+                    !taskDefs.some((d) => d.title === editForm.position) && (
+                      <option value={editForm.position}>
+                        {editForm.position}
+                      </option>
+                    )}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowTaskDefManager(true)}
+                  className="shrink-0 min-h-[44px] px-3 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 transition-colors"
+                  title="Görevleri Yönet"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
+              </div>
             </Field>
             {updateMutation.isError && (
               <ErrorMsg msg={(updateMutation.error as Error).message} />
@@ -909,7 +834,10 @@ export default function StaffPage() {
 
       {/* Assignment Modal */}
       {showAssignment && (
-        <Modal title="Kabana Ataması" onClose={() => setShowAssignment(false)}>
+        <Modal
+          title="Görev Noktası Ataması"
+          onClose={() => setShowAssignment(false)}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -917,7 +845,7 @@ export default function StaffPage() {
             }}
             className="space-y-4"
           >
-            <Field label="Kabana">
+            <Field label="Görev Noktası">
               <select
                 required
                 value={assignmentForm.cabanaId}
@@ -925,39 +853,23 @@ export default function StaffPage() {
                   setAssignmentForm((f) => ({ ...f, cabanaId: e.target.value }))
                 }
                 className={selectCls}
+                size={5}
               >
-                <option value="">Kabana seçin</option>
-                {cabanas.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Tarih">
-              <input
-                type="date"
-                required
-                value={assignmentForm.date}
-                onChange={(e) =>
-                  setAssignmentForm((f) => ({ ...f, date: e.target.value }))
-                }
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Vardiya">
-              <select
-                value={assignmentForm.shift}
-                onChange={(e) =>
-                  setAssignmentForm((f) => ({ ...f, shift: e.target.value }))
-                }
-                className={selectCls}
-              >
-                {SHIFT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
+                <option value="">Görev noktası seçin</option>
+                <optgroup label="Hizmet Noktaları">
+                  {servicePoints.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.name} ({sp.type})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Cabanalar">
+                  {cabanas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </Field>
             {assignmentMutation.isError && (
@@ -983,93 +895,77 @@ export default function StaffPage() {
         </Modal>
       )}
 
-      {/* Task Modal */}
-      {showTask && (
-        <Modal title="Yeni Görev" onClose={() => setShowTask(false)}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              taskMutation.mutate(taskForm);
-            }}
-            className="space-y-4"
-          >
-            <Field label="Görev Tanımından Seç (Opsiyonel)">
-              <select
-                value={taskForm.taskDefinitionId}
-                onChange={(e) => {
-                  const defId = e.target.value;
-                  const def = taskDefs.find((d) => d.id === defId);
-                  setTaskForm((f) => ({
-                    ...f,
-                    taskDefinitionId: defId,
-                    title: def?.title ?? f.title,
-                    description: def?.description ?? f.description,
-                  }));
-                }}
-                className={selectCls}
-              >
-                <option value="">Manuel giriş</option>
-                {taskDefs.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.title} {d.category ? `(${d.category})` : ""}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Görev Başlığı">
+      {/* Task Definition Manager Modal */}
+      {showTaskDefManager && (
+        <Modal
+          title="Görev Tanımları Yönetimi"
+          onClose={() => setShowTaskDefManager(false)}
+        >
+          <div className="space-y-4">
+            {/* Add new task definition */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (newTaskDefTitle.trim()) {
+                  createTaskDefMutation.mutate(newTaskDefTitle.trim());
+                }
+              }}
+              className="flex gap-2"
+            >
               <input
                 type="text"
-                required
-                value={taskForm.title}
-                onChange={(e) =>
-                  setTaskForm((f) => ({ ...f, title: e.target.value }))
-                }
-                className={inputCls}
-                placeholder="Görev başlığı"
+                value={newTaskDefTitle}
+                onChange={(e) => setNewTaskDefTitle(e.target.value)}
+                className={`${inputCls} flex-1`}
+                placeholder="Yeni görev adı..."
               />
-            </Field>
-            <Field label="Açıklama">
-              <textarea
-                value={taskForm.description}
-                onChange={(e) =>
-                  setTaskForm((f) => ({ ...f, description: e.target.value }))
-                }
-                className={`${inputCls} min-h-[80px] resize-y`}
-                rows={3}
-                placeholder="Opsiyonel açıklama..."
-              />
-            </Field>
-            <Field label="Tarih">
-              <input
-                type="date"
-                required
-                value={taskForm.date}
-                onChange={(e) =>
-                  setTaskForm((f) => ({ ...f, date: e.target.value }))
-                }
-                className={inputCls}
-              />
-            </Field>
-            {taskMutation.isError && (
-              <ErrorMsg msg={(taskMutation.error as Error).message} />
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowTask(false)}
-                className={cancelBtnCls}
-              >
-                İptal
-              </button>
               <button
                 type="submit"
-                disabled={taskMutation.isPending}
-                className={submitBtnCls}
+                disabled={
+                  createTaskDefMutation.isPending || !newTaskDefTitle.trim()
+                }
+                className="shrink-0 min-h-[44px] px-4 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-neutral-950 font-semibold text-sm transition-colors"
               >
-                {taskMutation.isPending ? "Oluşturuluyor..." : "Oluştur"}
+                <Plus className="w-4 h-4" />
+              </button>
+            </form>
+
+            {/* Existing task definitions list */}
+            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+              {taskDefs.length === 0 ? (
+                <p className="text-sm text-neutral-500 text-center py-4">
+                  Henüz görev tanımı yok.
+                </p>
+              ) : (
+                taskDefs.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between bg-neutral-900/60 rounded-lg px-3 py-2.5 border border-neutral-800/60"
+                  >
+                    <span className="text-sm text-neutral-200">{d.title}</span>
+                    <button
+                      onClick={() => deleteTaskDefMutation.mutate(d.id)}
+                      disabled={deleteTaskDefMutation.isPending}
+                      className="shrink-0 p-1.5 rounded-md text-red-400 hover:bg-red-950/50 hover:text-red-300 transition-colors"
+                      title="Sil"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowTaskDefManager(false)}
+                className={cancelBtnCls}
+              >
+                Kapat
               </button>
             </div>
-          </form>
+          </div>
         </Modal>
       )}
     </div>

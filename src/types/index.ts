@@ -8,6 +8,7 @@ export enum Role {
 export enum CabanaStatus {
   AVAILABLE = "AVAILABLE",
   RESERVED = "RESERVED",
+  OCCUPIED = "OCCUPIED",
   CLOSED = "CLOSED",
 }
 
@@ -65,8 +66,17 @@ export enum FnbOrderStatus {
 export enum ReportType {
   OCCUPANCY = "OCCUPANCY",
   REVENUE = "REVENUE",
+  PERFORMANCE = "PERFORMANCE",
+  FNB = "FNB",
+  GUEST = "GUEST",
   COST_ANALYSIS = "COST_ANALYSIS",
   REQUEST_STATS = "REQUEST_STATS",
+}
+
+export enum ReportGroupBy {
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
 }
 
 export interface PriceBreakdown {
@@ -74,8 +84,9 @@ export interface PriceBreakdown {
   cabanaDaily: number;
   conceptTotal: number;
   extrasTotal: number;
+  extraRequestsTotal?: number;
   grandTotal: number;
-  priceSource: "CABANA_SPECIFIC" | "CONCEPT_SPECIFIC" | "GENERAL";
+  priceSource: "GENERAL";
   items: PriceLineItem[];
 }
 
@@ -84,7 +95,7 @@ export interface PriceLineItem {
   quantity: number;
   unitPrice: number;
   total: number;
-  source: "CABANA_SPECIFIC" | "CONCEPT_SPECIFIC" | "GENERAL";
+  source: "GENERAL";
 }
 
 export interface ApiError {
@@ -158,5 +169,13 @@ export const MODULE_ACCESS: Record<Role, string[]> = {
   [Role.SYSTEM_ADMIN]: ["/system-admin", "/reports"],
   [Role.ADMIN]: ["/admin"],
   [Role.CASINO_USER]: ["/casino", "/reports"],
-  [Role.FNB_USER]: ["/fnb"],
+  [Role.FNB_USER]: [
+    "/fnb",
+    "/casino/map",
+    "/casino/calendar",
+    "/casino/view",
+    "/casino/reservations",
+    "/casino/waitlist",
+    "/casino/recurring",
+  ],
 };

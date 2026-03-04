@@ -21,7 +21,7 @@ export const GET = withAuth(
 
     if (!cabana) {
       return NextResponse.json(
-        { error: "Kabana bulunamadı." },
+        { error: "Cabana bulunamadı." },
         { status: 404 },
       );
     }

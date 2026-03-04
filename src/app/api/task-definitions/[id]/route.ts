@@ -24,11 +24,11 @@ export const GET = withAuth(
     });
     if (!item || item.deletedAt) {
       return NextResponse.json(
-        { error: "Görev tanımı bulunamadı." },
+        { success: false, error: "Görev tanımı bulunamadı." },
         { status: 404 },
       );
     }
-    return NextResponse.json(item);
+    return NextResponse.json({ success: true, data: item });
   },
   { requiredPermissions: ["task.definition.view"] },
 );
@@ -41,7 +41,10 @@ export const PATCH = withAuth(
     const body = await req.json();
     const parsed = parseBody(updateSchema, body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const existing = await (prisma as any).taskDefinition.findUnique({
@@ -49,7 +52,7 @@ export const PATCH = withAuth(
     });
     if (!existing || existing.deletedAt) {
       return NextResponse.json(
-        { error: "Görev tanımı bulunamadı." },
+        { success: false, error: "Görev tanımı bulunamadı." },
         { status: 404 },
       );
     }
@@ -68,7 +71,7 @@ export const PATCH = withAuth(
       newValue: parsed.data as Record<string, unknown>,
     });
 
-    return NextResponse.json(item);
+    return NextResponse.json({ success: true, data: item });
   },
   { requiredPermissions: ["task.definition.update"] },
 );
@@ -83,7 +86,7 @@ export const DELETE = withAuth(
     });
     if (!existing || existing.deletedAt) {
       return NextResponse.json(
-        { error: "Görev tanımı bulunamadı." },
+        { success: false, error: "Görev tanımı bulunamadı." },
         { status: 404 },
       );
     }
@@ -101,7 +104,7 @@ export const DELETE = withAuth(
       oldValue: existing as Record<string, unknown>,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: null });
   },
   { requiredPermissions: ["task.definition.delete"] },
 );

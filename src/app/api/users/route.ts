@@ -6,10 +6,18 @@ import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 import { Prisma } from "@prisma/client";
 
+const passwordSchema = z
+  .string()
+  .min(8, "Şifre en az 8 karakter olmalı.")
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
+    "Şifre en az 1 büyük harf, 1 küçük harf ve 1 rakam içermelidir.",
+  );
+
 const createUserSchema = z.object({
   username: z.string().min(3),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: passwordSchema,
   role: z.nativeEnum(Role),
 });
 
@@ -35,7 +43,7 @@ export const GET = withAuth(
     }
 
     const users = await prisma.user.findMany({
-      where: whereClause,
+      where: { ...whereClause, deletedAt: null },
       select: {
         id: true,
         username: true,
@@ -48,7 +56,7 @@ export const GET = withAuth(
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(users);
+    return NextResponse.json({ success: true, data: users });
   },
   { requiredPermissions: ["user.view"] },
 );
@@ -62,7 +70,11 @@ export const POST = withAuth(
     const parsed = createUserSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -72,22 +84,25 @@ export const POST = withAuth(
     // ADMIN can only create CASINO_USER and FNB_USER
     if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(role)) {
       return NextResponse.json(
-        { error: "Admin yalnızca Casino ve F&B kullanıcısı oluşturabilir." },
+        {
+          success: false,
+          error: "Admin yalnızca Casino ve F&B kullanıcısı oluşturabilir.",
+        },
         { status: 403 },
       );
     }
 
     const existing = await prisma.user.findFirst({
-      where: { OR: [{ username }, { email }] },
+      where: { OR: [{ username }, { email }], deletedAt: null },
     });
     if (existing) {
       return NextResponse.json(
-        { error: "Username or email already exists" },
+        { success: false, error: "Username or email already exists" },
         { status: 409 },
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
       data: { username, email, passwordHash, role, createdBy: session.user.id },
@@ -120,7 +135,7 @@ export const POST = withAuth(
       });
     });
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json({ success: true, data: user }, { status: 201 });
   },
   { requiredPermissions: ["user.create"] },
 );

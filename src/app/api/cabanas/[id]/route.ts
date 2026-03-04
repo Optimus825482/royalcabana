@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
@@ -30,20 +30,18 @@ export const GET = withAuth(
       include: {
         cabanaClass: true,
         concept: true,
-        prices: { orderBy: { date: "asc" } },
       },
     });
 
     if (!cabana) {
       return NextResponse.json(
-        { error: "Kabana bulunamadı." },
+        { success: false, error: "Cabana bulunamadı." },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(cabana);
+    return NextResponse.json({ success: true, data: cabana });
   },
-  { requiredPermissions: ["map.view"] },
 );
 
 export const PATCH = withAuth(
@@ -54,7 +52,7 @@ export const PATCH = withAuth(
     const cabana = await prisma.cabana.findUnique({ where: { id } });
     if (!cabana) {
       return NextResponse.json(
-        { error: "Kabana bulunamadı." },
+        { success: false, error: "Cabana bulunamadı." },
         { status: 404 },
       );
     }
@@ -64,7 +62,11 @@ export const PATCH = withAuth(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -93,9 +95,8 @@ export const PATCH = withAuth(
       newValue: parsed.data,
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
-  { requiredPermissions: ["map.update"] },
 );
 
 export const DELETE = withAuth(
@@ -115,19 +116,25 @@ export const DELETE = withAuth(
 
     if (!cabana) {
       return NextResponse.json(
-        { error: "Kabana bulunamadı." },
+        { success: false, error: "Cabana bulunamadı." },
         { status: 404 },
       );
     }
 
     if (cabana.reservations.length > 0) {
       return NextResponse.json(
-        { error: "Bu kabanada aktif rezervasyon mevcut, silinemez." },
+        {
+          success: false,
+          error: "Bu Cabanada aktif rezervasyon mevcut, silinemez.",
+        },
         { status: 400 },
       );
     }
 
-    await prisma.cabana.delete({ where: { id } });
+    await prisma.cabana.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     logAudit({
       userId: session.user.id,
@@ -141,7 +148,6 @@ export const DELETE = withAuth(
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: null });
   },
-  { requiredPermissions: ["map.update"] },
 );

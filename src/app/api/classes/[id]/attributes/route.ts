@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
+import { invalidateCache } from "@/lib/cache";
 
 const addAttributeSchema = z.object({
   key: z.string().min(1),
@@ -16,7 +17,7 @@ export const POST = withAuth(
     const cabanaClass = await prisma.cabanaClass.findUnique({ where: { id } });
     if (!cabanaClass) {
       return NextResponse.json(
-        { message: "Sınıf bulunamadı." },
+        { success: false, error: "Sınıf bulunamadı." },
         { status: 404 },
       );
     }
@@ -25,7 +26,7 @@ export const POST = withAuth(
     const parsed = addAttributeSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        { success: false, error: "Validation error", errors: parsed.error.flatten() },
         { status: 400 },
       );
     }
@@ -36,7 +37,7 @@ export const POST = withAuth(
     });
     if (existing) {
       return NextResponse.json(
-        { message: "Bu anahtar zaten mevcut." },
+        { success: false, error: "Bu anahtar zaten mevcut." },
         { status: 409 },
       );
     }
@@ -44,7 +45,8 @@ export const POST = withAuth(
     const attribute = await prisma.classAttribute.create({
       data: { classId: id, key, value },
     });
-    return NextResponse.json(attribute, { status: 201 });
+    await invalidateCache("classes:list:v2");
+    return NextResponse.json({ success: true, data: attribute }, { status: 201 });
   },
   { requiredPermissions: ["cabana.class.update"] },
 );

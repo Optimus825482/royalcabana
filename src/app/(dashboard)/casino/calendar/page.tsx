@@ -3,17 +3,21 @@
 import { useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import ReservationCalendar from "@/components/calendar/ReservationCalendar";
 import ReservationTimeline from "@/components/calendar/ReservationTimeline";
 import ReservationRequestForm from "@/components/calendar/ReservationRequestForm";
-import { ReservationStatus } from "@/types";
-import { AlertTriangle, X, LayoutList, CalendarDays } from "lucide-react";
+import ReservationDetailModal, {
+  type ReservationDetailData,
+} from "@/components/calendar/ReservationDetailModal";
+import { AlertTriangle, LayoutList, CalendarDays } from "lucide-react";
 import {
-  formatPrice,
   fetchSystemCurrency,
   type CurrencyCode,
   DEFAULT_CURRENCY,
 } from "@/lib/currency";
+import { fetchCabanas, fetchSystemConfig } from "@/lib/fetchers";
+import CabanaDetailModal from "@/components/calendar/CabanaDetailModal";
 import type {
   ReservationEvent,
   CabanaResource,
@@ -21,102 +25,32 @@ import type {
 } from "@/types";
 import type { TimelineReservation } from "@/hooks/useReservationCalendar";
 
-interface ReservationDetail {
-  id: string;
-  cabanaId: string;
-  guestName: string;
-  startDate: string;
-  endDate: string;
-  status: ReservationStatus;
-  notes?: string;
-  totalPrice?: number;
-  cabana: { id: string; name: string };
-  statusHistory: Array<{
-    toStatus: string;
-    changedBy: string;
-    createdAt: string;
-    reason?: string;
-  }>;
-}
-
 interface ReservationListResponse {
-  reservations: ReservationDetail[];
+  reservations: ReservationDetailData[];
   total: number;
 }
-
-const STATUS_LABEL: Record<ReservationStatus, string> = {
-  [ReservationStatus.PENDING]: "Bekliyor",
-  [ReservationStatus.APPROVED]: "Onaylı",
-  [ReservationStatus.REJECTED]: "Reddedildi",
-  [ReservationStatus.CANCELLED]: "İptal",
-  [ReservationStatus.MODIFICATION_PENDING]: "Değişiklik Bekliyor",
-  [ReservationStatus.EXTRA_PENDING]: "Ek Konsept Bekliyor",
-  [ReservationStatus.CHECKED_IN]: "Giriş Yapıldı",
-  [ReservationStatus.CHECKED_OUT]: "Çıkış Yapıldı",
-};
-
-const STATUS_BADGE: Record<ReservationStatus, string> = {
-  [ReservationStatus.PENDING]:
-    "bg-yellow-950/60 border-yellow-700/40 text-yellow-400",
-  [ReservationStatus.APPROVED]:
-    "bg-green-950/60 border-green-700/40 text-green-400",
-  [ReservationStatus.REJECTED]: "bg-red-950/50 border-red-800/40 text-red-400",
-  [ReservationStatus.CANCELLED]:
-    "bg-neutral-800 border-neutral-700 text-neutral-500",
-  [ReservationStatus.MODIFICATION_PENDING]:
-    "bg-orange-950/50 border-orange-800/40 text-orange-400",
-  [ReservationStatus.EXTRA_PENDING]:
-    "bg-purple-950/50 border-purple-800/40 text-purple-400",
-  [ReservationStatus.CHECKED_IN]:
-    "bg-teal-950/50 border-teal-700/40 text-teal-400",
-  [ReservationStatus.CHECKED_OUT]:
-    "bg-slate-800 border-slate-700 text-slate-400",
-};
 
 async function fetchReservations(): Promise<ReservationListResponse> {
   const res = await fetch("/api/reservations");
   if (!res.ok) throw new Error("Rezervasyonlar yüklenemedi.");
-  return res.json();
-}
-
-async function fetchCabanas(): Promise<CabanaWithStatus[]> {
-  const res = await fetch("/api/cabanas");
-  if (!res.ok) throw new Error("Kabanalar yüklenemedi.");
-  return res.json();
-}
-
-async function fetchSystemConfig(): Promise<{
-  system_open_for_reservation: boolean;
-}> {
-  const res = await fetch("/api/system/config");
-  if (!res.ok) return { system_open_for_reservation: true };
-  const data = await res.json();
-  // API returns { isOpen: boolean }
-  if (typeof data.isOpen !== "undefined") {
-    return {
-      system_open_for_reservation:
-        data.isOpen === true || data.isOpen === "true",
-    };
-  }
-  if (Array.isArray(data)) {
-    const entry = data.find(
-      (d: { key: string }) => d.key === "system_open_for_reservation",
-    );
-    return { system_open_for_reservation: entry?.value === "true" };
-  }
-  return {
-    system_open_for_reservation:
-      data.system_open_for_reservation === true ||
-      data.system_open_for_reservation === "true",
-  };
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 export default function CasinoCalendarPage() {
   useSession({ required: true });
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
+  const requestedView = searchParams.get("view");
+  const requestedRange = searchParams.get("range");
+  const requestedCabanaId = searchParams.get("cabanaId") ?? undefined;
+  const requestedDate = searchParams.get("date") ?? undefined;
 
   const [classFilter, setClassFilter] = useState<string>("");
-  const [viewType, setViewType] = useState<"timeline" | "calendar">("timeline");
+  const [viewType, setViewType] = useState<"timeline" | "calendar">(
+    requestedView === "calendar" ? "calendar" : "timeline",
+  );
   const [requestModal, setRequestModal] = useState<{
     cabanaId: string;
     cabanaName: string;
@@ -126,19 +60,33 @@ export default function CasinoCalendarPage() {
     null,
   );
   const [selectedReservation, setSelectedReservation] =
-    useState<ReservationDetail | null>(null);
+    useState<ReservationDetailData | null>(null);
 
-  const { data: reservationData, isLoading: resLoading } = useQuery({
+  const {
+    data: reservationData,
+    isLoading: resLoading,
+    isError: resIsError,
+    error: resError,
+  } = useQuery({
     queryKey: ["reservations"],
     queryFn: fetchReservations,
   });
 
-  const { data: cabanas = [], isLoading: cabanasLoading } = useQuery({
+  const {
+    data: cabanas = [],
+    isLoading: cabanasLoading,
+    isError: cabanasIsError,
+    error: cabanasError,
+  } = useQuery({
     queryKey: ["cabanas"],
     queryFn: fetchCabanas,
   });
 
-  const { data: systemConfig } = useQuery({
+  const {
+    data: systemConfig,
+    isError: configIsError,
+    error: configError,
+  } = useQuery({
     queryKey: ["system-config"],
     queryFn: fetchSystemConfig,
   });
@@ -150,6 +98,15 @@ export default function CasinoCalendarPage() {
 
   const systemOpen = systemConfig?.system_open_for_reservation ?? true;
   const isLoading = resLoading || cabanasLoading;
+  const isError = resIsError || cabanasIsError || configIsError;
+  const fetchError =
+    resError instanceof Error
+      ? resError.message
+      : cabanasError instanceof Error
+        ? cabanasError.message
+        : configError instanceof Error
+          ? configError.message
+          : null;
 
   const resources: CabanaResource[] = useMemo(
     () => cabanas.map((c) => ({ id: c.id, title: c.name, classId: c.classId })),
@@ -200,6 +157,7 @@ export default function CasinoCalendarPage() {
     (
       _event: ReservationEvent,
       _action: "modify" | "cancel" | "extra-concept",
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     ) => {
       // 12.4 görevinde implement edilecek modal'lar buraya bağlanacak
     },
@@ -231,7 +189,7 @@ export default function CasinoCalendarPage() {
           </h1>
           <p className="text-sm text-neutral-400 mt-0.5">
             {viewType === "timeline"
-              ? "Kabana bazlı zaman çizelgesi – gerçek zamanlı takip"
+              ? "Cabana bazlı zaman çizelgesi – gerçek zamanlı takip"
               : "Bir güne tıklayarak detayları görün, sağ tıklayarak talep oluşturun"}
           </p>
         </div>
@@ -240,7 +198,7 @@ export default function CasinoCalendarPage() {
           <div className="flex bg-neutral-900 rounded-lg p-0.5 border border-neutral-700/40">
             <button
               onClick={() => setViewType("timeline")}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all
+              className={`flex items-center gap-1.5 px-3 py-2 min-h-11 text-xs font-medium rounded-md transition-all
                 ${viewType === "timeline" ? "bg-amber-600 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"}`}
             >
               <LayoutList className="w-3.5 h-3.5" />
@@ -248,7 +206,7 @@ export default function CasinoCalendarPage() {
             </button>
             <button
               onClick={() => setViewType("calendar")}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all
+              className={`flex items-center gap-1.5 px-3 py-2 min-h-11 text-xs font-medium rounded-md transition-all
                 ${viewType === "calendar" ? "bg-amber-600 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"}`}
             >
               <CalendarDays className="w-3.5 h-3.5" />
@@ -258,7 +216,9 @@ export default function CasinoCalendarPage() {
           <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
-            className="px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-amber-500 min-h-[44px]"
+            title="Sınıf filtresi"
+            aria-label="Sınıf filtresi"
+            className="px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-amber-500 min-h-11"
           >
             <option value="">Tüm Sınıflar</option>
             {classes.map(([id, name]) => (
@@ -270,11 +230,23 @@ export default function CasinoCalendarPage() {
         </div>
       </div>
 
+      {/* Error */}
+      {isError && fetchError && (
+        <div className="px-4 sm:px-6 pt-3 shrink-0">
+          <div className="px-4 py-2.5 bg-red-950/40 border border-red-800/40 text-red-400 text-sm rounded-lg">
+            {fetchError}
+          </div>
+        </div>
+      )}
+
       {/* Content: Timeline or Calendar */}
       <div className="flex-1 p-4 sm:p-6">
         {viewType === "timeline" ? (
           <ReservationTimeline
             classFilter={classFilter || undefined}
+            initialViewMode={requestedRange === "day" ? "day" : undefined}
+            initialDate={requestedDate}
+            focusCabanaId={requestedCabanaId}
             onCabanaClick={(cabana) => {
               const selected = cabanas.find((c) => c.id === cabana.id);
               if (selected) setSelectedCabana(selected);
@@ -329,9 +301,9 @@ export default function CasinoCalendarPage() {
         <CabanaDetailModal
           cabana={selectedCabana}
           reservationCount={
-            reservationData?.reservations.filter(
+            (reservationData?.reservations ?? []).filter(
               (reservation) => reservation.cabanaId === selectedCabana.id,
-            ).length ?? 0
+            ).length
           }
           systemOpen={systemOpen}
           onClose={() => setSelectedCabana(null)}
@@ -350,18 +322,17 @@ export default function CasinoCalendarPage() {
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setRequestModal(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Rezervasyon talebi"
         >
           <div
-            className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md mx-0 sm:mx-4 p-6"
+            className="bg-neutral-950 border border-neutral-800/80 rounded-t-2xl sm:rounded-2xl shadow-2xl shadow-black/60 w-full sm:max-w-lg mx-0 sm:mx-4 max-h-[92vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Drag handle for mobile */}
-            <div className="flex justify-center -mt-3 mb-3 sm:hidden">
+            <div className="flex justify-center pt-3 sm:hidden">
               <div className="w-10 h-1 rounded-full bg-neutral-700" />
             </div>
-            <h2 className="text-base font-semibold text-amber-400 mb-4">
-              Rezervasyon Talebi
-            </h2>
             <ReservationRequestForm
               cabanaId={requestModal.cabanaId}
               cabanaName={requestModal.cabanaName}
@@ -372,211 +343,6 @@ export default function CasinoCalendarPage() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function ReservationDetailModal({
-  reservation,
-  onClose,
-  currency,
-}: {
-  reservation: ReservationDetail;
-  onClose: () => void;
-  currency: CurrencyCode;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Drag handle for mobile */}
-        <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
-          <div className="w-10 h-1 rounded-full bg-neutral-700" />
-        </div>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
-          <h2 className="text-base font-semibold text-amber-400">
-            {reservation.guestName}
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors active:scale-95"
-            aria-label="Kapat"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 overscroll-contain rc-scrollbar">
-          <span
-            className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_BADGE[reservation.status]}`}
-          >
-            {STATUS_LABEL[reservation.status]}
-          </span>
-
-          <div className="space-y-3 text-sm">
-            <DetailRow label="Kabana" value={reservation.cabana.name} />
-            <DetailRow
-              label="Başlangıç"
-              value={reservation.startDate.split("T")[0]}
-            />
-            <DetailRow
-              label="Bitiş"
-              value={reservation.endDate.split("T")[0]}
-            />
-            {reservation.totalPrice != null && (
-              <DetailRow
-                label="Toplam"
-                value={formatPrice(reservation.totalPrice!, currency)}
-                valueClass="text-amber-400 font-semibold"
-              />
-            )}
-            {reservation.notes && (
-              <div className="py-2 border-b border-neutral-800">
-                <p className="text-neutral-400 text-xs mb-1">Notlar</p>
-                <p className="text-neutral-200 text-sm">{reservation.notes}</p>
-              </div>
-            )}
-          </div>
-
-          {reservation.statusHistory.length > 0 && (
-            <div>
-              <p className="text-xs text-neutral-400 mb-2 font-medium">
-                Durum Geçmişi
-              </p>
-              <div className="space-y-2">
-                {reservation.statusHistory.map((h, i) => (
-                  <div
-                    key={i}
-                    className="text-xs bg-neutral-800/60 rounded-lg px-3 py-2.5"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-neutral-200 font-medium">
-                        {h.toStatus}
-                      </span>
-                      <span className="text-neutral-500">
-                        {new Date(h.createdAt).toLocaleDateString("tr-TR")}
-                      </span>
-                    </div>
-                    {h.reason && (
-                      <p className="text-neutral-400 mt-0.5">{h.reason}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DetailRow({
-  label,
-  value,
-  valueClass = "text-neutral-100",
-}: {
-  label: string;
-  value: string;
-  valueClass?: string;
-}) {
-  return (
-    <div className="flex justify-between py-2 border-b border-neutral-800">
-      <span className="text-neutral-400">{label}</span>
-      <span className={valueClass}>{value}</span>
-    </div>
-  );
-}
-
-function CabanaDetailModal({
-  cabana,
-  reservationCount,
-  systemOpen,
-  onClose,
-  onCreateRequest,
-}: {
-  cabana: CabanaWithStatus;
-  reservationCount: number;
-  systemOpen: boolean;
-  onClose: () => void;
-  onCreateRequest: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Drag handle for mobile */}
-        <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
-          <div className="w-10 h-1 rounded-full bg-neutral-700" />
-        </div>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
-          <h2 className="text-base font-semibold text-amber-400">
-            {cabana.name}
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors active:scale-95"
-            aria-label="Kapat"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 overscroll-contain rc-scrollbar">
-          <DetailRow label="Kabana" value={cabana.name} />
-          <DetailRow
-            label="Durum"
-            value={
-              cabana.isOpenForReservation
-                ? "Rezervasyona Açık"
-                : "Rezervasyona Kapalı"
-            }
-            valueClass={
-              cabana.isOpenForReservation ? "text-emerald-400" : "text-red-400"
-            }
-          />
-          {cabana.cabanaClass?.name && (
-            <DetailRow label="Sınıf" value={cabana.cabanaClass.name} />
-          )}
-          {cabana.concept?.name && (
-            <DetailRow label="Konsept" value={cabana.concept.name} />
-          )}
-          <DetailRow
-            label="Toplam Rezervasyon"
-            value={String(reservationCount)}
-          />
-        </div>
-
-        <div className="p-5 border-t border-neutral-800 shrink-0">
-          <button
-            onClick={onCreateRequest}
-            disabled={!systemOpen || !cabana.isOpenForReservation}
-            className="w-full h-11 rounded-lg bg-amber-600 text-white font-medium hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Rezervasyon Talebi Oluştur
-          </button>
-          {!systemOpen && (
-            <p className="text-[11px] text-amber-400 mt-2">
-              Sistem rezervasyona kapalı olduğu için talep oluşturulamaz.
-            </p>
-          )}
-          {systemOpen && !cabana.isOpenForReservation && (
-            <p className="text-[11px] text-red-400 mt-2">
-              Bu kabana şu anda rezervasyona kapalı.
-            </p>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

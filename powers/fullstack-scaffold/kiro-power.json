@@ -1,0 +1,12 @@
+{
+  "name": "fullstack-scaffold",
+  "displayName": "Fullstack Scaffold",
+  "description": "Scaffold patterns for new pages, API routes, and CRUD modules in Next.js 15 + Prisma + shadcn/ui projects. Role-based access, Turkish UI, English code.",
+  "keywords": [
+    "scaffold-pattern",
+    "crud-module",
+    "nextjs-page",
+    "api-route-template",
+    "role-based-access"
+  ]
+}

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { invalidateCache } from "@/lib/cache";
 
 const allRoles = [
   Role.ADMIN,
@@ -33,11 +34,11 @@ export const GET = withAuth(
     });
     if (!concept) {
       return NextResponse.json(
-        { message: "Konsept bulunamadı." },
+        { success: false, error: "Konsept bulunamadı." },
         { status: 404 },
       );
     }
-    return NextResponse.json(concept);
+    return NextResponse.json({ success: true, data: concept });
   },
   { requiredPermissions: ["concept.view"] },
 );
@@ -46,10 +47,10 @@ export const PATCH = withAuth(
   [Role.SYSTEM_ADMIN],
   async (req, { session, params }) => {
     const id = params!.id;
-    const concept = await (prisma as any).concept.findUnique({ where: { id } });
+    const concept = await prisma.concept.findUnique({ where: { id } });
     if (!concept) {
       return NextResponse.json(
-        { message: "Konsept bulunamadı." },
+        { success: false, error: "Konsept bulunamadı." },
         { status: 404 },
       );
     }
@@ -58,12 +59,16 @@ export const PATCH = withAuth(
     const parsed = updateConceptSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Validation error", errors: parsed.error.flatten() },
+        {
+          success: false,
+          error: "Validation error",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
 
-    const updated = await (prisma as any).concept.update({
+    const updated = await prisma.concept.update({
       where: { id },
       data: parsed.data,
       include: {
@@ -87,7 +92,9 @@ export const PATCH = withAuth(
       newValue: parsed.data,
     });
 
-    return NextResponse.json(updated);
+    await invalidateCache("concepts:list:v1");
+
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["concept.update"] },
 );
@@ -96,23 +103,29 @@ export const DELETE = withAuth(
   [Role.SYSTEM_ADMIN],
   async (_req, { session, params }) => {
     const id = params!.id;
-    const concept = await (prisma as any).concept.findUnique({
+    const concept = await prisma.concept.findUnique({
       where: { id },
       include: { _count: { select: { cabanas: true } } },
     });
     if (!concept) {
       return NextResponse.json(
-        { message: "Konsept bulunamadı." },
+        { success: false, error: "Konsept bulunamadı." },
         { status: 404 },
       );
     }
     if (concept._count.cabanas > 0) {
       return NextResponse.json(
-        { message: "Bu konsept aktif kabanaya atanmış, silinemez." },
+        {
+          success: false,
+          error: "Bu konsept aktif Cabanaya atanmış, silinemez.",
+        },
         { status: 409 },
       );
     }
-    await prisma.concept.delete({ where: { id } });
+    await prisma.concept.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
 
     logAudit({
       userId: session.user.id,
@@ -126,7 +139,9 @@ export const DELETE = withAuth(
       },
     });
 
-    return NextResponse.json({ message: "Konsept silindi." });
+    await invalidateCache("concepts:list:v1");
+
+    return NextResponse.json({ success: true, data: null });
   },
   { requiredPermissions: ["concept.delete"] },
 );

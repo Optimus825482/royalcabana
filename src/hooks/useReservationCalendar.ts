@@ -77,6 +77,7 @@ const CALENDAR_SSE_EVENTS = [
   SSE_EVENTS.RESERVATION_APPROVED,
   SSE_EVENTS.RESERVATION_REJECTED,
   SSE_EVENTS.RESERVATION_CANCELLED,
+  SSE_EVENTS.RESERVATION_UPDATED,
   SSE_EVENTS.RESERVATION_CHECKED_IN,
   SSE_EVENTS.RESERVATION_CHECKED_OUT,
   SSE_EVENTS.CABANA_STATUS_CHANGED,
@@ -127,7 +128,7 @@ export function useReservationCalendar(options: UseReservationCalendarOptions) {
 
   // SSE event handler – invalidate query on relevant events
   const handleSSEEvent = useCallback(
-    (event: string, _data: unknown) => {
+    (event: string) => {
       if ((CALENDAR_SSE_EVENTS as readonly string[]).includes(event)) {
         setLastUpdate(Date.now());
         // Debounced invalidation to batch rapid SSE bursts

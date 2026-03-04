@@ -64,9 +64,10 @@ const formatDate = (dateStr: string) =>
 
 async function fetchCabanas(): Promise<CabanaOption[]> {
   const res = await fetch("/api/cabanas");
-  if (!res.ok) throw new Error("Kabana listesi yüklenemedi.");
-  const data = await res.json();
-  return data.cabanas ?? data;
+  if (!res.ok) throw new Error("Cabana listesi yüklenemedi.");
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
 }
 
 async function fetchBlackoutDates(
@@ -77,8 +78,22 @@ async function fetchBlackoutDates(
   const url = `/api/blackout-dates${params.toString() ? `?${params}` : ""}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Kapalı tarihler yüklenemedi.");
-  const data = await res.json();
-  return data.items ?? data.blackoutDates ?? data;
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  if (Array.isArray(resolved)) return resolved;
+  return resolved.items ?? resolved.blackoutDates ?? [];
+}
+
+function normalizeBlackoutRows(data: unknown): BlackoutDateRow[] {
+  if (Array.isArray(data)) return data as BlackoutDateRow[];
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as BlackoutDateRow[];
+    if (Array.isArray(obj.blackoutDates)) {
+      return obj.blackoutDates as BlackoutDateRow[];
+    }
+  }
+  return [];
 }
 
 async function createBlackoutDate(
@@ -98,7 +113,8 @@ async function createBlackoutDate(
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Kapalı tarih oluşturulamadı.");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function deleteBlackoutDate(id: string): Promise<void> {
@@ -136,9 +152,15 @@ export default function BlackoutDatesPage() {
     queryFn: fetchCabanas,
   });
 
-  const { data: allRows = [], isLoading } = useQuery({
+  const {
+    data: allRows = [],
+    isLoading,
+    isError: isBlackoutError,
+    error: blackoutError,
+  } = useQuery<unknown, Error, BlackoutDateRow[]>({
     queryKey: ["blackout-dates", cabanaFilter],
     queryFn: () => fetchBlackoutDates(cabanaFilter),
+    select: normalizeBlackoutRows,
   });
 
   const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
@@ -168,7 +190,7 @@ export default function BlackoutDatesPage() {
   });
 
   function getCabanaName(row: BlackoutDateRow): string {
-    if (!row.cabanaId) return "Tüm Kabanalar";
+    if (!row.cabanaId) return "Tüm Cabanalar";
     return (
       row.cabana?.name ??
       cabanas.find((c) => c.id === row.cabanaId)?.name ??
@@ -185,7 +207,7 @@ export default function BlackoutDatesPage() {
             Kapalı Tarihler
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
-            Kabana bazlı veya genel kapalı tarihleri yönetin
+            Cabana bazlı veya genel kapalı tarihleri yönetin
           </p>
         </div>
         <PermissionGate permission="blackout.create">
@@ -222,7 +244,7 @@ export default function BlackoutDatesPage() {
           }}
           className={`${selectCls} sm:w-56`}
         >
-          <option value="ALL">Tüm Kabanalar</option>
+          <option value="ALL">Tüm Cabanalar</option>
           {cabanas.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -230,6 +252,15 @@ export default function BlackoutDatesPage() {
           ))}
         </select>
       </div>
+
+      {isBlackoutError && (
+        <div className="text-center py-12">
+          <p className="text-red-400 text-sm">
+            {(blackoutError as Error)?.message ??
+              "Veriler yüklenirken bir hata oluştu."}
+          </p>
+        </div>
+      )}
 
       {/* Desktop Table */}
       <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
@@ -251,7 +282,7 @@ export default function BlackoutDatesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-800 text-neutral-400 text-left">
-                <th className="px-4 py-3 font-medium">Kabana</th>
+                    <th className="px-4 py-3 font-medium">Cabana</th>
                 <th className="px-4 py-3 font-medium">Başlangıç</th>
                 <th className="px-4 py-3 font-medium">Bitiş</th>
                 <th className="px-4 py-3 font-medium">Sebep</th>
@@ -377,7 +408,7 @@ export default function BlackoutDatesPage() {
             }}
             className="space-y-4"
           >
-            <Field label="Kabana (boş bırakılırsa tüm kabanalar)">
+            <Field label="Cabana (boş bırakılırsa tüm Cabanalar)">
               <select
                 value={createForm.cabanaId}
                 onChange={(e) =>
@@ -385,7 +416,7 @@ export default function BlackoutDatesPage() {
                 }
                 className={selectCls}
               >
-                <option value="">Tüm Kabanalar</option>
+                <option value="">Tüm Cabanalar</option>
                 {cabanas.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}

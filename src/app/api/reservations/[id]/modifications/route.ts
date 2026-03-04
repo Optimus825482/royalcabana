@@ -14,19 +14,19 @@ export const POST = withAuth(
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
 
-    // IDOR: sadece kendi rezervasyonu
     if (reservation.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     if (reservation.status !== "APPROVED") {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Yalnızca onaylı rezervasyonlar için değişiklik talebi oluşturulabilir.",
         },
@@ -38,7 +38,7 @@ export const POST = withAuth(
     const parsed = parseBody(modificationRequestSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
 
     const { newCabanaId, newStartDate, newEndDate, newGuestName } = parsed.data;
@@ -102,7 +102,7 @@ export const POST = withAuth(
       },
     });
 
-    return NextResponse.json(modRequest, { status: 201 });
+    return NextResponse.json({ success: true, data: modRequest }, { status: 201 });
   },
   { requiredPermissions: ["reservation.update"] },
 );

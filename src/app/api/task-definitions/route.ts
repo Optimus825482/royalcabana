@@ -49,7 +49,7 @@ export const GET = withAuth(
       (prisma as any).taskDefinition.count({ where }),
     ]);
 
-    return NextResponse.json({ items, total });
+    return NextResponse.json({ success: true, data: { items, total } });
   },
   { requiredPermissions: ["task.definition.view"] },
 );
@@ -61,7 +61,10 @@ export const POST = withAuth(
     const body = await req.json();
     const parsed = parseBody(createSchema, body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const item = await (prisma as any).taskDefinition.create({
@@ -81,7 +84,7 @@ export const POST = withAuth(
       newValue: parsed.data as Record<string, unknown>,
     });
 
-    return NextResponse.json(item, { status: 201 });
+    return NextResponse.json({ success: true, data: item }, { status: 201 });
   },
   { requiredPermissions: ["task.definition.create"] },
 );

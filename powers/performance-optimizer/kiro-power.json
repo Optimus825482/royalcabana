@@ -1,0 +1,13 @@
+{
+  "name": "performance-optimizer",
+  "displayName": "Performance Optimizer",
+  "description": "Full-stack performance optimization power. Detects and fixes performance bottlenecks across frontend (Core Web Vitals, bundle size, rendering), backend (API response time, caching, connection pooling), and database (query optimization, indexing, N+1). Framework-agnostic detection, then deep analysis.",
+  "keywords": [
+    "performance",
+    "optimization",
+    "core-web-vitals",
+    "query-optimization",
+    "caching",
+    "bundle-size"
+  ]
+}

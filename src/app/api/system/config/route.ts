@@ -19,7 +19,7 @@ export const GET = withAuth(
       where: { key: CONFIG_KEY },
     });
     const isOpen = config ? config.value === "true" : true;
-    return NextResponse.json({ isOpen });
+    return NextResponse.json({ success: true, data: { isOpen } });
   },
   { requiredPermissions: ["system.config.view"] },
 );
@@ -32,7 +32,7 @@ export const PATCH = withAuth(
 
     if (typeof isOpen !== "boolean") {
       return NextResponse.json(
-        { message: "isOpen alanı boolean olmalıdır" },
+        { success: false, error: "isOpen alanı boolean olmalıdır" },
         { status: 400 },
       );
     }
@@ -56,7 +56,10 @@ export const PATCH = withAuth(
       newValue: { isOpen },
     });
 
-    return NextResponse.json({ isOpen: config.value === "true" });
+    return NextResponse.json({
+      success: true,
+      data: { isOpen: config.value === "true" },
+    });
   },
   { requiredPermissions: ["system.config.update"] },
 );

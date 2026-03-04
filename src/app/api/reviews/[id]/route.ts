@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
@@ -24,7 +25,7 @@ export const PATCH = withAuth(
     const reviewId = params?.id;
     if (!reviewId) {
       return NextResponse.json(
-        { error: "Review ID gerekli." },
+        { success: false, error: "Review ID gerekli." },
         { status: 400 },
       );
     }
@@ -35,7 +36,7 @@ export const PATCH = withAuth(
 
     if (!review) {
       return NextResponse.json(
-        { error: "Değerlendirme bulunamadı." },
+        { success: false, error: "Değerlendirme bulunamadı." },
         { status: 404 },
       );
     }
@@ -43,7 +44,10 @@ export const PATCH = withAuth(
     // Only own review can be updated
     if (review.userId !== session.user.id) {
       return NextResponse.json(
-        { error: "Yalnızca kendi değerlendirmenizi düzenleyebilirsiniz." },
+        {
+          success: false,
+          error: "Yalnızca kendi değerlendirmenizi düzenleyebilirsiniz.",
+        },
         { status: 403 },
       );
     }
@@ -51,7 +55,10 @@ export const PATCH = withAuth(
     const body = await req.json();
     const parsed = parseBody(updateReviewSchema, body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const updated = await (prisma as any).review.update({
@@ -70,13 +77,13 @@ export const PATCH = withAuth(
     logAudit({
       userId: session.user.id,
       action: "UPDATE",
-      entity: "Reservation",
+      entity: "Review",
       entityId: reviewId,
       oldValue: { rating: review.rating, comment: review.comment },
       newValue: parsed.data,
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["reservation.update"] },
 );
@@ -87,7 +94,7 @@ export const DELETE = withAuth(
     const reviewId = params?.id;
     if (!reviewId) {
       return NextResponse.json(
-        { error: "Review ID gerekli." },
+        { success: false, error: "Review ID gerekli." },
         { status: 400 },
       );
     }
@@ -98,7 +105,7 @@ export const DELETE = withAuth(
 
     if (!review) {
       return NextResponse.json(
-        { error: "Değerlendirme bulunamadı." },
+        { success: false, error: "Değerlendirme bulunamadı." },
         { status: 404 },
       );
     }
@@ -111,22 +118,25 @@ export const DELETE = withAuth(
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
-        { error: "Bu değerlendirmeyi silme yetkiniz yok." },
+        { success: false, error: "Bu değerlendirmeyi silme yetkiniz yok." },
         { status: 403 },
       );
     }
 
-    await (prisma as any).review.delete({ where: { id: reviewId } });
+    await (prisma as any).review.update({
+      where: { id: reviewId },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
 
     logAudit({
       userId: session.user.id,
       action: "DELETE",
-      entity: "Reservation",
+      entity: "Review",
       entityId: reviewId,
       oldValue: { rating: review.rating, comment: review.comment },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: null });
   },
   { requiredPermissions: ["reservation.delete"] },
 );

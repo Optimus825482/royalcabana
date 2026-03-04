@@ -36,18 +36,18 @@ export const PATCH = withAuth(
 
     if (!reservation || reservation.deletedAt) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
 
     if (reservation.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     if (reservation.status !== "PENDING") {
       return NextResponse.json(
-        { error: "Yalnızca bekleyen rezervasyon talepleri güncellenebilir." },
+        { success: false, error: "Yalnızca bekleyen rezervasyon talepleri güncellenebilir." },
         { status: 400 },
       );
     }
@@ -56,7 +56,7 @@ export const PATCH = withAuth(
     const parsed = updatePendingReservationSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message || "Geçersiz veri." },
+        { success: false, error: parsed.error.issues[0]?.message || "Geçersiz veri." },
         { status: 400 },
       );
     }
@@ -81,59 +81,73 @@ export const PATCH = withAuth(
 
     if (!nextGuestName || nextGuestName.length < 2) {
       return NextResponse.json(
-        { error: "Misafir adı en az 2 karakter olmalıdır." },
+        { success: false, error: "Misafir adı en az 2 karakter olmalıdır." },
         { status: 400 },
       );
     }
 
     if (isNaN(nextStartDate.getTime()) || isNaN(nextEndDate.getTime())) {
       return NextResponse.json(
-        { error: "Geçersiz tarih formatı." },
+        { success: false, error: "Geçersiz tarih formatı." },
         { status: 400 },
       );
     }
 
     if (nextStartDate >= nextEndDate) {
       return NextResponse.json(
-        { error: "Başlangıç tarihi bitiş tarihinden önce olmalıdır." },
+        { success: false, error: "Başlangıç tarihi bitiş tarihinden önce olmalıdır." },
         { status: 400 },
       );
     }
 
     if (nextStartDate < new Date()) {
       return NextResponse.json(
-        { error: "Geçmiş tarihler için güncelleme yapılamaz." },
+        { success: false, error: "Geçmiş tarihler için güncelleme yapılamaz." },
         { status: 400 },
       );
     }
 
-    const conflicts = await prisma.$queryRaw<{ id: string }[]>`
-    SELECT id FROM reservations
-    WHERE "cabanaId" = ${reservation.cabanaId}
-      AND status = 'APPROVED'
-      AND "deletedAt" IS NULL
-      AND id != ${reservation.id}
-      AND "startDate" < ${nextEndDate}
-      AND "endDate" > ${nextStartDate}
-  `;
+    let updated;
+    try {
+      updated = await prisma.$transaction(
+        async (tx) => {
+          const conflicts = await tx.$queryRaw<{ id: string }[]>`
+            SELECT id FROM reservations
+            WHERE "cabanaId" = ${reservation.cabanaId}
+              AND status = 'APPROVED'
+              AND "deletedAt" IS NULL
+              AND id != ${reservation.id}
+              AND "startDate" < ${nextEndDate}
+              AND "endDate" > ${nextStartDate}
+            FOR UPDATE
+          `;
 
-    if (conflicts.length > 0) {
-      return NextResponse.json(
-        { error: "Seçilen tarih aralığında bu kabana müsait değildir." },
-        { status: 409 },
+          if (conflicts.length > 0) {
+            throw new Error("CONFLICT");
+          }
+
+          return tx.reservation.update({
+            where: { id: reservation.id },
+            data: {
+              guestName: nextGuestName,
+              startDate: nextStartDate,
+              endDate: nextEndDate,
+              notes: nextNotes ?? null,
+            },
+            include: { cabana: { select: { id: true, name: true } } },
+          });
+        },
+        { isolationLevel: "Serializable" },
       );
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "CONFLICT") {
+        return NextResponse.json(
+          { success: false, error: "Seçilen tarih aralığında bu Cabana müsait değildir." },
+          { status: 409 },
+        );
+      }
+      throw err;
     }
-
-    const updated = await prisma.reservation.update({
-      where: { id: reservation.id },
-      data: {
-        guestName: nextGuestName,
-        startDate: nextStartDate,
-        endDate: nextEndDate,
-        notes: nextNotes ?? null,
-      },
-      include: { cabana: { select: { id: true, name: true } } },
-    });
 
     logAudit({
       userId: session.user.id,
@@ -193,7 +207,7 @@ export const PATCH = withAuth(
       );
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["reservation.update"] },
 );

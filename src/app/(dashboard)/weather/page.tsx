@@ -589,7 +589,8 @@ export default function WeatherPage() {
       queryFn: async () => {
         const res = await fetch("/api/weather/forecast");
         if (!res.ok) throw new Error("Hava durumu verileri alınamadı");
-        return res.json();
+        const json = await res.json();
+        return json.data ?? json;
       },
       staleTime: 30 * 60 * 1000, // 30 min
     });

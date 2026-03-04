@@ -29,33 +29,42 @@ interface PublicConfig {
 const STATUS_LABELS: Record<CabanaStatus, string> = {
   [CabanaStatus.AVAILABLE]: "Müsait",
   [CabanaStatus.RESERVED]: "Rezerve",
+  [CabanaStatus.OCCUPIED]: "Dolu",
   [CabanaStatus.CLOSED]: "Kapalı",
 };
 
 export default function SystemControlPage() {
   const queryClient = useQueryClient();
 
-  const { data: systemOpen = null, isLoading: systemLoading } = useQuery<
-    boolean | null
-  >({
+  const {
+    data: systemOpen = null,
+    isLoading: systemLoading,
+    isError: isSystemError,
+    error: systemError,
+  } = useQuery<boolean | null>({
     queryKey: ["system-config-control"],
     queryFn: async () => {
       const res = await fetch("/api/system/config");
       if (!res.ok) throw new Error("Sistem durumu yüklenemedi.");
       const data = await res.json();
-      return data.isOpen as boolean;
+      const resolved = data.data ?? data;
+      return resolved.isOpen as boolean;
     },
   });
 
-  const { data: cabanas = [], isLoading: cabanaLoading } = useQuery<
-    CabanaRow[]
-  >({
+  const {
+    data: cabanas = [],
+    isLoading: cabanaLoading,
+    isError: isCabanaError,
+    error: cabanaError,
+  } = useQuery<CabanaRow[]>({
     queryKey: ["cabanas-control"],
     queryFn: async () => {
       const res = await fetch("/api/system/reservation-status");
-      if (!res.ok) throw new Error("Kabana listesi yüklenemedi.");
+      if (!res.ok) throw new Error("Cabana listesi yüklenemedi.");
       const data = await res.json();
-      return data.cabanas;
+      const resolved = data.data ?? data;
+      return resolved.cabanas ?? resolved;
     },
   });
 
@@ -65,7 +74,8 @@ export default function SystemControlPage() {
       queryFn: async () => {
         const res = await fetch("/api/system/modules");
         if (!res.ok) throw new Error("Modül ayarları yüklenemedi.");
-        return res.json();
+        const json = await res.json();
+        return json.data ?? json;
       },
     });
 
@@ -124,9 +134,10 @@ export default function SystemControlPage() {
         throw new Error(data.message || "Sistem durumu güncellenemedi.");
       }
       const data = await res.json();
+      const resolved = data.data ?? data;
       queryClient.invalidateQueries({ queryKey: ["system-config-control"] });
       showSuccess(
-        data.isOpen
+        resolved.isOpen
           ? "Sistem rezervasyona açıldı."
           : "Sistem rezervasyona kapatıldı.",
       );
@@ -151,7 +162,7 @@ export default function SystemControlPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Kabana durumu güncellenemedi.");
+        throw new Error(data.message || "Cabana durumu güncellenemedi.");
       }
       await res.json();
       queryClient.invalidateQueries({ queryKey: ["cabanas-control"] });
@@ -240,8 +251,8 @@ export default function SystemControlPage() {
       if (!res.ok || payload?.success === false) {
         throw new Error(
           payload?.error ||
-          payload?.message ||
-          "Demo hızlı giriş ayarı güncellenemedi.",
+            payload?.message ||
+            "Demo hızlı giriş ayarı güncellenemedi.",
         );
       }
 
@@ -280,6 +291,14 @@ export default function SystemControlPage() {
         </div>
       )}
 
+      {(isSystemError || isCabanaError) && (
+        <div className="mb-4 px-4 py-2.5 bg-red-950/40 border border-red-800/40 text-red-400 text-sm rounded-lg">
+          {(systemError as Error)?.message ??
+            (cabanaError as Error)?.message ??
+            "Veriler yüklenirken bir hata oluştu."}
+        </div>
+      )}
+
       {/* Sistem Geneli Rezervasyon */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
         <h2 className="text-sm font-semibold text-neutral-300 mb-4">
@@ -303,22 +322,22 @@ export default function SystemControlPage() {
               >
                 {systemOpen ? "Açık" : "Kapalı"}
               </span>
-                <PermissionGate permission="system.config.update">
-              <button
-                onClick={handleSystemToggle}
-                disabled={systemToggling}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                  systemOpen ? "bg-green-600" : "bg-neutral-700"
-                }`}
-                aria-label="Sistem rezervasyon toggle"
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${
-                    systemOpen ? "translate-x-7" : "translate-x-1"
+              <PermissionGate permission="system.config.update">
+                <button
+                  onClick={handleSystemToggle}
+                  disabled={systemToggling}
+                  className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                    systemOpen ? "bg-green-600" : "bg-neutral-700"
                   }`}
-                />
-              </button>
-                </PermissionGate>
+                  aria-label="Sistem rezervasyon toggle"
+                >
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${
+                      systemOpen ? "translate-x-7" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </PermissionGate>
             </div>
           </div>
         )}
@@ -337,7 +356,7 @@ export default function SystemControlPage() {
               {
                 key: "reviews" as const,
                 label: "Değerlendirmeler",
-                desc: "Misafirlerin kabana değerlendirmesi yapabilmesi",
+                desc: "Misafirlerin Cabana değerlendirmesi yapabilmesi",
               },
             ].map((mod) => (
               <div key={mod.key} className="flex items-center justify-between">
@@ -355,17 +374,19 @@ export default function SystemControlPage() {
                     <button
                       onClick={() => handleModuleToggle(mod.key)}
                       disabled={moduleToggling === mod.key}
-                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${moduleConfig[mod.key].enabled
+                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                        moduleConfig[mod.key].enabled
                           ? "bg-green-600"
                           : "bg-neutral-700"
-                        }`}
+                      }`}
                       aria-label={`${mod.label} toggle`}
                     >
                       <span
-                        className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${moduleConfig[mod.key].enabled
+                        className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${
+                          moduleConfig[mod.key].enabled
                             ? "translate-x-7"
                             : "translate-x-1"
-                          }`}
+                        }`}
                       />
                     </button>
                   </PermissionGate>
@@ -396,15 +417,16 @@ export default function SystemControlPage() {
               {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
                 <PermissionGate key={code} permission="system.config.update">
                   <button
-                  onClick={() => handleCurrencyChange(code)}
-                  disabled={currencySaving}
-                    className={`px-4 py-2.5 min-h-[44px] rounded-lg text-sm font-medium transition-colors border ${currencyCode === code
-                      ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                      : "bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+                    onClick={() => handleCurrencyChange(code)}
+                    disabled={currencySaving}
+                    className={`px-4 py-2.5 min-h-[44px] rounded-lg text-sm font-medium transition-colors border ${
+                      currencyCode === code
+                        ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                        : "bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {CURRENCIES[code].symbol} {code}
-                </button>
+                  >
+                    {CURRENCIES[code].symbol} {code}
+                  </button>
                 </PermissionGate>
               ))}
             </div>
@@ -422,9 +444,9 @@ export default function SystemControlPage() {
         ) : (
           <div className="flex items-center justify-between">
             <div>
-                <p className="text-neutral-100 font-medium">
-                  Login Demo Hesapları
-                </p>
+              <p className="text-neutral-100 font-medium">
+                Login Demo Hesapları
+              </p>
               <p className="text-sm text-neutral-500 mt-0.5">
                 Açık olduğunda login ekranında demo kullanıcı butonları görünür.
               </p>
@@ -435,28 +457,28 @@ export default function SystemControlPage() {
               >
                 {publicConfig?.demoQuickLoginEnabled ? "Açık" : "Kapalı"}
               </span>
-                <PermissionGate permission="system.config.update">
-              <button
-                onClick={handleDemoQuickLoginToggle}
-                disabled={demoLoginToggling}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${publicConfig?.demoQuickLoginEnabled ? "bg-green-600" : "bg-neutral-700"}`}
-                aria-label="Demo hızlı giriş toggle"
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${publicConfig?.demoQuickLoginEnabled ? "translate-x-7" : "translate-x-1"}`}
-                />
-              </button>
-                </PermissionGate>
+              <PermissionGate permission="system.config.update">
+                <button
+                  onClick={handleDemoQuickLoginToggle}
+                  disabled={demoLoginToggling}
+                  className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${publicConfig?.demoQuickLoginEnabled ? "bg-green-600" : "bg-neutral-700"}`}
+                  aria-label="Demo hızlı giriş toggle"
+                >
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${publicConfig?.demoQuickLoginEnabled ? "translate-x-7" : "translate-x-1"}`}
+                  />
+                </button>
+              </PermissionGate>
             </div>
           </div>
         )}
       </div>
 
-      {/* Kabana Bazında Rezervasyon Durumu */}
+      {/* Cabana Bazında Rezervasyon Durumu */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-neutral-800">
           <h2 className="text-sm font-semibold text-neutral-300">
-            Kabana Bazında Rezervasyon Durumu
+            Cabana Bazında Rezervasyon Durumu
           </h2>
         </div>
         {cabanaLoading ? (
@@ -465,14 +487,14 @@ export default function SystemControlPage() {
           </div>
         ) : cabanas.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
-            Henüz kabana yok.
+            Henüz Cabana yok.
           </div>
         ) : (
           <>
             <table className="w-full text-sm hidden md:table">
               <thead>
                 <tr className="border-b border-neutral-800 text-neutral-400 text-left">
-                  <th className="px-4 py-3 font-medium">Kabana Adı</th>
+                  <th className="px-4 py-3 font-medium">Cabana Adı</th>
                   <th className="px-4 py-3 font-medium">Sınıf</th>
                   <th className="px-4 py-3 font-medium">Durum</th>
                   <th className="px-4 py-3 font-medium text-right">
@@ -505,24 +527,24 @@ export default function SystemControlPage() {
                           {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
                         </span>
                         <PermissionGate permission="system.config.update">
-                        <button
-                          onClick={() => handleCabanaToggle(cabana)}
-                          disabled={togglingId === cabana.id}
-                          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                            cabana.isOpenForReservation
-                              ? "bg-green-600"
-                              : "bg-neutral-700"
-                          }`}
-                          aria-label={`${cabana.name} rezervasyon toggle`}
-                        >
-                          <span
-                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                          <button
+                            onClick={() => handleCabanaToggle(cabana)}
+                            disabled={togglingId === cabana.id}
+                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
                               cabana.isOpenForReservation
-                                ? "translate-x-6"
-                                : "translate-x-1"
+                                ? "bg-green-600"
+                                : "bg-neutral-700"
                             }`}
-                          />
-                        </button>
+                            aria-label={`${cabana.name} rezervasyon toggle`}
+                          >
+                            <span
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                                cabana.isOpenForReservation
+                                  ? "translate-x-6"
+                                  : "translate-x-1"
+                              }`}
+                            />
+                          </button>
                         </PermissionGate>
                       </div>
                     </td>
@@ -553,24 +575,24 @@ export default function SystemControlPage() {
                       {cabana.isOpenForReservation ? "Açık" : "Kapalı"}
                     </span>
                     <PermissionGate permission="system.config.update">
-                    <button
-                      onClick={() => handleCabanaToggle(cabana)}
-                      disabled={togglingId === cabana.id}
-                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                        cabana.isOpenForReservation
-                          ? "bg-green-600"
-                          : "bg-neutral-700"
-                      }`}
-                      aria-label={`${cabana.name} rezervasyon toggle`}
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                      <button
+                        onClick={() => handleCabanaToggle(cabana)}
+                        disabled={togglingId === cabana.id}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
                           cabana.isOpenForReservation
-                            ? "translate-x-6"
-                            : "translate-x-1"
+                            ? "bg-green-600"
+                            : "bg-neutral-700"
                         }`}
-                      />
-                    </button>
+                        aria-label={`${cabana.name} rezervasyon toggle`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                            cabana.isOpenForReservation
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
+                        />
+                      </button>
                     </PermissionGate>
                   </div>
                 </div>

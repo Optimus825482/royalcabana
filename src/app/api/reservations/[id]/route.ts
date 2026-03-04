@@ -17,7 +17,18 @@ export const GET = withAuth(
             concept: { select: { id: true, name: true } },
           },
         },
+        concept: { select: { id: true, name: true } },
         user: { select: { id: true, username: true, email: true } },
+        guest: {
+          select: {
+            id: true,
+            name: true,
+            vipLevel: true,
+            totalVisits: true,
+            lastVisitAt: true,
+            phone: true,
+          },
+        },
         statusHistory: { orderBy: { createdAt: "asc" } },
         modifications: { orderBy: { createdAt: "desc" } },
         cancellations: { orderBy: { createdAt: "desc" } },
@@ -31,7 +42,7 @@ export const GET = withAuth(
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
@@ -41,7 +52,10 @@ export const GET = withAuth(
       session.user.role === Role.CASINO_USER &&
       reservation.userId !== session.user.id
     ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
     }
 
     // Misafir gizliliği: isGuestPrivate ise Casino dışındaki roller göremez
@@ -50,14 +64,17 @@ export const GET = withAuth(
       session.user.role !== Role.CASINO_USER
     ) {
       return NextResponse.json({
-        ...reservation,
-        guestName: "Gizli Misafir",
-        guestId: null,
-        notes: null,
+        success: true,
+        data: {
+          ...reservation,
+          guestName: "Gizli Misafir",
+          guestId: null,
+          notes: null,
+        },
       });
     }
 
-    return NextResponse.json(reservation);
+    return NextResponse.json({ success: true, data: reservation });
   },
   { requiredPermissions: ["reservation.view"] },
 );

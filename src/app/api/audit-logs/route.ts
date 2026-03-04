@@ -52,7 +52,10 @@ export const GET = withAuth(
       prisma.auditLog.count({ where }),
     ]);
 
-    return NextResponse.json({ logs, total, page, limit });
+    return NextResponse.json({
+      success: true,
+      data: { logs, total, page, limit },
+    });
   },
   { requiredPermissions: ["audit.view"] },
 );

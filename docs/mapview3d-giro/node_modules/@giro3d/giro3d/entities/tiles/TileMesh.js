@@ -1,0 +1,709 @@
+/**
+ * Copyright (c) 2015-2018, IGN France.
+ * Copyright (c) 2018-2025, Giro3D team.
+ * SPDX-License-Identifier: MIT
+ */
+
+import { Group, MathUtils, Matrix4, Mesh, MeshBasicMaterial, Ray, RGBAFormat, Sphere, SphereGeometry, UnsignedByteType, Vector2, Vector3 } from 'three';
+import HeightMap from '../../core/HeightMap';
+import { isElevationLayer } from '../../core/layer/ElevationLayer';
+import OffsetScale from '../../core/OffsetScale';
+import Rect from '../../core/Rect';
+import { intoUniqueOwner } from '../../core/UniqueOwner';
+import OBBHelper from '../../helpers/OBBHelper';
+import { readRGRenderTargetIntoRGBAU8Buffer } from '../../renderer/composition/WebGLComposer';
+import MaterialUtils from '../../renderer/MaterialUtils';
+import MemoryTracker from '../../renderer/MemoryTracker';
+import { isPerspectiveCamera } from '../../utils/predicates';
+import { nonNull } from '../../utils/tsutils';
+const ray = new Ray();
+const inverseMatrix = new Matrix4();
+const THIS_RECT = new Rect(0, 1, 0, 1);
+const tmpSphere = new Sphere();
+const sphereGeometry = new SphereGeometry(1, 32, 16);
+const helperMaterial = new MeshBasicMaterial({
+  color: '#75eba8',
+  depthTest: false,
+  depthWrite: false,
+  wireframe: true,
+  transparent: true
+});
+const noRaycast = () => {};
+const NO_NEIGHBOUR = -99;
+const NO_OFFSET_SCALE = new OffsetScale(0, 0, 0, 0);
+const tempVec2 = new Vector2();
+const tempVec3 = new Vector3();
+const tempAbsolutePosition = new Vector3();
+class TileMesh extends Mesh {
+  isTileMesh = true;
+  type = 'TileMesh';
+  isMemoryUsage = true;
+  _verticalScaling = 1;
+  _heightMap = null;
+  _minmax = {
+    min: -Infinity,
+    max: +Infinity
+  };
+  _shouldUpdateHeightMap = false;
+  _helpers = {
+    root: null,
+    color: 'cyan'
+  };
+  _elevationLayerInfo = null;
+  disposed = false;
+  isLeaf = false;
+  getMemoryUsage(context) {
+    this.material?.getMemoryUsage(context);
+
+    // We only count what we own, otherwise the same heightmap will be counted more than once.
+    if (this._heightMap && this._heightMap.owner === this) {
+      context.objects.set(`heightmap-${this._heightMap.owner.id}`, {
+        cpuMemory: this._heightMap.payload.buffer.byteLength,
+        gpuMemory: 0
+      });
+    }
+    this.geometry.getMemoryUsage(context);
+  }
+  get boundingBox() {
+    if (!this._enableTerrainDeformation || this._elevationLayerInfo?.layer.visible !== true) {
+      this._volume.setElevationRange({
+        min: 0,
+        max: 0
+      });
+    } else {
+      this._volume.setElevationRange(this.minmax);
+    }
+    return this._volume.localBox;
+  }
+
+  /**
+   * The LOD. Root nodes have LOD 0.
+   */
+  get lod() {
+    return this.coordinate.z;
+  }
+  getOBB() {
+    return this._volume.getOBB(this.matrixWorld);
+  }
+  getWorldSpaceBoundingBox(target) {
+    const local = this._volume.getLocalBoundingBox(target);
+    this.updateMatrixWorld(true);
+    local.applyMatrix4(this.matrixWorld);
+    return local;
+  }
+  getWorldSpaceBoundingSphere(target) {
+    this.updateWorldMatrix(true, false);
+    return this._volume.getWorldSpaceBoundingSphere(target, this.matrixWorld);
+  }
+  getBoundingBoxCorners() {
+    this.updateWorldMatrix(true, false);
+    return this._volume.getWorldSpaceCorners(this.matrixWorld);
+  }
+
+  /**
+   * Creates an instance of TileMesh.
+   *
+   * @param options - Constructor options.
+   */
+  constructor(params) {
+    super(params.geometryBuilder.build({
+      extent: params.extent,
+      tile: params.coord
+    }), params.material);
+    this._geometryBuilder = params.geometryBuilder;
+    this._tileGeometry = this.geometry;
+    this._segments = params.segments;
+    this._skirtDepth = params.skirtDepth;
+    this._renderer = params.renderer;
+    this._onElevationChanged = params.onElevationChanged;
+    this.matrixAutoUpdate = false;
+    this.coordinate = params.coord;
+    this.extent = params.extent;
+    this.textureSize = params.textureSize;
+    this._enableTerrainDeformation = params.enableTerrainDeformation;
+    this.customDepthMaterial = params.depthMaterial;
+    this.customDistanceMaterial = params.distanceMaterial;
+    if (!this.geometry.boundingBox) {
+      this.geometry.computeBoundingBox();
+    }
+    this._volume = params.volume;
+    const {
+      z,
+      x,
+      y
+    } = this.coordinate;
+    this.name = `tile @ (z=${z}, x=${x}, y=${y})`;
+    this.frustumCulled = false;
+
+    // Layer
+    this.setDisplayed(false);
+    this.material.setUuid(this.id);
+    const dim = params.extent.dimensions();
+    this._extentDimensions = dim;
+
+    // Sets the default bbox volume
+    this.setBBoxZ(-0.5, +0.5);
+    MemoryTracker.track(this, this.name);
+    this.updateSkirtParameters();
+  }
+  onBeforeShadow() {
+    this.customDepthMaterial.onBeforeRender();
+    this.customDistanceMaterial.onBeforeRender();
+  }
+  updateSkirtParameters() {
+    const skirtDepth = this._skirtDepth;
+    if (skirtDepth != null) {
+      this.forEachMaterial(material => {
+        MaterialUtils.setDefine(material, 'ENABLE_SKIRTS', true);
+        const vertexCount = this.geometry.vertexCount;
+        const rowSize = this.segments + 1;
+        material.uniforms.skirtVertexRange.value = new Vector2(rowSize * rowSize, vertexCount - 1);
+        material.uniforms.skirtElevation.value = skirtDepth;
+      });
+    } else {
+      this.forEachMaterial(material => {
+        MaterialUtils.setDefine(material, 'ENABLE_SKIRTS', false);
+      });
+    }
+  }
+  setVerticalScaling(scaling) {
+    this._verticalScaling = scaling;
+    this.material.setElevationScaling(scaling);
+  }
+  get absolutePosition() {
+    return this.geometry.origin;
+  }
+  get showColliderMesh() {
+    if (!this._helpers.colliderMesh) {
+      return false;
+    }
+    return this._helpers.colliderMesh.material.visible;
+  }
+  set showColliderMesh(visible) {
+    if (visible && !this._helpers.colliderMesh) {
+      this._helpers.colliderMesh = new Mesh(this.geometry.raycastGeometry, helperMaterial);
+      this._helpers.colliderMesh.matrixAutoUpdate = false;
+      this._helpers.colliderMesh.name = 'collider helper';
+      this.createHelperRootIfNecessary();
+      this._helpers.root?.add(this._helpers.colliderMesh);
+      this._helpers.colliderMesh.updateMatrix();
+      this._helpers.colliderMesh.updateMatrixWorld(true);
+    }
+    if (!visible && this._helpers.colliderMesh) {
+      this._helpers.colliderMesh.removeFromParent();
+      this._helpers.colliderMesh = undefined;
+    }
+    if (this._helpers.colliderMesh) {
+      this._helpers.colliderMesh.material.visible = visible;
+    }
+  }
+  deleteBoundingBoxHelper() {
+    if (this._helpers.boundingBox != null) {
+      this._helpers.boundingBox.dispose();
+      this._helpers.boundingBox.removeFromParent();
+      this._helpers.boundingBox = undefined;
+    }
+  }
+  deleteBoundingSphereHelper() {
+    if (this._helpers.boundingSphere != null) {
+      this._helpers.boundingSphere.removeFromParent();
+      this._helpers.boundingSphere = undefined;
+    }
+  }
+  recreateBoundingBoxHelper() {
+    this.deleteBoundingBoxHelper();
+    const obb = this._volume.getOBB(this.matrixWorld);
+    const helper = new OBBHelper(obb, this.helperColor);
+    helper.raycast = noRaycast;
+    this.createHelperRootIfNecessary();
+    nonNull(this._helpers.root).attach(helper);
+    helper.updateMatrixWorld(true);
+    this._helpers.boundingBox = helper;
+  }
+  recreateBoundingSphereHelper() {
+    this.deleteBoundingSphereHelper();
+    this._helpers.boundingSphere = new Mesh(sphereGeometry, new MeshBasicMaterial({
+      color: this.helperColor,
+      wireframe: true
+    }));
+    this._helpers.boundingSphere.rotateX(MathUtils.degToRad(90));
+    this._helpers.boundingSphere.raycast = noRaycast;
+    const sphere = this._volume.getWorldSpaceBoundingSphere(tmpSphere, this.matrixWorld);
+    this._helpers.boundingSphere.scale.set(sphere.radius, sphere.radius, sphere.radius);
+    this._helpers.boundingSphere.position.copy(sphere.center);
+    this.createHelperRootIfNecessary();
+    nonNull(this._helpers.root).attach(this._helpers.boundingSphere);
+    this._helpers.boundingSphere.updateMatrixWorld(true);
+  }
+  get showBoundingBox() {
+    return this._helpers.boundingBox?.visible ?? false;
+  }
+  set showBoundingBox(show) {
+    if (show && this._helpers.boundingBox == null) {
+      this.recreateBoundingBoxHelper();
+    } else if (!show && this._helpers.boundingBox != null) {
+      this.deleteBoundingBoxHelper();
+    }
+  }
+  get showBoundingSphere() {
+    return this._helpers.boundingSphere?.visible ?? false;
+  }
+  set showBoundingSphere(show) {
+    if (show && this._helpers.boundingSphere == null) {
+      this.recreateBoundingSphereHelper();
+    } else if (!show && this._helpers.boundingSphere != null) {
+      this.deleteBoundingSphereHelper();
+    }
+  }
+  get helperColor() {
+    return this._helpers.color;
+  }
+  set helperColor(color) {
+    this._helpers.color = color;
+    if (this.showBoundingBox) {
+      this.recreateBoundingBoxHelper();
+    }
+    if (this.showBoundingSphere) {
+      this.recreateBoundingSphereHelper();
+    }
+  }
+  get segments() {
+    return this._segments;
+  }
+  set segments(v) {
+    if (this._segments !== v) {
+      this._segments = v;
+      this.forEachMaterial(material => material.segments = v);
+      this.createGeometry();
+      this._shouldUpdateHeightMap = true;
+    }
+  }
+  createHelperRootIfNecessary() {
+    if (!this._helpers.root) {
+      this._helpers.root = new Group();
+      this._helpers.root.name = 'helpers';
+      this.add(this._helpers.root);
+      this._helpers.root.updateMatrixWorld(true);
+    }
+  }
+  createGeometry() {
+    this.geometry.dispose();
+    this.geometry = this._geometryBuilder.build({
+      extent: this.extent,
+      tile: this.coordinate
+    });
+    this._tileGeometry = this.geometry;
+    if (this._helpers.colliderMesh) {
+      this._helpers.colliderMesh.geometry = this.geometry.raycastGeometry;
+    }
+    this.updateSkirtParameters();
+  }
+  onLayerVisibilityChanged(layer) {
+    if (isElevationLayer(layer)) {
+      this._shouldUpdateHeightMap = true;
+    }
+  }
+  addChildTile(tile) {
+    // The absolute position here means "absolute position in the cartographic coordinate system", not in the scene.
+    const absolutePosition = tempAbsolutePosition.copy(tile.absolutePosition);
+    tile.position.copy(absolutePosition.sub(this.absolutePosition));
+    this.add(tile);
+    tile.updateMatrix();
+    tile.updateMatrixWorld();
+    if (this._heightMap) {
+      const heightMap = this._heightMap.payload;
+      const inheritedHeightMap = heightMap.clone();
+      const offsetScale = tile.extent.offsetToParent(this.extent);
+      heightMap.offsetScale.combine(offsetScale, inheritedHeightMap.offsetScale);
+      tile.inheritHeightMap(intoUniqueOwner(inheritedHeightMap, this));
+    }
+  }
+  reorderLayers() {
+    this.material.reorderLayers();
+  }
+
+  /**
+   * Checks that the given raycaster intersects with this tile's volume.
+   */
+  checkRayVolumeIntersection(raycaster) {
+    const matrixWorld = this.matrixWorld;
+
+    // convert ray to local space of mesh
+
+    inverseMatrix.copy(matrixWorld).invert();
+    ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
+
+    // test with bounding box in local space
+
+    // Note that we are not using the bounding box of the geometry, because at this moment,
+    // the mesh might still be completely flat, as the heightmap might not be computed yet.
+    // This is the whole point of this method: to avoid computing the heightmap if not necessary.
+    // So we are using the logical bounding box provided by the volume.
+    return ray.intersectsBox(this.boundingBox);
+  }
+  raycast(raycaster, intersects) {
+    if (!this.material.visible) {
+      return;
+    }
+
+    // Updating the heightmap is quite costly operation that requires a texture readback.
+    // Let's do it only if the ray intersects the volume of this tile.
+    if (this.checkRayVolumeIntersection(raycaster)) {
+      this.updateHeightMapIfNecessary();
+
+      // We have to distinguish between the rendered geometry and the raycasting geometry.
+      // However, three.js does not let use choose which will be used for raycasting,
+      // so we temporarily swap the geometry with the raycast geometry to perform raycasting.
+      // @ts-expect-error type mismatch is expected and transient
+      this.geometry = this._tileGeometry.raycastGeometry;
+      super.raycast(raycaster, intersects);
+      this.geometry = this._tileGeometry;
+    }
+  }
+  updateHeightMapIfNecessary() {
+    if (this._shouldUpdateHeightMap) {
+      this._shouldUpdateHeightMap = false;
+      if (this._elevationLayerInfo) {
+        this.createHeightMap(this._elevationLayerInfo.renderTarget, this._elevationLayerInfo.offsetScale);
+        const shouldHeightmapBeActive = this._elevationLayerInfo.layer.visible && this._enableTerrainDeformation;
+        if (shouldHeightmapBeActive) {
+          this.applyHeightMap();
+        } else {
+          this.resetHeights();
+        }
+      }
+    }
+  }
+
+  /**
+   * @param neighbour - The neighbour.
+   * @param location - Its location in the neighbour array.
+   */
+  processNeighbour(neighbour, location) {
+    const diff = neighbour.lod - this.lod;
+    const neighbourTexture = neighbour.material.getElevationTexture();
+    const neighbourOffsetScale = neighbour.material.getElevationOffsetScale();
+    const offsetScale = this.extent.offsetToParent(neighbour.extent);
+    const nOffsetScale = neighbourOffsetScale.combine(offsetScale);
+    this.forEachMaterial(material => {
+      material.updateNeighbour(location, diff, nOffsetScale, neighbourTexture);
+    });
+  }
+
+  /**
+   * @param neighbours - The neighbours.
+   */
+  processNeighbours(neighbours) {
+    for (let i = 0; i < neighbours.length; i++) {
+      const neighbour = neighbours[i];
+      if (neighbour != null && neighbour.material != null && neighbour.material.visible) {
+        this.processNeighbour(neighbour, i);
+      } else {
+        this.forEachMaterial(material => material.updateNeighbour(i, NO_NEIGHBOUR, NO_OFFSET_SCALE, null));
+      }
+    }
+  }
+  update(materialOptions) {
+    if (this._heightMap && this._elevationLayerInfo) {
+      if (this._enableTerrainDeformation !== materialOptions.terrain.enabled) {
+        this._enableTerrainDeformation = materialOptions.terrain.enabled;
+        this._shouldUpdateHeightMap = true;
+      }
+    }
+    this.helperColor = materialOptions.helperColor ?? 'cyan';
+    this.showColliderMesh = materialOptions.showColliderMeshes ?? false;
+    this.showBoundingBox = materialOptions.showBoundingBoxes ?? false;
+    this.showBoundingSphere = materialOptions.showBoundingSpheres ?? false;
+  }
+  isVisible() {
+    return this.visible;
+  }
+  setDisplayed(show) {
+    const currentVisibility = this.material.visible;
+    this.material.visible = show && this.material.update();
+    if (this._helpers.root) {
+      if (this._helpers.boundingBox) {
+        this._helpers.boundingBox.color = show ? this.helperColor : 'gray';
+      }
+    }
+    if (currentVisibility !== show) {
+      this.dispatchEvent({
+        type: 'visibility-changed'
+      });
+    }
+  }
+
+  /**
+   * @param v - The new opacity.
+   */
+  set opacity(v) {
+    this.material.opacity = v;
+  }
+  setVisibility(show) {
+    const currentVisibility = this.visible;
+    this.visible = show;
+    if (currentVisibility !== show) {
+      this.dispatchEvent({
+        type: 'visibility-changed'
+      });
+    }
+  }
+  isDisplayed() {
+    return this.material.visible;
+  }
+
+  /**
+   * Updates the rendering state of the tile's material.
+   *
+   * @param state - The new rendering state.
+   */
+  changeState(state) {
+    this.material.changeState(state);
+  }
+  static applyChangeState(o, s) {
+    if (o.isTileMesh) {
+      o.changeState(s);
+    }
+  }
+  pushRenderState(state) {
+    if (this.material.uniforms.renderingState.value === state) {
+      return () => {
+        /** do nothing */
+      };
+    }
+    const oldState = this.material.uniforms.renderingState.value;
+    this.traverse(n => TileMesh.applyChangeState(n, state));
+    return () => {
+      this.traverse(n => TileMesh.applyChangeState(n, oldState));
+    };
+  }
+  canProcessColorLayer() {
+    if (!this._elevationLayerInfo) {
+      // No elevation layer that prevents loading color data
+      return true;
+    }
+    return this._elevationLayerInfo.layer.isLoaded(this.id);
+  }
+  removeElevationTexture() {
+    this._elevationLayerInfo = null;
+    this._shouldUpdateHeightMap = true;
+    this.material.removeElevationLayer();
+  }
+  setElevationTexture(layer, elevation) {
+    if (this.disposed) {
+      return;
+    }
+    this._elevationLayerInfo = {
+      layer,
+      offsetScale: elevation.pitch,
+      renderTarget: elevation.renderTarget
+    };
+    this.material.setElevationTexture(layer, elevation);
+    this.setBBoxZ(elevation.min, elevation.max);
+    this._shouldUpdateHeightMap = true;
+    this._onElevationChanged(this);
+  }
+  getScreenPixelSize(view, target) {
+    target = target ?? new Vector2();
+    const sphere = this.getWorldSpaceBoundingSphere(tmpSphere);
+    const distance = sphere.center.distanceTo(view.camera.getWorldPosition(tempVec3));
+    let height;
+    let width;
+    const camera = view.camera;
+    if (isPerspectiveCamera(camera)) {
+      const fovRads = MathUtils.degToRad(camera.fov);
+      height = 2 * Math.tan(fovRads / 2) * distance;
+      width = height * camera.aspect;
+    } else {
+      height = Math.abs(camera.top - camera.bottom);
+      width = Math.abs(camera.right - camera.left);
+    }
+    const diameter = sphere.radius * 2;
+    const wRatio = diameter / width;
+    const hRatio = diameter / height;
+    target.setX(Math.ceil(wRatio * view.width));
+    target.setY(Math.ceil(hRatio * view.height));
+    return target;
+  }
+  createHeightMap(renderTarget, offsetScale) {
+    const outputHeight = Math.floor(renderTarget.height);
+    const outputWidth = Math.floor(renderTarget.width);
+
+    // One millimeter
+    const precision = 0.001;
+
+    // To ensure that all values are positive before encoding
+    const offset = -this._minmax.min;
+    const buffer = readRGRenderTargetIntoRGBAU8Buffer({
+      renderTarget,
+      renderer: this._renderer,
+      outputWidth,
+      outputHeight,
+      precision,
+      offset
+    });
+    const heightMap = new HeightMap(buffer, outputWidth, outputHeight, offsetScale, RGBAFormat, UnsignedByteType, precision, offset, this._verticalScaling);
+    this._heightMap = intoUniqueOwner(heightMap, this);
+  }
+  inheritHeightMap(heightMap) {
+    this._heightMap = heightMap;
+    this._shouldUpdateHeightMap = true;
+
+    // Let's get a more precise minmax from the inherited heightmap, but
+    // only on the region of the inherited heightmap that matches this tile's extent
+    // (otherwise this would not provide any benefit at all);
+    const minmax = heightMap.payload.getMinMax(THIS_RECT);
+    if (minmax != null) {
+      this._minmax = minmax;
+    }
+  }
+  resetHeights() {
+    this.geometry.resetHeights();
+    this.setBBoxZ(0, 0);
+    this._onElevationChanged(this);
+  }
+  applyHeightMap() {
+    if (!this._heightMap) {
+      return;
+    }
+    const {
+      min,
+      max
+    } = this.geometry.applyHeightMap(this._heightMap.payload);
+    if (min > this._minmax.min && max < this._minmax.max) {
+      this.setBBoxZ(min, max);
+    }
+    if (this._helpers.colliderMesh) {
+      this._helpers.colliderMesh.geometry = this.geometry.raycastGeometry;
+    }
+    this._onElevationChanged(this);
+  }
+  setBBoxZ(min, max) {
+    // 0 is an acceptable value
+    if (min == null || max == null) {
+      return;
+    }
+    this._minmax = {
+      min,
+      max
+    };
+    if (this._skirtDepth != null) {
+      this._minmax.min = Math.min(this._skirtDepth, this._minmax.min);
+    }
+    this.updateVolume(min, max);
+  }
+  traverseTiles(callback) {
+    this.traverse(obj => {
+      if (isTileMesh(obj)) {
+        callback(obj);
+      }
+    });
+  }
+
+  /**
+   * Removes the child tiles and returns the detached tiles.
+   */
+  detachChildren() {
+    const childTiles = this.children.filter(c => isTileMesh(c));
+    childTiles.forEach(c => c.dispose());
+    this.remove(...childTiles);
+    return childTiles;
+  }
+  updateVolume(min, max) {
+    this._volume.setElevationRange({
+      min,
+      max
+    });
+    if (this.showBoundingBox) {
+      this.recreateBoundingBoxHelper();
+    }
+    if (this.showBoundingSphere) {
+      this.recreateBoundingSphereHelper();
+    }
+  }
+  get minmax() {
+    const range = Math.abs(this._minmax.max - this._minmax.min);
+    const width = this._extentDimensions.width;
+    const height = this._extentDimensions.height;
+    // If the current volume is very elongated in the vertical axis,
+    // this can cause excessive subdivisions of the tile. Let's compute
+    // the heightmap to get a more precise min/max and hopefully a tighter
+    // volume. Note that the heightmap will be computed only if it does not
+    // exist, avoiding unnecessary computations.
+    if (range / Math.max(width, height) > 3) {
+      this.updateHeightMapIfNecessary();
+    }
+    return this._minmax;
+  }
+  getExtent() {
+    return this.extent;
+  }
+  getElevation(params) {
+    this.updateHeightMapIfNecessary();
+    if (this._heightMap) {
+      const uv = this.extent.offsetInExtent(params.coordinates, tempVec2);
+      const heightMap = this._heightMap.payload;
+      const elevation = heightMap.getValue(uv.x, uv.y);
+      if (elevation != null) {
+        const dims = this.extent.dimensions(tempVec2);
+        const xRes = dims.x / heightMap.width;
+        const yRes = dims.y / heightMap.height;
+        const resolution = Math.min(xRes, yRes);
+        return {
+          elevation,
+          resolution
+        };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Search for a common ancestor between this tile and another one. It goes
+   * through parents on each side until one is found.
+   *
+   * @param tile - the tile to evaluate
+   * @returns the resulting common ancestor
+   */
+  findCommonAncestor(tile) {
+    if (tile == null) {
+      return null;
+    }
+    if (tile.lod === this.lod) {
+      if (tile.id === this.id) {
+        return tile;
+      }
+      if (tile.lod !== 0) {
+        return this.parent.findCommonAncestor(tile.parent);
+      }
+      return null;
+    }
+    if (tile.lod < this.lod) {
+      return this.parent.findCommonAncestor(tile);
+    }
+    return this.findCommonAncestor(tile.parent);
+  }
+  isAncestorOf(tile) {
+    return tile.findCommonAncestor(this) === this;
+  }
+  forEachMaterial(callbackFn) {
+    callbackFn(this.material);
+    callbackFn(this.customDepthMaterial);
+    callbackFn(this.customDistanceMaterial);
+  }
+  dispose() {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    this.dispatchEvent({
+      type: 'dispose'
+    });
+    this.forEachMaterial(m => m.dispose());
+    this.geometry.dispose();
+  }
+}
+export function isTileMesh(o) {
+  return o.isTileMesh;
+}
+export default TileMesh;

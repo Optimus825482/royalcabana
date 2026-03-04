@@ -17,14 +17,17 @@ export const GET = withAuth(allRoles, async (req, { session }) => {
 
   if (unreadOnly) {
     const notifications = await notificationService.getUnread(session.user.id);
-    return NextResponse.json({ notifications, total: notifications.length });
+    return NextResponse.json({
+      success: true,
+      data: { notifications, total: notifications.length },
+    });
   }
 
   const result = await notificationService.getAll(session.user.id, page);
-  return NextResponse.json(result);
+  return NextResponse.json({ success: true, data: result });
 });
 
 export const PATCH = withAuth(allRoles, async (_req, { session }) => {
   await notificationService.markAllAsRead(session.user.id);
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, data: null });
 });

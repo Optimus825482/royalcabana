@@ -12,13 +12,6 @@ type DemoAccount = {
   password: string;
 };
 
-const DEMO_ACCOUNTS: DemoAccount[] = [
-  { label: "Sistem Yöneticisi", username: "sysadmin", password: "admin123" },
-  { label: "Admin", username: "admin", password: "123456" },
-  { label: "Casino Kullanıcısı", username: "casino1", password: "admin123" },
-  { label: "F&B Kullanıcısı", username: "fnb1", password: "admin123" },
-];
-
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -26,7 +19,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [logoError, setLogoError] = useState(false);
-  const [demoQuickLoginEnabled, setDemoQuickLoginEnabled] = useState(true);
+  const [demoQuickLoginEnabled, setDemoQuickLoginEnabled] = useState(false);
+  const [demoAccounts, setDemoAccounts] = useState<DemoAccount[]>([]);
 
   async function performLogin(nextUsername: string, nextPassword: string) {
     setError("");
@@ -83,11 +77,9 @@ export default function LoginPage() {
         body: JSON.stringify(trackData),
       }).catch(() => {});
 
-      if (role && MODULE_ACCESS[role]?.length > 0) {
-        router.push(MODULE_ACCESS[role][0]);
-      } else {
-        router.push("/");
-      }
+      const target =
+        role && MODULE_ACCESS[role]?.length > 0 ? MODULE_ACCESS[role][0] : "/";
+      router.push(target);
     } catch {
       setError("Bir hata oluştu. Lütfen tekrar deneyin.");
     } finally {
@@ -125,18 +117,36 @@ export default function LoginPage() {
         }
       } catch {
         if (!mounted) return;
-        setDemoQuickLoginEnabled(true);
+      }
+    }
+
+    async function loadDemoAccounts() {
+      if (process.env.NODE_ENV !== "development") return;
+      try {
+        const res = await fetch("/api/auth/demo-accounts", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        if (!mounted) return;
+        if (payload?.success && Array.isArray(payload.data)) {
+          setDemoAccounts(payload.data);
+          setDemoQuickLoginEnabled(true);
+        }
+      } catch {
+        if (!mounted) return;
       }
     }
 
     loadPublicConfig();
+    loadDemoAccounts();
     return () => {
       mounted = false;
     };
   }, []);
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-950 px-4 py-8">
+    <div className="min-h-dvh flex items-center justify-center bg-neutral-950 px-4 py-8">
       <div className="w-full max-w-md px-6 py-8 sm:px-8 sm:py-10 bg-neutral-900 border border-yellow-700/30 rounded-2xl shadow-2xl">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
@@ -144,9 +154,9 @@ export default function LoginPage() {
             <Image
               src="/logo.png"
               alt="Royal Cabana"
-              width={120}
-              height={120}
-              className="object-contain mb-3"
+              width={140}
+              height={140}
+              className="object-contain mb-3 mix-blend-lighten login-logo-anim"
               onError={() => setLogoError(true)}
               priority
             />
@@ -155,9 +165,13 @@ export default function LoginPage() {
               ROYAL CABANA
             </span>
           )}
-          <h1 className="text-yellow-400 text-lg font-semibold tracking-wide">
-            Yönetim Paneli
+          <h1 className="text-yellow-400 text-lg font-semibold tracking-wide login-text-1">
+            Royal Cabana
           </h1>
+          <p className="text-amber-300/80 text-sm font-bold tracking-[0.25em] uppercase mt-1.5 login-text-2">
+            F&amp;B Digital Systems
+          </p>
+          <div className="w-16 h-px bg-linear-to-r from-transparent via-yellow-600/60 to-transparent mt-3 login-text-3" />
         </div>
 
         {/* Form */}
@@ -209,17 +223,19 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full min-h-[44px] bg-yellow-600 hover:bg-yellow-500 disabled:bg-yellow-800 disabled:cursor-not-allowed text-neutral-950 font-semibold rounded-lg py-2.5 text-sm transition-colors"
+            className="w-full min-h-11 bg-yellow-600 hover:bg-yellow-500 disabled:bg-yellow-800 disabled:cursor-not-allowed text-neutral-950 font-semibold rounded-lg py-2.5 text-sm transition-colors"
           >
             {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
 
-        {demoQuickLoginEnabled && (
+        {demoQuickLoginEnabled && demoAccounts.length > 0 && (
           <div className="mt-6 border-t border-neutral-800 pt-5">
-            <p className="text-xs text-neutral-400 mb-3">Demo hesaplar (tek tık giriş):</p>
+            <p className="text-xs text-neutral-400 mb-3">
+              Demo hesaplar (tek tık giriş):
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {DEMO_ACCOUNTS.map((account) => (
+              {demoAccounts.map((account) => (
                 <button
                   key={account.username}
                   type="button"
@@ -227,8 +243,12 @@ export default function LoginPage() {
                   disabled={loading}
                   className="text-left rounded-lg border border-neutral-700 bg-neutral-800/70 hover:bg-neutral-800 px-3 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <p className="text-xs text-yellow-400 font-medium">{account.label}</p>
-                  <p className="text-xs text-neutral-300 mt-0.5">{account.username}</p>
+                  <p className="text-xs text-yellow-400 font-medium">
+                    {account.label}
+                  </p>
+                  <p className="text-xs text-neutral-300 mt-0.5">
+                    {account.username}
+                  </p>
                 </button>
               ))}
             </div>

@@ -35,7 +35,8 @@ function generateId(): string {
 async function fetchPolicy(): Promise<CancellationPolicy> {
   const res = await fetch("/api/system/cancellation-policy");
   if (!res.ok) throw new Error("Politika yüklenemedi");
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 async function updatePolicy(
@@ -50,7 +51,8 @@ async function updatePolicy(
     const err = await res.json().catch(() => ({ message: "Kayıt başarısız" }));
     throw new Error(err.message ?? "Kayıt başarısız");
   }
-  return res.json();
+  const json = await res.json();
+  return json.data ?? json;
 }
 
 function Skeleton() {
@@ -153,7 +155,7 @@ export default function CancellationPolicyPage() {
   );
   const [successMsg, setSuccessMsg] = useState("");
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["cancellation-policy"],
     queryFn: fetchPolicy,
   });
@@ -215,7 +217,13 @@ export default function CancellationPolicyPage() {
           </div>
         </div>
 
-        {error && <ErrorMsg msg="Politika yüklenirken hata oluştu" />}
+        {isError && (
+          <ErrorMsg
+            msg={
+              (error as Error)?.message ?? "Politika yüklenirken hata oluştu"
+            }
+          />
+        )}
         {mutation.error && (
           <ErrorMsg
             msg={

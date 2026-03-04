@@ -16,14 +16,17 @@ interface SystemConfig {
 
 async function fetchCabanas(): Promise<CabanaWithStatus[]> {
   const res = await fetch("/api/cabanas");
-  if (!res.ok) throw new Error("Kabanalar yüklenemedi.");
-  return res.json();
+  if (!res.ok) throw new Error("Cabanalar yüklenemedi.");
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
 }
 
 async function fetchSystemConfig(): Promise<SystemConfig> {
   const res = await fetch("/api/system/config");
   if (!res.ok) throw new Error("Sistem konfigürasyonu yüklenemedi.");
-  const data = await res.json();
+  const raw = await res.json();
+  const data = raw.data ?? raw;
   // API returns { isOpen: boolean }
   if (typeof data.isOpen !== "undefined") {
     return {
@@ -48,6 +51,7 @@ async function fetchSystemConfig(): Promise<SystemConfig> {
 const statusLabel: Record<CabanaStatus, string> = {
   [CabanaStatus.AVAILABLE]: "Müsait",
   [CabanaStatus.RESERVED]: "Rezerve",
+  [CabanaStatus.OCCUPIED]: "Dolu",
   [CabanaStatus.CLOSED]: "Kapalı",
 };
 
@@ -56,6 +60,8 @@ const statusBadgeClass: Record<CabanaStatus, string> = {
     "bg-green-950/60 border border-green-700/40 text-green-400",
   [CabanaStatus.RESERVED]:
     "bg-red-950/50 border border-red-800/40 text-red-400",
+  [CabanaStatus.OCCUPIED]:
+    "bg-amber-950/50 border border-amber-700/40 text-amber-400",
   [CabanaStatus.CLOSED]:
     "bg-neutral-800 border border-neutral-700 text-neutral-500",
 };
@@ -71,6 +77,7 @@ export default function CasinoViewPage() {
   const {
     data: cabanas = [],
     isLoading: cabanasLoading,
+    isError: cabanasIsError,
     error: cabanasError,
   } = useQuery({
     queryKey: ["cabanas"],
@@ -80,6 +87,7 @@ export default function CasinoViewPage() {
   const {
     data: systemConfig,
     isLoading: configLoading,
+    isError: configIsError,
     error: configError,
   } = useQuery({
     queryKey: ["system-config"],
@@ -88,6 +96,7 @@ export default function CasinoViewPage() {
 
   const systemOpen = systemConfig?.system_open_for_reservation ?? true;
   const isLoading = cabanasLoading || configLoading;
+  const isError = cabanasIsError || configIsError;
   const fetchError =
     cabanasError instanceof Error
       ? cabanasError.message
@@ -138,10 +147,10 @@ export default function CasinoViewPage() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-yellow-400">
-            Kabana Görünümü
+            Cabana Görünümü
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
-            Kabana seçerek rezervasyon talebi oluşturun
+            Cabana seçerek rezervasyon talebi oluşturun
           </p>
         </div>
 
@@ -237,8 +246,8 @@ export default function CasinoViewPage() {
               </svg>
               <p>
                 {viewMode === "2d"
-                  ? "Haritadan bir kabana seçin"
-                  : "3D görünümden bir kabana seçin"}
+                  ? "Haritadan bir Cabana seçin"
+                  : "3D görünümden bir Cabana seçin"}
               </p>
             </div>
           ) : (
@@ -306,9 +315,9 @@ export default function CasinoViewPage() {
                     !systemOpen
                       ? "Sistem rezervasyona kapalı"
                       : selectedCabana.status !== CabanaStatus.AVAILABLE
-                        ? "Kabana müsait değil"
+                        ? "Cabana müsait değil"
                         : !selectedCabana.isOpenForReservation
-                          ? "Bu kabana rezervasyona kapalı"
+                          ? "Bu Cabana rezervasyona kapalı"
                           : undefined
                   }
                   className="w-full py-2.5 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 transition-colors"
@@ -324,14 +333,14 @@ export default function CasinoViewPage() {
                 {systemOpen &&
                   selectedCabana.status !== CabanaStatus.AVAILABLE && (
                     <p className="text-xs text-neutral-500 text-center">
-                      Bu kabana şu anda müsait değil
+                      Bu Cabana şu anda müsait değil
                     </p>
                   )}
                 {systemOpen &&
                   selectedCabana.status === CabanaStatus.AVAILABLE &&
                   !selectedCabana.isOpenForReservation && (
                     <p className="text-xs text-neutral-500 text-center">
-                      Bu kabana rezervasyona kapalı
+                      Bu Cabana rezervasyona kapalı
                     </p>
                   )}
               </div>

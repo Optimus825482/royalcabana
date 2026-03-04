@@ -23,12 +23,19 @@ export default function QrCodesPage() {
   const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState("");
 
-  const { data: cabanas = [], isLoading } = useQuery<Cabana[]>({
+  const {
+    data: cabanas = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery<Cabana[]>({
     queryKey: ["cabanas"],
     queryFn: async () => {
       const res = await fetch("/api/cabanas");
       if (!res.ok) throw new Error("Fetch failed");
-      return res.json();
+      const json = await res.json();
+      const resolved = json.data ?? json;
+      return Array.isArray(resolved) ? resolved : [];
     },
   });
 
@@ -37,7 +44,8 @@ export default function QrCodesPage() {
     queryFn: async () => {
       const res = await fetch(`/api/cabanas/${selectedCabana!.id}/qr`);
       if (!res.ok) throw new Error("QR fetch failed");
-      return res.json();
+      const json = await res.json();
+      return json.data ?? json;
     },
     enabled: !!selectedCabana,
   });
@@ -67,7 +75,7 @@ export default function QrCodesPage() {
         .note { margin-top: 24px; font-size: 12px; color: #999; }
       </style></head><body>
         <h1>${qrData.cabanaName}</h1>
-        <p>Kabana QR Kodu URL</p>
+        <p>Cabana QR Kodu URL</p>
         <div class="url">${qrData.url}</div>
         <p class="note">Bu URL'yi herhangi bir QR kod oluşturucuya yapıştırarak QR kod oluşturabilirsiniz.</p>
       </body></html>
@@ -88,7 +96,7 @@ export default function QrCodesPage() {
             </h1>
           </div>
           <p className="text-sm text-neutral-400">
-            Kabana QR kodlarını oluşturun ve yazdırın
+            Cabana QR kodlarını oluşturun ve yazdırın
           </p>
         </div>
 
@@ -97,7 +105,7 @@ export default function QrCodesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
           <input
             type="text"
-            placeholder="Kabana ara..."
+            placeholder="Cabana ara..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full min-h-[44px] bg-neutral-900 border border-neutral-800 focus:border-amber-600 text-neutral-100 rounded-lg pl-10 pr-4 py-3 text-sm outline-none transition-colors placeholder:text-neutral-600"
@@ -113,6 +121,13 @@ export default function QrCodesPage() {
                 className="h-16 rounded-lg bg-neutral-900 border border-neutral-800 animate-pulse"
               />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="text-center py-12">
+            <p className="text-red-400 text-sm">
+              {(error as Error)?.message ??
+                "Veriler yüklenirken bir hata oluştu."}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -143,7 +158,7 @@ export default function QrCodesPage() {
             ))}
             {filtered.length === 0 && (
               <p className="text-sm text-neutral-500 text-center py-8">
-                Kabana bulunamadı.
+                Cabana bulunamadı.
               </p>
             )}
           </div>
@@ -163,7 +178,7 @@ export default function QrCodesPage() {
               <div className="space-y-4">
                 {/* URL Display */}
                 <div className="p-4 rounded-lg bg-neutral-800 border border-neutral-700">
-                  <p className="text-xs text-neutral-400 mb-2">Kabana URL</p>
+                  <p className="text-xs text-neutral-400 mb-2">Cabana URL</p>
                   <p className="text-sm text-neutral-100 break-all font-mono">
                     {qrData.url}
                   </p>

@@ -1,7 +1,9 @@
 import { getAuthSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { Role } from "@/types";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitWithInfo } from "@/lib/rate-limit";
+import { withTiming } from "@/lib/api-timing";
+import { hasAllPermissions } from "@/lib/permission-cache";
 
 interface AuthContext {
   session: {
@@ -22,6 +24,9 @@ type ApiHandler = (
 
 /**
  * API route wrapper — auth + RBAC + rate limiting
+ *
+ * All error responses follow: { success: false, error: "..." }
+ * Rate limit responses include Retry-After header.
  *
  * Usage:
  *   export const GET = withAuth([Role.ADMIN], async (req, { session }) => { ... });
@@ -46,49 +51,80 @@ export function withAuth(
     const key = `${req.method}:${req.nextUrl.pathname}:${ip}`;
     const rlOpts = options?.rateLimit;
 
-    if (!rateLimit(key, rlOpts?.limit ?? 30, rlOpts?.windowMs ?? 60_000)) {
+    const rlResult = await rateLimitWithInfo(
+      key,
+      rlOpts?.limit ?? 30,
+      rlOpts?.windowMs ?? 60_000,
+    );
+
+    if (!rlResult.allowed) {
       return NextResponse.json(
-        { error: "Çok fazla istek. Lütfen biraz bekleyin." },
-        { status: 429 },
+        { success: false, error: "Çok fazla istek. Lütfen biraz bekleyin." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rlResult.retryAfter ?? 60) },
+        },
       );
     }
 
     // Auth
     const session = await getAuthSession();
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     // RBAC
     if (!allowedRoles.includes(session.user.role as Role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
+    }
+
+    // Permission check (after role gate — only if requiredPermissions specified)
+    if (options?.requiredPermissions?.length) {
+      const hasPerms = await hasAllPermissions(
+        session.user.role as Role,
+        options.requiredPermissions,
+      );
+      if (!hasPerms) {
+        return NextResponse.json(
+          { success: false, error: "Bu işlem için yetkiniz yok." },
+          { status: 403 },
+        );
+      }
     }
 
     // Resolve params if present
     const params = routeContext?.params ? await routeContext.params : undefined;
 
-    try {
-      return await handler(req, {
-        session: session as AuthContext["session"],
-        params: params as Record<string, string> | undefined,
-      });
-    } catch (error) {
-      console.error(
-        `[API Error] ${req.method} ${req.nextUrl.pathname}:`,
-        error,
-      );
+    return withTiming(req, async () => {
+      try {
+        return await handler(req, {
+          session: session as AuthContext["session"],
+          params: params as Record<string, string> | undefined,
+        });
+      } catch (error) {
+        console.error(
+          `[API Error] ${req.method} ${req.nextUrl.pathname}:`,
+          error,
+        );
 
-      if (error instanceof SyntaxError) {
+        if (error instanceof SyntaxError) {
+          return NextResponse.json(
+            { success: false, error: "Geçersiz istek formatı." },
+            { status: 400 },
+          );
+        }
+
         return NextResponse.json(
-          { error: "Geçersiz istek formatı." },
-          { status: 400 },
+          { success: false, error: "Sunucu hatası." },
+          { status: 500 },
         );
       }
-
-      return NextResponse.json(
-        { error: "Sunucu hatası. Lütfen tekrar deneyin." },
-        { status: 500 },
-      );
-    }
+    });
   };
 }

@@ -24,7 +24,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
 
   - [x] 2.2 Migration ve seed
     - `npx prisma migrate dev --name init` ile ilk migration'ı çalıştır
-    - `prisma/seed.ts` dosyasında başlangıç verilerini oluştur: SystemAdmin kullanıcısı, örnek kabana sınıfları, `SystemConfig` kaydı (`system_open_for_reservation: true`)
+    - `prisma/seed.ts` dosyasında başlangıç verilerini oluştur: SystemAdmin kullanıcısı, örnek Cabana sınıfları, `SystemConfig` kaydı (`system_open_for_reservation: true`)
     - _Gereksinimler: 1.1, 7.1_
 
 - [ ] 3. Auth Sistemi (NextAuth.js + RBAC)
@@ -67,16 +67,16 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - **Validates: Gereksinim 18.2**
 
 - [ ] 6. Sistem Yöneticisi Modülü — Master Data Yönetimi
-  - [x] 6.1 Kabana Sınıfları API ve UI
+  - [x] 6.1 Cabana Sınıfları API ve UI
     - `src/app/api/classes/` altında CRUD endpoint'leri oluştur (GET, POST, PATCH, DELETE, attribute ekle/sil)
     - `src/app/(dashboard)/system-admin/classes/page.tsx` sayfasını oluştur: sınıf listesi, oluşturma/düzenleme formu, dinamik özellik yönetimi
-    - Aktif kabanası olan sınıf silinmeye çalışıldığında uyarı göster
+    - Aktif Cabanası olan sınıf silinmeye çalışıldığında uyarı göster
     - _Gereksinimler: 3.1, 3.2, 3.3, 3.5, 3.6_
 
   - [x] 6.2 Konsept Yönetimi API ve UI
     - `src/app/api/concepts/` altında CRUD endpoint'leri oluştur (ürün ekle/çıkar dahil)
     - `src/app/(dashboard)/system-admin/concepts/page.tsx` sayfasını oluştur: konsept listesi, oluşturma/düzenleme formu, ürün seçimi
-    - Konsept düzenlendiğinde bağlı tüm kabanalara yansıtma mantığını ekle
+    - Konsept düzenlendiğinde bağlı tüm Cabanalara yansıtma mantığını ekle
     - _Gereksinimler: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
   - [x] 6.3 Ürün Yönetimi API ve UI
@@ -87,41 +87,41 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
 
   - [x] 6.4 Sistem Kontrolü API ve UI
     - `src/app/api/system/config/route.ts` ve `src/app/api/system/reservation-status/route.ts` endpoint'lerini oluştur
-    - `src/app/(dashboard)/system-admin/system-control/page.tsx` sayfasını oluştur: sistem geneli rezervasyon açma/kapama toggle'ı, kabana bazında açma/kapama
+    - `src/app/(dashboard)/system-admin/system-control/page.tsx` sayfasını oluştur: sistem geneli rezervasyon açma/kapama toggle'ı, Cabana bazında açma/kapama
     - _Gereksinimler: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-- [ ] 7. Kabana Harita Yönetimi (2D — Leaflet)
+- [ ] 7. Cabana Harita Yönetimi (2D — Leaflet)
   - [x] 7.1 Cabanas API
     - `src/app/api/cabanas/` altında CRUD endpoint'leri oluştur (konum güncelleme ve durum endpoint'leri dahil)
     - _Gereksinimler: 2.2, 2.3, 7.3_
 
   - [x] 7.2 Leaflet Harita Bileşeni
-    - `src/components/map/CabanaMap.tsx` bileşenini oluştur: `CRS.Simple` ile piksel tabanlı koordinat sistemi, `gorsel/kroki.png` ImageOverlay, her kabana için `CircleMarker` veya custom icon, durum bazlı renk kodlaması (müsait=yeşil, rezerve=kırmızı, kapalı=gri)
-    - `MapComponentProps` arayüzünü uygula: `editable` prop ile sürükle-bırak koordinat güncelleme (Sistem Yöneticisi için), tıklama ile kabana detay popup'ı
+    - `src/components/map/CabanaMap.tsx` bileşenini oluştur: `CRS.Simple` ile piksel tabanlı koordinat sistemi, `gorsel/kroki.png` ImageOverlay, her Cabana için `CircleMarker` veya custom icon, durum bazlı renk kodlaması (müsait=yeşil, rezerve=kırmızı, kapalı=gri)
+    - `MapComponentProps` arayüzünü uygula: `editable` prop ile sürükle-bırak koordinat güncelleme (Sistem Yöneticisi için), tıklama ile Cabana detay popup'ı
     - Kroki yüklenemezse "Kroki yüklenemedi" hata mesajı göster; ek kroki görünümleri için sekme/seçenek ekle
     - _Gereksinimler: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
   - [x] 7.3 Sistem Yöneticisi Harita Sayfası
-    - `src/app/(dashboard)/system-admin/map/page.tsx` sayfasını oluştur: düzenlenebilir harita, kabana ekleme/silme, sınıf atama
+    - `src/app/(dashboard)/system-admin/map/page.tsx` sayfasını oluştur: düzenlenebilir harita, Cabana ekleme/silme, sınıf atama
     - _Gereksinimler: 2.1, 2.2, 3.4_
 
 - [ ] 8. Dinamik Fiyatlandırma Motoru
   - [x] 8.1 Fiyatlandırma servisi
-    - `src/lib/pricing.ts` dosyasında `PricingEngine` sınıfını oluştur: `calculatePrice()` metodu, fiyat öncelik sırası (kabana özel > konsept özel > genel ürün fiyatı), `PriceBreakdown` döndür
+    - `src/lib/pricing.ts` dosyasında `PricingEngine` sınıfını oluştur: `calculatePrice()` metodu, fiyat öncelik sırası (Cabana özel > konsept özel > genel ürün fiyatı), `PriceBreakdown` döndür
     - _Gereksinimler: 6.4, 6.5, 6.6, 6.7_
 
   - [ ]\* 8.2 Property testi: P2 — Fiyat Öncelik Tutarlılığı
-    - **Property 2: Fiyat öncelik sırası her zaman kabana özel > konsept özel > genel ürün fiyatı**
+    - **Property 2: Fiyat öncelik sırası her zaman Cabana özel > konsept özel > genel ürün fiyatı**
     - **Validates: Gereksinim 6.4, 6.5, 6.6**
 
   - [x] 8.3 Pricing API ve Admin UI
-    - `src/app/api/pricing/` altında endpoint'leri oluştur (kabana fiyat takvimi, konsept fiyatları, fiyat hesaplama preview)
-    - `src/app/(dashboard)/admin/pricing/page.tsx` sayfasını oluştur: kabana bazında günlük fiyat girişi, konsept bazında paket/kalem fiyatı, fiyat önizleme
+    - `src/app/api/pricing/` altında endpoint'leri oluştur (Cabana fiyat takvimi, konsept fiyatları, fiyat hesaplama preview)
+    - `src/app/(dashboard)/admin/pricing/page.tsx` sayfasını oluştur: Cabana bazında günlük fiyat girişi, konsept bazında paket/kalem fiyatı, fiyat önizleme
     - _Gereksinimler: 6.1, 6.2, 6.3, 6.8_
 
 - [ ] 9. Admin Modülü
   - [x] 9.1 Admin Dashboard
-    - `src/app/(dashboard)/admin/page.tsx` dashboard sayfasını oluştur: kabana doluluk oranları, bekleyen talep sayısı, gelir özeti widget'ları
+    - `src/app/(dashboard)/admin/page.tsx` dashboard sayfasını oluştur: Cabana doluluk oranları, bekleyen talep sayısı, gelir özeti widget'ları
     - TanStack Query ile veri çekme ve cache yönetimi
     - _Gereksinimler: 13.1, 13.2_
 
@@ -144,13 +144,13 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
 
 - [ ] 11. Casino Rezervasyon Modülü — Harita ve 3D Görünüm
   - [x] 11.1 Casino 2D Harita Sayfası
-    - `src/app/(dashboard)/casino/map/page.tsx` sayfasını oluştur: salt okunur harita (`editable: false`), müsaitlik renk kodlaması, kabana tıklama ile sınıf/konsept/fiyat detay paneli
+    - `src/app/(dashboard)/casino/map/page.tsx` sayfasını oluştur: salt okunur harita (`editable: false`), müsaitlik renk kodlaması, Cabana tıklama ile sınıf/konsept/fiyat detay paneli
     - Sistem rezervasyona kapalıyken yeni talep butonunu devre dışı bırak
     - _Gereksinimler: 8.1, 8.2, 8.3, 8.6, 8.7, 8.8_
 
   - [x] 11.2 React Three Fiber 3D Görünüm Bileşeni
     - `src/components/three/CabanaThreeView.tsx` bileşenini oluştur: `ThreeViewProps` arayüzünü uygula, her `CabanaClass` için farklı GLTF/GLB model veya geometri, `OrbitControls` kamera kontrolü, hover/click etkileşimleri
-    - Kabana seçildiğinde detay paneli + fotoğraf galerisi göster (`gorsel/arka.jpg`, `gorsel/on.png`, `gorsel/sag.png`, `gorsel/sol.png`, `gorsel/ust.png`)
+    - Cabana seçildiğinde detay paneli + fotoğraf galerisi göster (`gorsel/arka.jpg`, `gorsel/on.png`, `gorsel/sag.png`, `gorsel/sol.png`, `gorsel/ust.png`)
     - 3D model yüklenemezse 2D haritaya fallback
     - _Gereksinimler: 8.4, 8.5, 8.7_
 
@@ -160,9 +160,9 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
 
 - [ ] 12. Casino Rezervasyon Modülü — Takvim ve Talep Yönetimi
   - [x] 12.1 FullCalendar Resource Timeline Bileşeni
-    - `src/components/calendar/ReservationCalendar.tsx` bileşenini oluştur: `@fullcalendar/resource-timeline` plugin, kabanalar kaynak (satır), tarihler sütun, durum bazlı renk kodlaması (bekliyor=sarı, onaylı=yeşil, red=kırmızı, iptal=gri)
+    - `src/components/calendar/ReservationCalendar.tsx` bileşenini oluştur: `@fullcalendar/resource-timeline` plugin, Cabanalar kaynak (satır), tarihler sütun, durum bazlı renk kodlaması (bekliyor=sarı, onaylı=yeşil, red=kırmızı, iptal=gri)
     - `CalendarComponentProps` arayüzünü uygula: tarih tıklama ile yeni talep formu, etkinlik tıklama ile detay, sağ tık context menu (Değişiklik, İptal, Ek Konsept)
-    - Günlük/haftalık/aylık görünüm seçenekleri, kabana ve sınıf bazında filtreleme
+    - Günlük/haftalık/aylık görünüm seçenekleri, Cabana ve sınıf bazında filtreleme
     - _Gereksinimler: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9_
 
   - [x] 12.2 Rezervasyon Talebi Oluşturma
@@ -171,12 +171,12 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - _Gereksinimler: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
   - [ ]\* 12.3 Property testi: P1 — Rezervasyon Çakışması Yok
-    - **Property 1: Aynı kabanada onaylı iki rezervasyon asla tarih çakışması yaşayamaz**
+    - **Property 1: Aynı Cabanada onaylı iki rezervasyon asla tarih çakışması yaşayamaz**
     - **Validates: Gereksinim 10.4**
 
   - [x] 12.4 Değişiklik, İptal ve Ek Konsept Talepleri
     - `src/app/api/reservations/[id]/modifications/route.ts`, `cancellations/route.ts`, `extra-concepts/route.ts` endpoint'lerini oluştur
-    - İlgili talep formlarını oluştur: Değişiklik (tarih/kabana/misafir), İptal (neden zorunlu), Ek Konsept (ürün listesinden seçim)
+    - İlgili talep formlarını oluştur: Değişiklik (tarih/Cabana/misafir), İptal (neden zorunlu), Ek Konsept (ürün listesinden seçim)
     - Talep durum geçmişini görüntüleme bileşenini oluştur
     - _Gereksinimler: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
@@ -186,7 +186,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
 
 - [ ] 13. F&B Rezervasyon Modülü
   - [x] 13.1 F&B Rezervasyon Listesi
-    - `src/app/(dashboard)/fnb/page.tsx` sayfasını oluştur: tüm rezervasyonları listele (tarih/kabana/durum filtresi), her rezervasyonun güncel durumunu göster, onaylanan rezervasyonların konsept detaylarını ve ürün listelerini göster
+    - `src/app/(dashboard)/fnb/page.tsx` sayfasını oluştur: tüm rezervasyonları listele (tarih/Cabana/durum filtresi), her rezervasyonun güncel durumunu göster, onaylanan rezervasyonların konsept detaylarını ve ürün listelerini göster
     - Talep oluşturma/onaylama/reddetme butonlarını devre dışı bırak (salt görüntüleme)
     - Değişiklik/İptal/Ek Konsept taleplerini salt okunur göster
     - _Gereksinimler: 14.1, 14.2, 14.3, 14.6, 14.7, 14.8_
@@ -228,7 +228,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - _Gereksinimler: 15.1, 15.2, 15.5, 15.6, 15.7_
 
   - [x] 16.2 Sunum Motoru
-    - `src/services/presentation.service.ts` dosyasında `PresentationEngine` sınıfını oluştur: pptxgenjs ile slide oluşturma, kabana yerleşimi/sınıf bilgileri/konseptler/fiyatlandırma/görsel materyaller içeren otomatik sunum
+    - `src/services/presentation.service.ts` dosyasında `PresentationEngine` sınıfını oluştur: pptxgenjs ile slide oluşturma, Cabana yerleşimi/sınıf bilgileri/konseptler/fiyatlandırma/görsel materyaller içeren otomatik sunum
     - _Gereksinimler: 15.3, 15.4_
 
   - [x] 16.3 Reports API
@@ -236,7 +236,7 @@ Next.js 14+ App Router tabanlı fullstack uygulama. PostgreSQL + Prisma, NextAut
     - _Gereksinimler: 15.1, 15.3_
 
   - [x] 16.4 Raporlama UI
-    - `src/app/(dashboard)/reports/page.tsx` sayfasını oluştur: rapor tipi seçimi, tarih aralığı/kabana sınıfı/konsept filtreleri, PDF/Excel export butonları, sunum oluşturma butonu
+    - `src/app/(dashboard)/reports/page.tsx` sayfasını oluştur: rapor tipi seçimi, tarih aralığı/Cabana sınıfı/konsept filtreleri, PDF/Excel export butonları, sunum oluşturma butonu
     - _Gereksinimler: 15.1, 15.2, 15.5, 15.6_
 
 - [ ] 17. i18n ve Tema

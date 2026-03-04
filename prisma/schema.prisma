@@ -18,6 +18,7 @@ enum Role {
 enum CabanaStatus {
   AVAILABLE
   RESERVED
+  OCCUPIED
   CLOSED
 }
 
@@ -36,6 +37,11 @@ enum RequestStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum ExtraRequestType {
+  PRODUCT
+  CUSTOM
 }
 
 enum NotificationType {
@@ -61,6 +67,7 @@ model User {
   passwordHash String
   role         Role
   isActive     Boolean   @default(true)
+  isDeleted    Boolean   @default(false)
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -73,8 +80,11 @@ model User {
   waitlistEntries  WaitlistEntry[]
   recurringBookings RecurringBooking[]
   reviews            Review[]
+  pushSubscriptions  PushSubscription[]
 
+  @@index([isDeleted])
   @@index([deletedAt])
+  @@index([role])
   @@map("users")
 }
 
@@ -138,21 +148,24 @@ model RolePermission {
   @@map("role_permissions")
 }
 
-// ===== KABANA VE SINIFLANDIRMA =====
+// ===== Cabana VE SINIFLANDIRMA =====
 
 model CabanaClass {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String
   defaults    String?
   metadata    Json?    // JSONB — ClassAttribute EAV yerine hızlı erişim
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   cabanas    Cabana[]
   concepts   Concept[]
   attributes ClassAttribute[]
 
+  @@index([isDeleted])
   @@map("cabana_classes")
 }
 
@@ -183,15 +196,14 @@ model Cabana {
   isLocked             Boolean      @default(false)
   status               CabanaStatus @default(AVAILABLE)
   isOpenForReservation Boolean      @default(true)
+  isDeleted            Boolean      @default(false)
   deletedAt            DateTime?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
-  cabanaClass  CabanaClass        @relation(fields: [classId], references: [id])
-  concept      Concept?           @relation(fields: [conceptId], references: [id])
+  cabanaClass  CabanaClass        @relation(fields: [classId], references: [id], onDelete: Restrict)
+  concept      Concept?           @relation(fields: [conceptId], references: [id], onDelete: SetNull)
   reservations     Reservation[]
-  prices           CabanaPrice[]
-  priceRanges      CabanaPriceRange[]
   fnbOrders        FnbOrder[]
   blackoutDates    BlackoutDate[]
   waitlistEntries  WaitlistEntry[]
@@ -200,6 +212,7 @@ model Cabana {
 
   @@index([classId])
   @@index([status])
+  @@index([isDeleted])
   @@index([deletedAt])
   @@map("cabanas")
 }
@@ -207,32 +220,39 @@ model Cabana {
 // ===== KONSEPT VE ÜRÜN =====
 
 model ProductGroup {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  name      String    @unique
+  sortOrder Int       @default(0)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   products Product[]
 
+  @@index([isDeleted])
   @@map("product_groups")
 }
 
 model Concept {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String
   classId     String?
-  serviceFee  Decimal  @default(0) @db.Decimal(10, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  serviceFee  Decimal   @default(0) @db.Decimal(10, 2)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  cabanaClass   CabanaClass?   @relation(fields: [classId], references: [id])
-  cabanas       Cabana[]
-  products      ConceptProduct[]
-  conceptPrices ConceptPrice[]
-  reservations  Reservation[]
+  cabanaClass    CabanaClass?          @relation(fields: [classId], references: [id])
+  cabanas        Cabana[]
+  products       ConceptProduct[]
+  extraServices  ConceptExtraService[]
+  reservations   Reservation[]
 
+  @@index([name])
+  @@index([isDeleted])
   @@map("concepts")
 }
 
@@ -243,20 +263,21 @@ model Product {
   purchasePrice Decimal   @db.Decimal(10, 2)
   salePrice     Decimal   @db.Decimal(10, 2)
   isActive      Boolean   @default(true)
+  isDeleted     Boolean   @default(false)
   deletedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   stockQuantity   Int              @default(0)
   minStockAlert   Int              @default(0)
-  group           ProductGroup?    @relation(fields: [groupId], references: [id])
+  group           ProductGroup?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
   conceptProducts ConceptProduct[]
-  conceptPrices   ConceptPrice[]
   extraItems      ExtraItem[]
-  priceHistory    ProductPriceHistory[]
+  extraRequests   ReservationExtraRequest[]
   fnbOrderItems   FnbOrderItem[]
 
   @@index([groupId])
+  @@index([isDeleted])
   @@index([deletedAt])
   @@map("products")
 }
@@ -268,75 +289,29 @@ model ConceptProduct {
   quantity  Int    @default(1)
 
   concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([conceptId, productId])
   @@index([conceptId])
   @@map("concept_products")
 }
 
-// ===== ÜRÜN FİYAT GEÇMİŞİ =====
+// ===== KONSEPT — EKSTRA HİZMET BAĞLANTISI =====
+model ConceptExtraService {
+  id             String @id @default(cuid())
+  conceptId      String
+  extraServiceId String
+  quantity       Int    @default(1)
 
-model ProductPriceHistory {
-  id            String   @id @default(cuid())
-  productId     String
-  purchasePrice Decimal  @db.Decimal(10, 2)
-  salePrice     Decimal  @db.Decimal(10, 2)
-  source        String   @default("MANUAL") // MANUAL, IMPORT
-  changedBy     String
-  createdAt     DateTime @default(now())
+  concept      Concept      @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  extraService ExtraService @relation(fields: [extraServiceId], references: [id], onDelete: Cascade)
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId, createdAt])
-  @@map("product_price_history")
+  @@unique([conceptId, extraServiceId])
+  @@index([conceptId])
+  @@map("concept_extra_services")
 }
 
-// ===== DİNAMİK FİYATLANDIRMA =====
-
-model CabanaPrice {
-  id         String   @id @default(cuid())
-  cabanaId   String
-  date       DateTime @db.Date
-  dailyPrice Decimal  @db.Decimal(10, 2)
-  createdAt  DateTime @default(now())
-
-  cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
-
-  @@unique([cabanaId, date])
-  @@map("cabana_prices")
-}
-
-// Sezonluk fiyatlandırma — tarih aralığı bazlı (CabanaPrice'a ek olarak)
-model CabanaPriceRange {
-  id         String   @id @default(cuid())
-  cabanaId   String
-  startDate  DateTime @db.Date
-  endDate    DateTime @db.Date
-  dailyPrice Decimal  @db.Decimal(10, 2)
-  label      String?  // "Yaz Sezonu", "Bayram" vb.
-  priority   Int      @default(0) // Çakışan aralıklarda yüksek öncelik kazanır
-  createdAt  DateTime @default(now())
-
-  cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
-
-  @@index([cabanaId, startDate, endDate])
-  @@map("cabana_price_ranges")
-}
-
-model ConceptPrice {
-  id        String   @id @default(cuid())
-  conceptId String
-  productId String?
-  price     Decimal  @db.Decimal(10, 2)
-  createdAt DateTime @default(now())
-
-  concept Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id])
-
-  @@unique([conceptId, productId])
-  @@map("concept_prices")
-}
+// ===== (Kaldırıldı: ProductPriceHistory, CabanaPrice, CabanaPriceRange, ConceptPrice) =====
 
 // ===== REZERVASYON VE TALEPLER =====
 
@@ -354,23 +329,29 @@ model Reservation {
   totalPrice      Decimal?  @db.Decimal(10, 2)
   rejectionReason String?
   conceptId       String?
+  extraItems_json Json?             // Rez talebi ile gönderilen ekstra ürünler (liste içi)
+  customRequests  String?           // Liste dışı serbest metin talep
+  customRequestPriced Boolean       @default(false) // Liste dışı talep fiyatlandırıldı mı?
+  customRequestPrice  Decimal?      @db.Decimal(10, 2) // Liste dışı talep fiyatı
   checkInAt       DateTime?
   checkOutAt      DateTime?
   checkedInBy     String?
   checkedOutBy    String?
+  isDeleted       Boolean           @default(false)
   deletedAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  cabana        Cabana                     @relation(fields: [cabanaId], references: [id])
-  user          User                       @relation(fields: [userId], references: [id])
-  guest         Guest?                     @relation(fields: [guestId], references: [id])
-  concept       Concept?                   @relation(fields: [conceptId], references: [id])
+  cabana        Cabana                     @relation(fields: [cabanaId], references: [id], onDelete: Restrict)
+  user          User                       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  guest         Guest?                     @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  concept       Concept?                   @relation(fields: [conceptId], references: [id], onDelete: SetNull)
   statusHistory ReservationStatusHistory[]
   modifications ModificationRequest[]
   cancellations CancellationRequest[]
   extraConcepts ExtraConceptRequest[]
   extraItems    ExtraItem[]
+  extraRequests ReservationExtraRequest[]
   fnbOrders     FnbOrder[]
   review        Review?
 
@@ -380,7 +361,9 @@ model Reservation {
   @@index([status])
   @@index([conceptId])
   @@index([startDate, endDate])
+  @@index([isDeleted])
   @@index([deletedAt])
+  @@index([status, startDate])
   @@map("reservations")
 }
 
@@ -449,6 +432,33 @@ model ExtraConceptRequest {
   @@map("extra_concept_requests")
 }
 
+// ===== REZERVASYON EKSTRA TALEPLERİ =====
+
+model ReservationExtraRequest {
+  id              String           @id @default(cuid())
+  reservationId   String
+  type            ExtraRequestType
+  productId       String?
+  customName      String?
+  customDesc      String?
+  quantity        Int              @default(1)
+  unitPrice       Decimal?         @db.Decimal(10, 2)
+  status          RequestStatus    @default(PENDING)
+  rejectionReason String?
+  pricedBy        String?
+  pricedAt        DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  product     Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([reservationId])
+  @@index([reservationId, status])
+  @@index([status])
+  @@map("reservation_extra_requests")
+}
+
 // ===== KONSEPT DIŞI EKSTRALAR (F&B) =====
 
 model ExtraItem {
@@ -461,7 +471,7 @@ model ExtraItem {
   createdAt     DateTime @default(now())
 
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  product     Product     @relation(fields: [productId], references: [id])
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([reservationId])
   @@map("extra_items")
@@ -478,11 +488,15 @@ model Notification {
   metadata  Json?
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([userId, createdAt])
+  @@index([userId, isRead, createdAt])
+  @@index([isDeleted])
   @@map("notifications")
 }
 
@@ -490,7 +504,7 @@ model Notification {
 
 model AuditLog {
   id        String   @id @default(cuid())
-  userId    String
+  userId    String?
   action    String
   entity    String
   entityId  String
@@ -498,7 +512,7 @@ model AuditLog {
   newValue  Json?
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([entity, entityId])
   @@index([userId])
@@ -532,7 +546,7 @@ model LoginSession {
   isActive   Boolean    @default(true)
   lastSeenAt DateTime   @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isActive])
@@ -552,6 +566,7 @@ model Guest {
   isBlacklisted Boolean   @default(false)
   totalVisits   Int       @default(0)
   lastVisitAt   DateTime?
+  isDeleted     Boolean   @default(false)
   deletedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -560,7 +575,9 @@ model Guest {
 
   @@index([name])
   @@index([phone])
+  @@index([email])
   @@index([isBlacklisted])
+  @@index([isDeleted])
   @@index([deletedAt])
   @@map("guests")
 }
@@ -585,12 +602,13 @@ model FnbOrder {
   updatedAt     DateTime      @updatedAt
 
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  cabana      Cabana      @relation(fields: [cabanaId], references: [id])
+  cabana      Cabana      @relation(fields: [cabanaId], references: [id], onDelete: Restrict)
   items       FnbOrderItem[]
 
   @@index([reservationId])
   @@index([cabanaId])
   @@index([status])
+  @@index([createdBy])
   @@index([createdAt])
   @@map("fnb_orders")
 }
@@ -603,7 +621,7 @@ model FnbOrderItem {
   unitPrice Decimal @db.Decimal(10, 2)
 
   order   FnbOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product  @relation(fields: [productId], references: [id])
+  product Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
   @@map("fnb_order_items")
@@ -636,11 +654,14 @@ model BlackoutDate {
   reason    String?
   createdBy String
   createdAt DateTime @default(now())
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
 
   cabana Cabana? @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
 
   @@index([startDate, endDate])
   @@index([cabanaId])
+  @@index([isDeleted])
   @@map("blackout_dates")
 }
 
@@ -658,7 +679,7 @@ model WaitlistEntry {
   createdAt     DateTime  @default(now())
 
   cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([cabanaId, desiredStart])
   @@index([userId])
@@ -681,8 +702,8 @@ model RecurringBooking {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  cabana Cabana @relation(fields: [cabanaId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  cabana Cabana @relation(fields: [cabanaId], references: [id], onDelete: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([cabanaId])
   @@index([isActive])
@@ -703,6 +724,7 @@ model TaskDefinition {
   category    String?
   priority    String    @default("NORMAL")
   isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
   deletedAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -711,6 +733,7 @@ model TaskDefinition {
 
   @@index([isActive])
   @@index([category])
+  @@index([isDeleted])
   @@index([deletedAt])
   @@map("task_definitions")
 }
@@ -723,15 +746,19 @@ model Staff {
   email     String?
   position  String
   isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  assignments StaffAssignment[]
-  tasks       StaffTask[]
+  assignments          StaffAssignment[]
+  tasks                StaffTask[]
+  servicePointAssignments ServicePointStaff[]
 
   @@index([isActive])
+  @@index([isDeleted])
   @@index([deletedAt])
+  @@index([email])
   @@map("staff")
 }
 
@@ -748,6 +775,8 @@ model StaffAssignment {
 
   @@unique([staffId, cabanaId, date])
   @@index([date])
+  @@index([staffId, date])
+  @@index([cabanaId, date])
   @@map("staff_assignments")
 }
 
@@ -772,18 +801,122 @@ model StaffTask {
 
 // ===== DEĞERLENDİRMELER =====
 model Review {
-  id            String   @id @default(cuid())
-  reservationId String   @unique
+  id            String    @id @default(cuid())
+  reservationId String    @unique
   userId        String
   rating        Int
   comment       String?
-  createdAt     DateTime @default(now())
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
 
-  reservation Reservation @relation(fields: [reservationId], references: [id])
-  user        User        @relation(fields: [userId], references: [id])
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([rating])
+  @@index([isDeleted])
   @@map("reviews")
 }
+
+// ===== PUSH BİLDİRİMLERİ =====
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ===== HİZMET NOKTALARI =====
+model ServicePoint {
+  id                 String    @id @default(cuid())
+  name               String    @unique
+  description        String?
+  type               String    // BAR, RESTAURANT, POOL_BAR, BEACH_BAR, SPA, etc.
+  coordX             Float?
+  coordY             Float?
+  rotation           Float     @default(0)
+  scale              Float     @default(1)
+  isLocked           Boolean   @default(false)
+  requiredStaffCount Int       @default(0)
+  staffRoles         Json?     // ["Barmen", "Garson", "Kasiyer"]
+  isActive           Boolean   @default(true)
+  isDeleted          Boolean   @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  staffAssignments ServicePointStaff[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([isDeleted])
+  @@map("service_points")
+}
+
+model ServicePointStaff {
+  id             String   @id @default(cuid())
+  servicePointId String
+  staffId        String
+  role           String   // Barmen, Garson, Kasiyer, etc.
+  shift          String?  // MORNING, AFTERNOON, FULL_DAY
+  date           DateTime @db.Date
+  createdAt      DateTime @default(now())
+
+  servicePoint ServicePoint @relation(fields: [servicePointId], references: [id], onDelete: Cascade)
+  staff        Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([servicePointId, staffId, date, role])
+  @@index([servicePointId])
+  @@index([staffId])
+  @@index([date])
+  @@map("service_point_staff")
+}
+
+// ===== EKSTRA HİZMETLER =====
+model ExtraService {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  category    String?   // MASSAGE, TOWEL, SUNBED, TRANSFER, etc.
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  prices ExtraServicePrice[]
+  conceptExtraServices ConceptExtraService[]
+
+  @@index([category])
+  @@index([isActive])
+  @@index([isDeleted])
+  @@map("extra_services")
+}
+
+// ===== EKSTRA HİZMET FİYATLANDIRMA =====
+model ExtraServicePrice {
+  id             String   @id @default(cuid())
+  extraServiceId String
+  price          Decimal  @db.Decimal(10, 2)
+  effectiveFrom  DateTime @default(now())
+  effectiveTo    DateTime?
+  changedBy      String
+  createdAt      DateTime @default(now())
+
+  extraService ExtraService @relation(fields: [extraServiceId], references: [id], onDelete: Cascade)
+
+  @@index([extraServiceId, effectiveFrom])
+  @@map("extra_service_prices")
+}
+
+// ===== (Kaldırıldı: CabanaPriceHistory, ConceptPriceHistory) =====
 

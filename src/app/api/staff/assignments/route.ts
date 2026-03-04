@@ -39,7 +39,7 @@ export const GET = withAuth(
       (prisma as any).staffAssignment.count({ where }),
     ]);
 
-    return NextResponse.json({ items, total });
+    return NextResponse.json({ success: true, data: { items, total } });
   },
   { requiredPermissions: ["staff.view"] },
 );
@@ -52,12 +52,15 @@ export const POST = withAuth(
     const parsed = parseBody(createStaffAssignmentSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const { staffId, cabanaId, date, shift } = parsed.data;
 
-    // Aynı gün aynı personel aynı kabana kontrolü
+    // Aynı gün aynı personel aynı Cabana kontrolü
     const existing = await (prisma as any).staffAssignment.findUnique({
       where: {
         staffId_cabanaId_date: {
@@ -70,7 +73,10 @@ export const POST = withAuth(
 
     if (existing) {
       return NextResponse.json(
-        { error: "Bu personel bu kabana için bu tarihte zaten atanmış." },
+        {
+          success: false,
+          error: "Bu personel bu Cabana için bu tarihte zaten atanmış.",
+        },
         { status: 409 },
       );
     }
@@ -96,7 +102,7 @@ export const POST = withAuth(
       newValue: { staffId, cabanaId, date, shift },
     });
 
-    return NextResponse.json(item, { status: 201 });
+    return NextResponse.json({ success: true, data: item }, { status: 201 });
   },
   { requiredPermissions: ["staff.create"] },
 );

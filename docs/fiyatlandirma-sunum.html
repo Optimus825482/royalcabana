@@ -1,0 +1,1885 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beach Resort — Fiyatlandırma Mantığı</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #0a0a0a;
+        color: #e5e5e5;
+        overflow-x: hidden;
+      }
+      .slide {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 60px 40px;
+        position: relative;
+        border-bottom: 1px solid #262626;
+      }
+      .slide-number {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        font-size: 13px;
+        color: #525252;
+        font-weight: 600;
+      }
+      h1 {
+        font-size: clamp(28px, 4vw, 48px);
+        color: #fbbf24;
+        margin-bottom: 16px;
+        line-height: 1.2;
+      }
+      h2 {
+        font-size: clamp(22px, 3vw, 36px);
+        color: #fbbf24;
+        margin-bottom: 12px;
+      }
+      h3 {
+        font-size: 20px;
+        color: #f59e0b;
+        margin-bottom: 8px;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.7;
+        color: #a3a3a3;
+        max-width: 800px;
+      }
+      .subtitle {
+        font-size: 18px;
+        color: #737373;
+        margin-bottom: 40px;
+      }
+      .center {
+        text-align: center;
+        align-items: center;
+      }
+      .max-w {
+        max-width: 1100px;
+        margin: 0 auto;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body></body>
+</html>
+
+<!-- ==================== SLIDE 1: KAPAK ==================== -->
+<div class="slide center">
+  <div class="max-w">
+    <div style="font-size: 60px; margin-bottom: 20px">🏖️</div>
+    <h1>Beach Resort<br />Fiyatlandırma Sistemi</h1>
+    <p class="subtitle">
+      Tüm fiyatlandırma mantığının adım adım görsel açıklaması
+    </p>
+    <p style="color: #525252; font-size: 14px; margin-top: 40px">
+      Aşağı kaydırarak devam edin ↓
+    </p>
+  </div>
+  <span class="slide-number">1 / 12</span>
+</div>
+
+<!-- ==================== SLIDE 2: BÜYÜK RESİM ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">2 / 12</span>
+    <h2>🗺️ Büyük Resim — 4 Katmanlı Fiyat Sistemi</h2>
+    <p style="margin-bottom: 30px">
+      Sistemde fiyatlar 4 katmanda belirlenir. Her katman bir öncekinin üzerine
+      biner.
+    </p>
+    <div
+      style="display: flex; flex-direction: column; gap: 12px; max-width: 700px"
+    >
+      <!-- Katman 4 -->
+      <div
+        style="
+          background: linear-gradient(135deg, #451a03, #78350f);
+          border: 2px solid #b45309;
+          border-radius: 12px;
+          padding: 20px 24px;
+          position: relative;
+        "
+      >
+        <div
+          style="
+            position: absolute;
+            top: -10px;
+            left: 16px;
+            background: #b45309;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
+          "
+        >
+          KATMAN 4 — EN ÜSTTE
+        </div>
+        <h3 style="color: #fbbf24; margin-top: 8px">🏠 Cabana Günlük Fiyatı</h3>
+        <p style="color: #fcd34d; font-size: 14px">
+          Müşterinin ödediği nihai fiyat. Manuel override veya hesaplanan
+          default.
+        </p>
+      </div>
+      <!-- Katman 3 -->
+      <div
+        style="
+          background: linear-gradient(135deg, #1e1b4b, #312e81);
+          border: 2px solid #6366f1;
+          border-radius: 12px;
+          padding: 20px 24px;
+          position: relative;
+        "
+      >
+        <div
+          style="
+            position: absolute;
+            top: -10px;
+            left: 16px;
+            background: #6366f1;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
+          "
+        >
+          KATMAN 3
+        </div>
+        <h3 style="color: #a5b4fc">🎯 Konsept Özel Fiyatları</h3>
+        <p style="color: #c7d2fe; font-size: 14px">
+          Bir konsepte özel ürün fiyatı. Genel fiyattan farklı olabilir.
+        </p>
+      </div>
+      <!-- Katman 2 -->
+      <div
+        style="
+          background: linear-gradient(135deg, #052e16, #14532d);
+          border: 2px solid #22c55e;
+          border-radius: 12px;
+          padding: 20px 24px;
+          position: relative;
+        "
+      >
+        <div
+          style="
+            position: absolute;
+            top: -10px;
+            left: 16px;
+            background: #22c55e;
+            color: #000;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
+          "
+        >
+          KATMAN 2
+        </div>
+        <h3 style="color: #86efac">📦 Ürün Genel Satış Fiyatı</h3>
+        <p style="color: #bbf7d0; font-size: 14px">
+          Her ürünün varsayılan satış fiyatı (Product.salePrice)
+        </p>
+      </div>
+      <!-- Katman 1 -->
+      <div
+        style="
+          background: linear-gradient(135deg, #1c1917, #292524);
+          border: 2px solid #78716c;
+          border-radius: 12px;
+          padding: 20px 24px;
+          position: relative;
+        "
+      >
+        <div
+          style="
+            position: absolute;
+            top: -10px;
+            left: 16px;
+            background: #78716c;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
+          "
+        >
+          KATMAN 1 — TEMEL
+        </div>
+        <h3 style="color: #d6d3d1">💰 Ekstra Hizmet Fiyatları</h3>
+        <p style="color: #a8a29e; font-size: 14px">
+          Masaj, havlu, transfer gibi bağımsız hizmetlerin fiyatları
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 3: VERİTABANI MODELLERİ ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">3 / 12</span>
+    <h2>🗄️ Veritabanı Modelleri — Kim Neyi Tutuyor?</h2>
+    <p style="margin-bottom: 24px">
+      Fiyatlandırmayla ilgili 10 tablo var. İşte her birinin rolü:
+    </p>
+    <div
+      style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 12px;
+      "
+    >
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #22c55e;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #22c55e;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          📦 Product
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          Her ürünün <code style="color: #fbbf24">salePrice</code> (genel satış)
+          ve <code style="color: #fbbf24">purchasePrice</code> (alış) fiyatı
+          var.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #6366f1;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #6366f1;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          🎯 Concept
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          Konsept = ürün paketi + hizmet bedeli.
+          <code style="color: #fbbf24">serviceFee</code> alanı var.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #6366f1;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #6366f1;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          🔗 ConceptProduct
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          Hangi konseptte hangi ürün kaç adet var.
+          <code style="color: #fbbf24">quantity</code> ile çarpılır.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #a855f7;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #a855f7;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          💎 ConceptPrice
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          Konsepte özel ürün fiyatı. Yoksa Product.salePrice kullanılır.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #f59e0b;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #f59e0b;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          🏠 Cabana
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          <code style="color: #fbbf24">dailyPrice</code> = manuel override. Null
+          ise hesaplanan default geçerli.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #f59e0b;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #f59e0b;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          📅 CabanaPriceRange
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          Sezonluk fiyat. Tarih aralığı + öncelik (priority) ile çakışma
+          çözülür.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #ec4899;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #ec4899;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          💆 ExtraService
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          Masaj, havlu, transfer gibi bağımsız hizmetler.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #ec4899;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #ec4899;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          💲 ExtraServicePrice
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          Hizmet fiyatı + geçerlilik tarihi. Tarihsel fiyat takibi sağlar.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #78716c;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #78716c;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          📜 PriceHistory tabloları
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          ProductPriceHistory, CabanaPriceHistory, ConceptPriceHistory — tüm
+          değişiklikler arşivlenir.
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #06b6d4;
+          border-radius: 10px;
+          padding: 16px;
+        "
+      >
+        <div
+          style="
+            color: #06b6d4;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+          "
+        >
+          🔗 ConceptExtraService
+        </div>
+        <div style="color: #a3a3a3; font-size: 13px">
+          Konsepte bağlı ekstra hizmetler. Quantity ile çarpılır.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 4: ÜRÜN FİYATLARI ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">4 / 12</span>
+    <h2>📦 Katman 1 — Ürün Genel Fiyatları</h2>
+    <p style="margin-bottom: 24px">
+      Her ürünün bir alış fiyatı ve bir satış fiyatı var. Bu en temel katman.
+    </p>
+    <div
+      style="
+        background: #171717;
+        border: 1px solid #262626;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 600px;
+      "
+    >
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px">
+        <thead>
+          <tr style="border-bottom: 2px solid #333; text-align: left">
+            <th style="padding: 8px 12px; color: #737373">Ürün</th>
+            <th style="padding: 8px 12px; color: #737373; text-align: right">
+              Alış (₺)
+            </th>
+            <th style="padding: 8px 12px; color: #737373; text-align: right">
+              Satış (₺)
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid #262626">
+            <td style="padding: 10px 12px; color: #e5e5e5">🍔 Hamburger</td>
+            <td style="padding: 10px 12px; color: #a3a3a3; text-align: right">
+              80 ₺
+            </td>
+            <td
+              style="
+                padding: 10px 12px;
+                color: #22c55e;
+                text-align: right;
+                font-weight: 600;
+              "
+            >
+              150 ₺
+            </td>
+          </tr>
+          <tr style="border-bottom: 1px solid #262626">
+            <td style="padding: 10px 12px; color: #e5e5e5">🥤 Kola</td>
+            <td style="padding: 10px 12px; color: #a3a3a3; text-align: right">
+              15 ₺
+            </td>
+            <td
+              style="
+                padding: 10px 12px;
+                color: #22c55e;
+                text-align: right;
+                font-weight: 600;
+              "
+            >
+              40 ₺
+            </td>
+          </tr>
+          <tr style="border-bottom: 1px solid #262626">
+            <td style="padding: 10px 12px; color: #e5e5e5">🍦 Dondurma</td>
+            <td style="padding: 10px 12px; color: #a3a3a3; text-align: right">
+              25 ₺
+            </td>
+            <td
+              style="
+                padding: 10px 12px;
+                color: #22c55e;
+                text-align: right;
+                font-weight: 600;
+              "
+            >
+              60 ₺
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 12px; color: #e5e5e5">☀️ Güneş Kremi</td>
+            <td style="padding: 10px 12px; color: #a3a3a3; text-align: right">
+              45 ₺
+            </td>
+            <td
+              style="
+                padding: 10px 12px;
+                color: #22c55e;
+                text-align: right;
+                font-weight: 600;
+              "
+            >
+              90 ₺
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      style="
+        margin-top: 20px;
+        background: #052e16;
+        border: 1px solid #166534;
+        border-radius: 8px;
+        padding: 14px 18px;
+        max-width: 600px;
+      "
+    >
+      <p style="color: #86efac; font-size: 13px; margin: 0">
+        💡 <strong>Sayfa:</strong> Ürün Fiyatlandırma<br />
+        📁 <strong>Tablo:</strong> Product (salePrice, purchasePrice)<br />
+        📜 <strong>Arşiv:</strong> ProductPriceHistory — her değişiklik
+        kaydedilir
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 5: EKSTRA HİZMETLER ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">5 / 12</span>
+    <h2>💆 Katman 1B — Ekstra Hizmet Fiyatları</h2>
+    <p style="margin-bottom: 24px">
+      Ürünlerden bağımsız hizmetler. Her birinin tarihsel fiyat kaydı tutulur.
+    </p>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap">
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #ec4899;
+          border-radius: 12px;
+          padding: 20px;
+          flex: 1;
+          min-width: 200px;
+          text-align: center;
+        "
+      >
+        <div style="font-size: 36px; margin-bottom: 8px">💆</div>
+        <div style="color: #ec4899; font-weight: 600; font-size: 15px">
+          Masaj
+        </div>
+        <div
+          style="
+            color: #fbbf24;
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 8px;
+          "
+        >
+          500 ₺
+        </div>
+        <div style="color: #525252; font-size: 11px; margin-top: 4px">
+          01 Haz 2025'den itibaren
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #ec4899;
+          border-radius: 12px;
+          padding: 20px;
+          flex: 1;
+          min-width: 200px;
+          text-align: center;
+        "
+      >
+        <div style="font-size: 36px; margin-bottom: 8px">🏖️</div>
+        <div style="color: #ec4899; font-weight: 600; font-size: 15px">
+          Şezlong
+        </div>
+        <div
+          style="
+            color: #fbbf24;
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 8px;
+          "
+        >
+          200 ₺
+        </div>
+        <div style="color: #525252; font-size: 11px; margin-top: 4px">
+          01 Haz 2025'den itibaren
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #ec4899;
+          border-radius: 12px;
+          padding: 20px;
+          flex: 1;
+          min-width: 200px;
+          text-align: center;
+        "
+      >
+        <div style="font-size: 36px; margin-bottom: 8px">🚐</div>
+        <div style="color: #ec4899; font-weight: 600; font-size: 15px">
+          Transfer
+        </div>
+        <div
+          style="
+            color: #fbbf24;
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 8px;
+          "
+        >
+          750 ₺
+        </div>
+        <div style="color: #525252; font-size: 11px; margin-top: 4px">
+          15 May 2025'den itibaren
+        </div>
+      </div>
+      <div
+        style="
+          background: #171717;
+          border: 1px solid #ec4899;
+          border-radius: 12px;
+          padding: 20px;
+          flex: 1;
+          min-width: 200px;
+          text-align: center;
+        "
+      >
+        <div style="font-size: 36px; margin-bottom: 8px">🧴</div>
+        <div style="color: #ec4899; font-weight: 600; font-size: 15px">
+          Havlu Seti
+        </div>
+        <div
+          style="
+            color: #fbbf24;
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 8px;
+          "
+        >
+          100 ₺
+        </div>
+        <div style="color: #525252; font-size: 11px; margin-top: 4px">
+          01 Haz 2025'den itibaren
+        </div>
+      </div>
+    </div>
+    <div
+      style="
+        margin-top: 20px;
+        background: #4a0e2e;
+        border: 1px solid #831843;
+        border-radius: 8px;
+        padding: 14px 18px;
+        max-width: 700px;
+      "
+    >
+      <p style="color: #f9a8d4; font-size: 13px; margin: 0">
+        💡 <strong>Sayfa:</strong> Hizmet Fiyatlandırma<br />
+        📁 <strong>Tablo:</strong> ExtraService + ExtraServicePrice<br />
+        🔑 <strong>Fark:</strong> effectiveFrom/effectiveTo ile tarihsel fiyat
+        takibi yapılır. Ürünlerden farklı olarak fiyat geçmişi ayrı tabloda
+        değil, aynı tabloda tarih aralığıyla tutulur.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 6: KONSEPT NEDİR ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">6 / 12</span>
+    <h2>🎯 Konsept Nedir?</h2>
+    <p style="margin-bottom: 24px">
+      Konsept = bir Cabanaya atanan "paket". İçinde ürünler + ekstra hizmetler +
+      hizmet bedeli var.
+    </p>
+    <div
+      style="
+        background: #171717;
+        border: 2px solid #6366f1;
+        border-radius: 16px;
+        padding: 28px;
+        max-width: 650px;
+      "
+    >
+      <div style="text-align: center; margin-bottom: 20px">
+        <span
+          style="
+            background: #6366f1;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 16px;
+            border-radius: 20px;
+          "
+          >KONSEPT: VIP GOLD</span
+        >
+      </div>
+      <!-- Ürünler -->
+      <div style="margin-bottom: 16px">
+        <div
+          style="
+            color: #a5b4fc;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+          "
+        >
+          📦 Ürünler
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              background: #1e1b4b;
+              border-radius: 6px;
+              padding: 8px 12px;
+              font-size: 13px;
+            "
+          >
+            <span style="color: #c7d2fe">🍔 Hamburger × 2</span>
+            <span style="color: #22c55e">2 × 150₺ = 300₺</span>
+          </div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              background: #1e1b4b;
+              border-radius: 6px;
+              padding: 8px 12px;
+              font-size: 13px;
+            "
+          >
+            <span style="color: #c7d2fe">🥤 Kola × 4</span>
+            <span style="color: #22c55e">4 × 40₺ = 160₺</span>
+          </div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              background: #1e1b4b;
+              border-radius: 6px;
+              padding: 8px 12px;
+              font-size: 13px;
+            "
+          >
+            <span style="color: #c7d2fe">🍦 Dondurma × 2</span>
+            <span style="color: #22c55e">2 × 60₺ = 120₺</span>
+          </div>
+        </div>
+      </div>
+      <!-- Ekstra Hizmetler -->
+      <div style="margin-bottom: 16px">
+        <div
+          style="
+            color: #f9a8d4;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+          "
+        >
+          💆 Ekstra Hizmetler
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              background: #2d1a35;
+              border-radius: 6px;
+              padding: 8px 12px;
+              font-size: 13px;
+            "
+          >
+            <span style="color: #f0abfc">🧴 Havlu Seti × 1</span>
+            <span style="color: #ec4899">1 × 100₺ = 100₺</span>
+          </div>
+        </div>
+      </div>
+      <!-- Hizmet Bedeli -->
+      <div style="margin-bottom: 16px">
+        <div
+          style="
+            color: #fbbf24;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+          "
+        >
+          🛎️ Hizmet Bedeli
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            background: #1a1500;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+          "
+        >
+          <span style="color: #fde68a">Concept.serviceFee</span>
+          <span style="color: #fbbf24; font-weight: 700">200₺</span>
+        </div>
+      </div>
+      <!-- Toplam -->
+      <div
+        style="
+          border-top: 2px solid #4338ca;
+          padding-top: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <span style="color: #a5b4fc; font-weight: 600">KONSEPT TOPLAMI</span>
+        <span style="color: #fbbf24; font-size: 28px; font-weight: 800"
+          >880 ₺</span
+        >
+      </div>
+      <div
+        style="
+          color: #525252;
+          font-size: 11px;
+          margin-top: 8px;
+          text-align: right;
+        "
+      >
+        300 + 160 + 120 + 100 + 200 = 880₺
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 7: KONSEPT ÖZEL FİYAT ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">7 / 12</span>
+    <h2>💎 Katman 3 — Konsepte Özel Fiyat</h2>
+    <p style="margin-bottom: 24px">
+      Bir ürünün genel fiyatı 150₺ olabilir ama "VIP Gold" konseptinde 120₺'ye
+      satılabilir. İşte bu ConceptPrice tablosunda tutulur.
+    </p>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; max-width: 700px">
+      <!-- Genel Fiyat -->
+      <div
+        style="
+          flex: 1;
+          min-width: 280px;
+          background: #052e16;
+          border: 2px solid #22c55e;
+          border-radius: 12px;
+          padding: 20px;
+        "
+      >
+        <div
+          style="
+            color: #22c55e;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 12px;
+          "
+        >
+          📦 Genel Fiyat (Product.salePrice)
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #14532d;
+            font-size: 14px;
+          "
+        >
+          <span style="color: #bbf7d0">Hamburger</span>
+          <span style="color: #22c55e; font-weight: 600">150 ₺</span>
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #14532d;
+            font-size: 14px;
+          "
+        >
+          <span style="color: #bbf7d0">Kola</span>
+          <span style="color: #22c55e; font-weight: 600">40 ₺</span>
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+          "
+        >
+          <span style="color: #bbf7d0">Dondurma</span>
+          <span style="color: #22c55e; font-weight: 600">60 ₺</span>
+        </div>
+      </div>
+      <!-- Konsept Özel -->
+      <div
+        style="
+          flex: 1;
+          min-width: 280px;
+          background: #1e1b4b;
+          border: 2px solid #a855f7;
+          border-radius: 12px;
+          padding: 20px;
+        "
+      >
+        <div
+          style="
+            color: #a855f7;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 12px;
+          "
+        >
+          💎 VIP Gold Özel (ConceptPrice)
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #312e81;
+            font-size: 14px;
+          "
+        >
+          <span style="color: #c7d2fe">Hamburger</span>
+          <span style="color: #a855f7; font-weight: 600"
+            >120 ₺
+            <span style="color: #22c55e; font-size: 11px">(-20%)</span></span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #312e81;
+            font-size: 14px;
+          "
+        >
+          <span style="color: #c7d2fe">Kola</span>
+          <span style="color: #737373; font-size: 12px; font-style: italic"
+            >özel fiyat yok → 40₺</span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+          "
+        >
+          <span style="color: #c7d2fe">Dondurma</span>
+          <span style="color: #a855f7; font-weight: 600"
+            >45 ₺
+            <span style="color: #22c55e; font-size: 11px">(-25%)</span></span
+          >
+        </div>
+      </div>
+    </div>
+    <div
+      style="
+        margin-top: 20px;
+        background: #1e1b4b;
+        border: 1px solid #4338ca;
+        border-radius: 8px;
+        padding: 14px 18px;
+        max-width: 700px;
+      "
+    >
+      <p style="color: #c7d2fe; font-size: 13px; margin: 0">
+        🔑 <strong>Karar mantığı:</strong> ConceptPrice varsa → onu kullan.
+        Yoksa → Product.salePrice kullan.<br />
+        📁 <strong>Sayfa:</strong> Konsept Fiyatlandırma<br />
+        📁 <strong>Tablo:</strong> ConceptPrice (conceptId + productId → price)
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 8: HESAPLANAN DEFAULT ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">8 / 12</span>
+    <h2>🧮 Hesaplanan Default — Formül</h2>
+    <p style="margin-bottom: 24px">
+      Bir Cabanaya konsept atandığında, sistem otomatik olarak günlük fiyatı
+      hesaplar. İşte formül:
+    </p>
+    <div
+      style="
+        background: #171717;
+        border: 2px solid #fbbf24;
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 700px;
+        text-align: center;
+      "
+    >
+      <div
+        style="
+          font-size: 14px;
+          color: #737373;
+          margin-bottom: 12px;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+        "
+      >
+        HESAPLANAN GÜNLÜK FİYAT
+      </div>
+      <div
+        style="
+          font-size: 20px;
+          color: #fbbf24;
+          font-weight: 700;
+          font-family: monospace;
+          line-height: 2;
+        "
+      >
+        <span style="color: #22c55e">Σ (ürün_fiyatı × adet)</span><br />
+        <span style="color: #737373">+</span><br />
+        <span style="color: #ec4899">Σ (hizmet_fiyatı × adet)</span><br />
+        <span style="color: #737373">+</span><br />
+        <span style="color: #fbbf24">hizmet_bedeli (serviceFee)</span>
+      </div>
+      <div
+        style="border-top: 1px solid #333; margin-top: 20px; padding-top: 16px"
+      >
+        <div style="font-size: 13px; color: #a3a3a3; margin-bottom: 8px">
+          Örnek: VIP Gold konsepti
+        </div>
+        <div
+          style="
+            font-family: monospace;
+            font-size: 14px;
+            color: #e5e5e5;
+            line-height: 1.8;
+            text-align: left;
+            display: inline-block;
+          "
+        >
+          <span style="color: #22c55e">Hamburger: 120₺ × 2 = 240₺</span><br />
+          <span style="color: #22c55e"
+            >Kola:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 40₺ × 4 = 160₺</span
+          ><br />
+          <span style="color: #22c55e">Dondurma:&nbsp; 45₺ × 2 = 90₺</span
+          ><br />
+          <span style="color: #ec4899"
+            >Havlu:&nbsp;&nbsp;&nbsp;&nbsp;100₺ × 1 = 100₺</span
+          ><br />
+          <span style="color: #fbbf24"
+            >Hizmet Bedeli:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 200₺</span
+          ><br />
+          <span style="color: #525252">─────────────────────────</span><br />
+          <span style="color: #fbbf24; font-weight: 700; font-size: 18px"
+            >TOPLAM:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            790₺</span
+          >
+        </div>
+      </div>
+    </div>
+    <div
+      style="
+        margin-top: 20px;
+        background: #1a1500;
+        border: 1px solid #854d0e;
+        border-radius: 8px;
+        padding: 14px 18px;
+        max-width: 700px;
+      "
+    >
+      <p style="color: #fde68a; font-size: 13px; margin: 0">
+        ⚠️ <strong>Dikkat:</strong> Hamburger genel fiyatı 150₺ ama konsept özel
+        fiyatı 120₺ olduğu için 120₺ kullanıldı!<br />
+        Kola'nın konsept özel fiyatı yok → genel fiyat 40₺ kullanıldı.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 9: Cabana FİYATLANDIRMA ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">9 / 12</span>
+    <h2>🏠 Katman 4 — Cabana Günlük Fiyatı</h2>
+    <p style="margin-bottom: 24px">
+      Müşterinin ödediği nihai fiyat. 3 farklı senaryo var:
+    </p>
+    <div
+      style="display: flex; flex-direction: column; gap: 16px; max-width: 700px"
+    >
+      <!-- Senaryo 1 -->
+      <div
+        style="
+          background: #171717;
+          border-left: 4px solid #22c55e;
+          border-radius: 0 12px 12px 0;
+          padding: 20px;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+          "
+        >
+          <span
+            style="
+              background: #22c55e;
+              color: #000;
+              font-size: 18px;
+              font-weight: 800;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+            >1</span
+          >
+          <span style="color: #22c55e; font-weight: 700; font-size: 16px"
+            >Hesaplanan Default Kullan</span
+          >
+        </div>
+        <p style="color: #a3a3a3; font-size: 14px; margin: 0">
+          Cabana.dailyPrice = <strong style="color: #fbbf24">NULL</strong> →
+          Sistem konseptten hesaplanan fiyatı kullanır (790₺)
+        </p>
+        <div
+          style="
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #525252;
+          "
+        >
+          dailyPrice: null → calculatedDaily: 790₺ → müşteri 790₺ öder
+        </div>
+      </div>
+      <!-- Senaryo 2 -->
+      <div
+        style="
+          background: #171717;
+          border-left: 4px solid #f59e0b;
+          border-radius: 0 12px 12px 0;
+          padding: 20px;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+          "
+        >
+          <span
+            style="
+              background: #f59e0b;
+              color: #000;
+              font-size: 18px;
+              font-weight: 800;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+            >2</span
+          >
+          <span style="color: #f59e0b; font-weight: 700; font-size: 16px"
+            >Manuel Override</span
+          >
+        </div>
+        <p style="color: #a3a3a3; font-size: 14px; margin: 0">
+          Cabana.dailyPrice = <strong style="color: #fbbf24">1000₺</strong> →
+          Admin hesaplanandan farklı bir fiyat belirlemiş
+        </p>
+        <div
+          style="
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #525252;
+          "
+        >
+          dailyPrice: 1000₺ → calculatedDaily: 790₺ → müşteri 1000₺ öder
+          (OVERRIDE)
+        </div>
+      </div>
+      <!-- Senaryo 3 -->
+      <div
+        style="
+          background: #171717;
+          border-left: 4px solid #ef4444;
+          border-radius: 0 12px 12px 0;
+          padding: 20px;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+          "
+        >
+          <span
+            style="
+              background: #ef4444;
+              color: #fff;
+              font-size: 18px;
+              font-weight: 800;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+            >3</span
+          >
+          <span style="color: #ef4444; font-weight: 700; font-size: 16px"
+            >Konsept Yok</span
+          >
+        </div>
+        <p style="color: #a3a3a3; font-size: 14px; margin: 0">
+          Cabanaya konsept atanmamış → calculatedDaily =
+          <strong style="color: #ef4444">0₺</strong>. Manuel fiyat girilmeli.
+        </p>
+        <div
+          style="
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #525252;
+          "
+        >
+          conceptId: null → calculatedDaily: 0₺ → dailyPrice girilmezse fiyatsız
+          kalır
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 10: SEZONLUK FİYATLANDIRMA ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">10 / 12</span>
+    <h2>📅 Sezonluk Fiyatlandırma</h2>
+    <p style="margin-bottom: 24px">
+      Belirli tarih aralıkları için özel fiyat tanımlanabilir. Çakışan
+      aralıklarda <strong style="color: #fbbf24">priority</strong> değeri yüksek
+      olan kazanır.
+    </p>
+
+    <!-- CabanaPriceRange modeli -->
+    <div
+      style="
+        background: #171717;
+        border: 2px solid #06b6d4;
+        border-radius: 16px;
+        padding: 28px;
+        max-width: 700px;
+        margin-bottom: 20px;
+      "
+    >
+      <div style="text-align: center; margin-bottom: 20px">
+        <span
+          style="
+            background: #06b6d4;
+            color: #000;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 16px;
+            border-radius: 20px;
+          "
+          >CabanaPriceRange</span
+        >
+      </div>
+
+      <!-- Tablo yapısı -->
+      <div
+        style="
+          font-family: monospace;
+          font-size: 13px;
+          line-height: 2;
+          color: #a3a3a3;
+        "
+      >
+        <div><span style="color: #06b6d4">cabanaId</span> → Hangi Cabana</div>
+        <div>
+          <span style="color: #06b6d4">startDate</span> → Başlangıç tarihi
+        </div>
+        <div><span style="color: #06b6d4">endDate</span> → Bitiş tarihi</div>
+        <div>
+          <span style="color: #fbbf24">dailyPrice</span> → Sezon fiyatı
+          (Decimal)
+        </div>
+        <div>
+          <span style="color: #ec4899">label</span> → "Yaz Sezonu", "Bayram" vb.
+        </div>
+        <div>
+          <span style="color: #f59e0b">priority</span> → Çakışma önceliği
+          (yüksek = kazanır)
+        </div>
+      </div>
+    </div>
+
+    <!-- Örnek senaryo -->
+    <div style="max-width: 700px">
+      <div style="color: #a3a3a3; font-size: 13px; margin-bottom: 12px">
+        Örnek: Cabana #5 için tanımlı sezon fiyatları
+      </div>
+
+      <!-- Timeline -->
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <!-- Yaz sezonu -->
+        <div
+          style="
+            background: #083344;
+            border: 1px solid #155e75;
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <div>
+            <div style="color: #22d3ee; font-weight: 600; font-size: 14px">
+              ☀️ Yaz Sezonu
+            </div>
+            <div style="color: #525252; font-size: 12px; margin-top: 2px">
+              1 Haz — 31 Ağu 2025
+            </div>
+          </div>
+          <div style="text-align: right">
+            <div style="color: #fbbf24; font-weight: 700; font-size: 20px">
+              1.200 ₺
+            </div>
+            <div style="color: #525252; font-size: 11px">priority: 1</div>
+          </div>
+        </div>
+
+        <!-- Bayram -->
+        <div
+          style="
+            background: #4a1d0a;
+            border: 1px solid #9a3412;
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <div>
+            <div style="color: #fb923c; font-weight: 600; font-size: 14px">
+              🎉 Kurban Bayramı
+            </div>
+            <div style="color: #525252; font-size: 12px; margin-top: 2px">
+              5 Haz — 12 Haz 2025
+            </div>
+          </div>
+          <div style="text-align: right">
+            <div style="color: #fbbf24; font-weight: 700; font-size: 20px">
+              1.800 ₺
+            </div>
+            <div style="color: #f59e0b; font-size: 11px; font-weight: 600">
+              priority: 10 ⭐
+            </div>
+          </div>
+        </div>
+
+        <!-- Kış -->
+        <div
+          style="
+            background: #0c1a2e;
+            border: 1px solid #1e3a5f;
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <div>
+            <div style="color: #60a5fa; font-weight: 600; font-size: 14px">
+              ❄️ Kış Sezonu
+            </div>
+            <div style="color: #525252; font-size: 12px; margin-top: 2px">
+              1 Kas — 28 Şub 2026
+            </div>
+          </div>
+          <div style="text-align: right">
+            <div style="color: #fbbf24; font-weight: 700; font-size: 20px">
+              500 ₺
+            </div>
+            <div style="color: #525252; font-size: 11px">priority: 1</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Çakışma açıklaması -->
+      <div
+        style="
+          margin-top: 20px;
+          background: #1a1500;
+          border: 1px solid #854d0e;
+          border-radius: 8px;
+          padding: 14px 18px;
+        "
+      >
+        <p style="color: #fde68a; font-size: 13px; margin: 0">
+          ⚠️ <strong>Çakışma:</strong> 5-12 Haziran hem "Yaz Sezonu"
+          (priority:1) hem "Bayram" (priority:10) aralığında.<br />
+          → Bayram priority'si yüksek → <strong>1.800₺</strong> uygulanır.<br />
+          → 13 Haziran'dan itibaren tekrar Yaz Sezonu → <strong>1.200₺</strong>
+        </p>
+      </div>
+
+      <!-- CabanaPrice ek bilgi -->
+      <div
+        style="
+          margin-top: 12px;
+          background: #171717;
+          border: 1px solid #333;
+          border-radius: 8px;
+          padding: 14px 18px;
+        "
+      >
+        <p style="color: #a3a3a3; font-size: 13px; margin: 0">
+          📌 <strong style="color: #06b6d4">CabanaPrice</strong> tablosu da var
+          — bu tek bir güne özel fiyat atar (cabanaId + date unique).<br />
+          CabanaPriceRange ise tarih <em>aralığı</em> bazlı çalışır. İkisi
+          birlikte kullanılabilir.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 11: FİYAT GEÇMİŞİ / ARŞİV ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">11 / 12</span>
+    <h2>📜 Fiyat Geçmişi & Arşiv</h2>
+    <p style="margin-bottom: 24px">
+      Her fiyat değişikliği 3 ayrı tabloda kayıt altına alınır. Kim, ne zaman,
+      ne değiştirdi — hepsi izlenebilir.
+    </p>
+
+    <div
+      style="display: flex; flex-direction: column; gap: 16px; max-width: 700px"
+    >
+      <!-- ProductPriceHistory -->
+      <div
+        style="
+          background: #052e16;
+          border: 2px solid #22c55e;
+          border-radius: 12px;
+          padding: 20px;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+          "
+        >
+          <span style="font-size: 24px">📦</span>
+          <div>
+            <div style="color: #22c55e; font-weight: 700; font-size: 15px">
+              ProductPriceHistory
+            </div>
+            <div style="color: #525252; font-size: 12px">
+              Ürün fiyat değişiklik geçmişi
+            </div>
+          </div>
+        </div>
+        <div
+          style="
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 2;
+            color: #bbf7d0;
+          "
+        >
+          <div>productId → Hangi ürün</div>
+          <div>purchasePrice → Alış fiyatı (o anki)</div>
+          <div>salePrice → Satış fiyatı (o anki)</div>
+          <div>source → "MANUAL" | "IMPORT"</div>
+          <div>changedBy → Kim değiştirdi (userId)</div>
+          <div>createdAt → Ne zaman</div>
+        </div>
+        <div
+          style="
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #14532d;
+            color: #4ade80;
+            font-size: 12px;
+          "
+        >
+          💡 Ürün fiyatı her güncellendiğinde otomatik kayıt oluşur
+        </div>
+      </div>
+
+      <!-- CabanaPriceHistory -->
+      <div
+        style="
+          background: #1a1500;
+          border: 2px solid #f59e0b;
+          border-radius: 12px;
+          padding: 20px;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+          "
+        >
+          <span style="font-size: 24px">🏠</span>
+          <div>
+            <div style="color: #f59e0b; font-weight: 700; font-size: 15px">
+              CabanaPriceHistory
+            </div>
+            <div style="color: #525252; font-size: 12px">
+              Cabana günlük fiyat değişiklik geçmişi
+            </div>
+          </div>
+        </div>
+        <div
+          style="
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 2;
+            color: #fde68a;
+          "
+        >
+          <div>cabanaId → Hangi Cabana</div>
+          <div>dailyPrice → Yeni günlük fiyat</div>
+          <div>source → "MANUAL" | "SEASON" | "IMPORT"</div>
+          <div>changedBy → Kim değiştirdi</div>
+          <div>createdAt → Ne zaman</div>
+        </div>
+        <div
+          style="
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #854d0e;
+            color: #fbbf24;
+            font-size: 12px;
+          "
+        >
+          💡 Manuel override veya sezon fiyatı uygulandığında kayıt oluşur
+        </div>
+      </div>
+
+      <!-- ConceptPriceHistory -->
+      <div
+        style="
+          background: #1e1b4b;
+          border: 2px solid #a855f7;
+          border-radius: 12px;
+          padding: 20px;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+          "
+        >
+          <span style="font-size: 24px">💎</span>
+          <div>
+            <div style="color: #a855f7; font-weight: 700; font-size: 15px">
+              ConceptPriceHistory
+            </div>
+            <div style="color: #525252; font-size: 12px">
+              Konsept özel fiyat değişiklik geçmişi
+            </div>
+          </div>
+        </div>
+        <div
+          style="
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 2;
+            color: #c7d2fe;
+          "
+        >
+          <div>conceptId → Hangi konsept</div>
+          <div>productId → Hangi ürün (nullable)</div>
+          <div>price → Yeni fiyat</div>
+          <div>changedBy → Kim değiştirdi</div>
+          <div>createdAt → Ne zaman</div>
+        </div>
+        <div
+          style="
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #4338ca;
+            color: #a78bfa;
+            font-size: 12px;
+          "
+        >
+          💡 Konsept fiyatlandırma sayfasından kayıt yapıldığında oluşur
+        </div>
+      </div>
+    </div>
+
+    <!-- Sayfa bilgisi -->
+    <div
+      style="
+        margin-top: 20px;
+        background: #171717;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 14px 18px;
+        max-width: 700px;
+      "
+    >
+      <p style="color: #a3a3a3; font-size: 13px; margin: 0">
+        📁 <strong>Sayfa:</strong> Fiyat Geçmişi (pricing/history)<br />
+        🔍 Tüm geçmiş kayıtları tek sayfada, tarih sırasıyla görüntülenir.<br />
+        📊 Filtreleme: tarih aralığı, kaynak (MANUAL/IMPORT/SEASON), değiştiren
+        kişi
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 12: ÖZET AKIŞ DİYAGRAMI ==================== -->
+<div class="slide">
+  <div class="max-w">
+    <span class="slide-number">12 / 12</span>
+    <h2>🗺️ Tam Akış — Fiyat Nereden Nereye?</h2>
+    <p style="margin-bottom: 28px">
+      Bir müşterinin ödediği fiyat, bu 4 katmandan geçerek belirlenir. İşte tüm veri akışı:
+    </p>
+
+    <!-- Flow diagram -->
+    <div style="max-width: 720px; margin: 0 auto;">
+
+      <!-- KATMAN 1: Ürün Genel Fiyat -->
+      <div style="background: #052e16; border: 2px solid #22c55e; border-radius: 14px; padding: 20px 24px; text-align: center;">
+        <div style="color: #22c55e; font-weight: 700; font-size: 16px; margin-bottom: 6px;">📦 KATMAN 1 — Ürün Genel Fiyatları</div>
+        <div style="color: #bbf7d0; font-size: 13px;">Product.salePrice → Tüm ürünlerin baz fiyatı</div>
+        <div style="color: #525252; font-size: 11px; margin-top: 4px;">Sayfa: Ürün Fiyatlandırma</div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; font-size: 24px; color: #525252;">▼</div>
+
+      <!-- KATMAN 1B: Hizmet Fiyatları -->
+      <div style="background: #2d1a35; border: 2px solid #ec4899; border-radius: 14px; padding: 20px 24px; text-align: center;">
+        <div style="color: #ec4899; font-weight: 700; font-size: 16px; margin-bottom: 6px;">💆 KATMAN 1B — Hizmet Fiyatları</div>
+        <div style="color: #f9a8d4; font-size: 13px;">ExtraService + ExtraServicePrice → Tarihsel fiyat takibi</div>
+        <div style="color: #525252; font-size: 11px; margin-top: 4px;">Sayfa: Hizmet Fiyatlandırma</div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; font-size: 24px; color: #525252;">▼</div>
+
+      <!-- KATMAN 2: Konsept Paketi -->
+      <div style="background: #1e1b4b; border: 2px solid #6366f1; border-radius: 14px; padding: 20px 24px; text-align: center;">
+        <div style="color: #6366f1; font-weight: 700; font-size: 16px; margin-bottom: 6px;">🎯 KATMAN 2 — Konsept Paketi</div>
+        <div style="color: #c7d2fe; font-size: 13px;">Concept = Ürünler (×adet) + Hizmetler (×adet) + serviceFee</div>
+        <div style="color: #525252; font-size: 11px; margin-top: 4px;">Sayfa: Konsept Yönetimi</div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; font-size: 24px; color: #525252;">▼</div>
+
+      <!-- KATMAN 3: Konsept Özel Fiyat -->
+      <div style="background: #2e1065; border: 2px solid #a855f7; border-radius: 14px; padding: 20px 24px; text-align: center;">
+        <div style="color: #a855f7; font-weight: 700; font-size: 16px; margin-bottom: 6px;">💎 KATMAN 3 — Konsepte Özel Fiyat</div>
+        <div style="color: #d8b4fe; font-size: 13px;">ConceptPrice varsa → onu kullan. Yoksa → Product.salePrice</div>
+        <div style="color: #525252; font-size: 11px; margin-top: 4px;">Sayfa: Konsept Fiyatlandırma</div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; font-size: 24px; color: #525252;">▼</div>
+
+      <!-- HESAPLAMA -->
+      <div style="background: #171717; border: 2px dashed #fbbf24; border-radius: 14px; padding: 20px 24px; text-align: center;">
+        <div style="color: #fbbf24; font-weight: 700; font-size: 16px; margin-bottom: 6px;">🧮 HESAPLAMA</div>
+        <div style="font-family: monospace; color: #fde68a; font-size: 14px; line-height: 1.8;">
+          calculatedDaily = Σ(ürün × adet) + Σ(hizmet × adet) + serviceFee
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; font-size: 24px; color: #525252;">▼</div>
+
+      <!-- KATMAN 4: Cabana Fiyatı -->
+      <div style="background: #171717; border: 2px solid #fbbf24; border-radius: 14px; padding: 20px 24px; text-align: center;">
+        <div style="color: #fbbf24; font-weight: 700; font-size: 16px; margin-bottom: 6px;">🏠 KATMAN 4 — Cabana Günlük Fiyat</div>
+        <div style="color: #fde68a; font-size: 13px;">
+          dailyPrice = NULL → hesaplanan kullanılır<br>
+          dailyPrice = 1000₺ → manuel override
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; font-size: 24px; color: #525252;">▼</div>
+
+      <!-- SEZON -->
+      <div style="background: #083344; border: 2px solid #06b6d4; border-radius: 14px; padding: 20px 24px; text-align: center;">
+        <div style="color: #06b6d4; font-weight: 700; font-size: 16px; margin-bottom: 6px;">📅 SEZON FİYATI (Opsiyonel)</div>
+        <div style="color: #67e8f9; font-size: 13px;">
+          CabanaPriceRange → Tarih aralığı + priority bazlı override<br>
+          CabanaPrice → Tek güne özel fiyat
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; font-size: 24px; color: #525252;">▼</div>
+
+      <!-- MÜŞTERİ -->
+      <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 14px; padding: 24px; text-align: center;">
+        <div style="color: #000; font-weight: 800; font-size: 20px; margin-bottom: 4px;">💰 MÜŞTERİ ÖDEMESİ</div>
+        <div style="color: #451a03; font-size: 14px; font-weight: 600;">Nihai fiyat burada belirlenir</div>
+      </div>
+    </div>
+
+    <!-- Karar ağacı özeti -->
+    <div style="margin-top: 28px; max-width: 720px; margin-left: auto; margin-right: auto;">
+      <div style="background: #171717; border: 1px solid #333; border-radius: 12px; padding: 20px 24px;">
+        <div style="color: #fbbf24; font-weight: 700; font-size: 14px; margin-bottom: 12px;">🔑 Karar Ağacı — Hangi Fiyat Kullanılır?</div>
+        <div style="font-family: monospace; font-size: 13px; line-height: 2.2; color: #e5e5e5;">
+          <div><span style="color: #06b6d4">1.</span> CabanaPrice (tek gün) var mı? → <span style="color: #22c55e; font-weight: 600;">Onu kullan</span></div>
+          <div><span style="color: #06b6d4">2.</span> CabanaPriceRange (sezon) var mı? → <span style="color: #22c55e; font-weight: 600;">En yüksek priority olanı kullan</span></div>
+          <div><span style="color: #06b6d4">3.</span> Cabana.dailyPrice set mi? → <span style="color: #22c55e; font-weight: 600;">Manuel override kullan</span></div>
+          <div><span style="color: #06b6d4">4.</span> Hiçbiri yoksa → <span style="color: #fbbf24; font-weight: 600;">Konseptten hesaplanan default</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arşiv notu -->
+    <div style="margin-top: 16px; max-width: 720px; margin-left: auto; margin-right: auto; background: #1a1500; border: 1px solid #854d0e; border-radius: 8px; padding: 14px 18px;">
+      <p style="color: #fde68a; font-size: 13px; margin: 0;">
+        📜 <strong>Arşiv:</strong> Her fiyat değişikliği 3 history tablosunda kayıt altına alınır → ProductPriceHistory, CabanaPriceHistory, ConceptPriceHistory
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SON ==================== -->
+<div class="slide" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+  <div style="text-align: center; max-width: 600px;">
+    <div style="font-size: 64px; margin-bottom: 20px;">🏖️</div>
+    <h2 style="color: #fbbf24; font-size: 32px; margin-bottom: 12px;">Fiyatlandırma Sistemi</h2>
+    <p style="color: #737373; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
+      4 katmanlı mimari ile esnek, izlenebilir ve ölçeklenebilir fiyatlandırma.
+    </p>
+    <div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;">
+      <div style="text-align: center;">
+        <div style="font-size: 28px; color: #22c55e; font-weight: 800;">10+</div>
+        <div style="color: #525252; font-size: 12px;">Veritabanı Tablosu</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; color: #a855f7; font-weight: 800;">4</div>
+        <div style="color: #525252; font-size: 12px;">Fiyat Katmanı</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; color: #06b6d4; font-weight: 800;">3</div>
+        <div style="color: #525252; font-size: 12px;">Arşiv Tablosu</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; color: #ec4899; font-weight: 800;">∞</div>
+        <div style="color: #525252; font-size: 12px;">Fiyat Geçmişi</div>
+      </div>
+    </div>
+    <div style="margin-top: 40px; color: #404040; font-size: 13px;">
+      Beach Resort Management System — Fiyatlandırma Modülü
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

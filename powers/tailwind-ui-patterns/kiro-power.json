@@ -1,0 +1,14 @@
+{
+  "name": "tailwind-ui-patterns",
+  "displayName": "Tailwind UI Patterns",
+  "description": "Framework-agnostic UI patterns with Tailwind CSS. Responsive layouts, component patterns, dark mode, animations, and design tokens for any project.",
+  "keywords": [
+    "tailwind",
+    "css",
+    "responsive",
+    "dark-mode",
+    "ui-layout",
+    "design-tokens"
+  ],
+  "author": "Erkan"
+}

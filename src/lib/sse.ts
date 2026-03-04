@@ -73,6 +73,18 @@ class SSEManager {
       this.safeSend(id, payload);
     }
   }
+  broadcastExcludeUser(
+    excludeUserId: string,
+    event: string,
+    data: unknown,
+  ): void {
+    const payload = this.formatSSE(event, data);
+    for (const [id, conn] of this.connections) {
+      if (conn.userId !== excludeUserId) {
+        this.safeSend(id, payload);
+      }
+    }
+  }
 
   get connectionCount(): number {
     return this.connections.size;

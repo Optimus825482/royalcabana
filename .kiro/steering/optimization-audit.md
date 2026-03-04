@@ -1,6 +1,6 @@
 ---
-inclusion: fileMatch
-fileMatchPattern: "**/api/**,**/*.tsx,**/services/**,**/lib/**"
+inclusion: manual
+description: "Full system optimization audit — activate manually for deep analysis"
 ---
 
 # Optimization Audit — Full System Check

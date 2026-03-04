@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Modal,
@@ -34,6 +34,8 @@ interface Product {
   name: string;
   salePrice: number;
   isActive: boolean;
+  groupId: string | null;
+  group: { id: string; name: string; sortOrder: number } | null;
 }
 
 interface ConceptProduct {
@@ -56,6 +58,7 @@ interface Concept {
   classId: string | null;
   cabanaClass: CabanaClass | null;
   products: ConceptProduct[];
+  extraServices: ConceptExtraService[];
   _count: { cabanas: number };
 }
 
@@ -64,6 +67,20 @@ interface SelectedProduct {
   name: string;
   salePrice: number;
   quantity: number;
+}
+
+interface ExtraServiceItem {
+  id: string;
+  name: string;
+  category: string | null;
+  prices: { id: string; price: string; effectiveFrom: string }[];
+}
+
+interface ConceptExtraService {
+  id: string;
+  extraServiceId: string;
+  quantity: number;
+  extraService: ExtraServiceItem;
 }
 
 /* ------------------------------------------------------------------ */
@@ -75,8 +92,25 @@ function conceptTotalValue(concept: Concept): number {
     (sum, cp) => sum + parseFloat(String(cp.product.salePrice)) * cp.quantity,
     0,
   );
-  return productsTotal + parseFloat(String(concept.serviceFee ?? 0));
+  const extraServicesTotal = (concept.extraServices ?? []).reduce(
+    (sum, ces) => {
+      const price = ces.extraService?.prices?.[0]?.price;
+      return sum + (price ? parseFloat(String(price)) : 0) * ces.quantity;
+    },
+    0,
+  );
+  return (
+    productsTotal +
+    extraServicesTotal +
+    parseFloat(String(concept.serviceFee ?? 0))
+  );
 }
+
+const SERVICE_GROUP_NAMES = [
+  "Hizmetler",
+  "Eğlence & Aktivite",
+  "Spa & Wellness",
+];
 
 const defaultCreateForm = {
   name: "",
@@ -101,23 +135,31 @@ export default function ConceptsPage() {
   const {
     data: conceptsData,
     isLoading: loading,
+    isError,
     error: queryError,
   } = useQuery({
     queryKey: ["concepts-admin"],
     queryFn: async () => {
-      const [cRes, clRes, pRes] = await Promise.all([
+      const [cRes, clRes, pRes, esRes] = await Promise.all([
         fetch("/api/concepts"),
         fetch("/api/classes"),
         fetch("/api/products"),
+        fetch("/api/extra-services?activeOnly=true"),
       ]);
       if (!cRes.ok) throw new Error("Konseptler yüklenemedi.");
-      const concepts = await cRes.json();
-      const classes = clRes.ok ? await clRes.json() : [];
-      const products = pRes.ok ? await pRes.json() : [];
+      const cJson = await cRes.json();
+      const clJson = clRes.ok ? await clRes.json() : [];
+      const pJson = pRes.ok ? await pRes.json() : [];
+      const esData = esRes.ok ? await esRes.json() : { data: [] };
+      const cResolved = cJson.data ?? cJson;
+      const clResolved = clJson.data ?? clJson;
+      const pResolved = pJson.data ?? pJson;
+      const esResolved = esData.data ?? esData;
       return {
-        concepts: concepts as Concept[],
-        classes: classes as CabanaClass[],
-        products: products as Product[],
+        concepts: Array.isArray(cResolved) ? cResolved as Concept[] : [],
+        classes: Array.isArray(clResolved) ? clResolved as CabanaClass[] : [],
+        products: Array.isArray(pResolved) ? pResolved as Product[] : [],
+        extraServices: Array.isArray(esResolved) ? esResolved as ExtraServiceItem[] : [],
       };
     },
   });
@@ -128,11 +170,18 @@ export default function ConceptsPage() {
     () => conceptsData?.products ?? [],
     [conceptsData?.products],
   );
+  const extraServices = useMemo(
+    () => conceptsData?.extraServices ?? [],
+    [conceptsData?.extraServices],
+  );
 
   /* ---- UI state ---- */
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [contentConcept, setContentConcept] = useState<Concept | null>(null);
+  const [contentTab, setContentTab] = useState<"products" | "extraServices">(
+    "products",
+  );
 
   /* ---- Create modal ---- */
   const [showCreate, setShowCreate] = useState(false);
@@ -439,10 +488,145 @@ export default function ConceptsPage() {
     }
   }
 
-  /* ---- Available products for inline add ---- */
+  /* ---- Available products for inline add (exclude service groups) ---- */
   function availableProducts(concept: Concept) {
     const addedIds = new Set(concept.products.map((cp) => cp.productId));
-    return products.filter((p) => p.isActive && !addedIds.has(p.id));
+    return products.filter(
+      (p) =>
+        p.isActive &&
+        !addedIds.has(p.id) &&
+        !SERVICE_GROUP_NAMES.includes(p.group?.name ?? ""),
+    );
+  }
+
+  /* ---- Service-type products (from service groups) for extra services tab ---- */
+  function availableServiceProducts(concept: Concept) {
+    const addedIds = new Set(concept.products.map((cp) => cp.productId));
+    return products.filter(
+      (p) =>
+        p.isActive &&
+        !addedIds.has(p.id) &&
+        SERVICE_GROUP_NAMES.includes(p.group?.name ?? ""),
+    );
+  }
+
+  /* ---- Existing service-type products already in concept ---- */
+  function existingServiceProducts(concept: Concept) {
+    return concept.products.filter((cp) => {
+      const fullProduct = products.find((p) => p.id === cp.productId);
+      return SERVICE_GROUP_NAMES.includes(fullProduct?.group?.name ?? "");
+    });
+  }
+
+  /* ---- Existing non-service products (for products tab) ---- */
+  function existingNonServiceProducts(concept: Concept) {
+    return concept.products.filter((cp) => {
+      const fullProduct = products.find((p) => p.id === cp.productId);
+      return !SERVICE_GROUP_NAMES.includes(fullProduct?.group?.name ?? "");
+    });
+  }
+
+  /* ---- Available extra services for inline add ---- */
+  function availableExtraServices(concept: Concept) {
+    const addedIds = new Set(
+      (concept.extraServices ?? []).map((ces) => ces.extraServiceId),
+    );
+    return extraServices.filter((es) => !addedIds.has(es.id));
+  }
+
+  /* ---- Add extra service ---- */
+  const [addEsForm, setAddEsForm] = useState<Record<string, string>>({});
+  const [addEsLoading, setAddEsLoading] = useState<Record<string, boolean>>({});
+  const [addEsError, setAddEsError] = useState<Record<string, string>>({});
+
+  /* ---- Searchable product/service dropdowns ---- */
+  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+  const [productDropdownSearch, setProductDropdownSearch] = useState("");
+  const [esDropdownOpen, setEsDropdownOpen] = useState(false);
+  const [esDropdownSearch, setEsDropdownSearch] = useState("");
+
+  /* Close dropdowns on outside click */
+  useEffect(() => {
+    if (!productDropdownOpen && !esDropdownOpen) return;
+    const handler = () => {
+      setProductDropdownOpen(false);
+      setEsDropdownOpen(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [productDropdownOpen, esDropdownOpen]);
+
+  async function handleAddExtraService(conceptId: string) {
+    const extraServiceId = addEsForm[conceptId];
+    if (!extraServiceId) return;
+    setAddEsLoading((p) => ({ ...p, [conceptId]: true }));
+    setAddEsError((p) => ({ ...p, [conceptId]: "" }));
+    try {
+      const res = await fetch(`/api/concepts/${conceptId}/extra-services`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extraServiceId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Hizmet eklenemedi.");
+      setAddEsForm((p) => ({ ...p, [conceptId]: "" }));
+      queryClient.invalidateQueries({ queryKey: ["concepts-admin"] });
+    } catch (e: unknown) {
+      setAddEsError((p) => ({
+        ...p,
+        [conceptId]: e instanceof Error ? e.message : "Bir hata oluştu.",
+      }));
+    } finally {
+      setAddEsLoading((p) => ({ ...p, [conceptId]: false }));
+    }
+  }
+
+  /* ---- Remove extra service ---- */
+  async function handleRemoveExtraService(
+    conceptId: string,
+    extraServiceId: string,
+  ) {
+    try {
+      const res = await fetch(`/api/concepts/${conceptId}/extra-services`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extraServiceId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Hizmet kaldırılamadı.");
+      queryClient.invalidateQueries({ queryKey: ["concepts-admin"] });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
+    }
+  }
+
+  /* ---- Update extra service quantity ---- */
+  const [esQtyUpdating, setEsQtyUpdating] = useState<Record<string, boolean>>(
+    {},
+  );
+
+  async function updateExtraServiceQty(
+    conceptId: string,
+    extraServiceId: string,
+    newQty: number,
+  ) {
+    if (newQty < 1) return;
+    const key = `${conceptId}-${extraServiceId}`;
+    setEsQtyUpdating((p) => ({ ...p, [key]: true }));
+    try {
+      const res = await fetch(`/api/concepts/${conceptId}/extra-services`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extraServiceId, quantity: newQty }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Miktar güncellenemedi.");
+      queryClient.invalidateQueries({ queryKey: ["concepts-admin"] });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
+    } finally {
+      setTimeout(() => setEsQtyUpdating((p) => ({ ...p, [key]: false })), 600);
+    }
   }
 
   /* ================================================================ */
@@ -458,7 +642,7 @@ export default function ConceptsPage() {
             Konsept Yönetimi
           </h1>
           <p className="text-sm text-neutral-500 mt-0.5">
-            Kabana konseptlerini ve ürünlerini yönetin
+            Cabana konseptlerini ve ürünlerini yönetin
           </p>
         </div>
         <PermissionGate permission="concept.create">
@@ -494,6 +678,13 @@ export default function ConceptsPage() {
         <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
           Yükleniyor...
         </div>
+      ) : isError ? (
+        <div className="text-center py-12">
+          <p className="text-red-400 text-sm">
+            {(queryError as Error)?.message ??
+              "Veriler yüklenirken bir hata oluştu."}
+          </p>
+        </div>
       ) : concepts.length === 0 ? (
         <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
           Henüz konsept yok.
@@ -527,8 +718,13 @@ export default function ConceptsPage() {
                       <span className="text-xs px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700">
                         {concept.products.length} ürün
                       </span>
+                      {(concept.extraServices?.length ?? 0) > 0 && (
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-purple-950/40 text-purple-400 border border-purple-800/30">
+                          {concept.extraServices.length} hizmet
+                        </span>
+                      )}
                       <span className="text-xs px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700">
-                        {concept._count.cabanas} kabana
+                        {concept._count.cabanas} Cabana
                       </span>
                       {Number(concept.serviceFee) > 0 && (
                         <span className="text-xs px-2.5 py-1 rounded-full bg-green-950/40 text-green-400 border border-green-800/30">
@@ -544,14 +740,13 @@ export default function ConceptsPage() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0 flex-wrap">
                     <button
-                      onClick={() =>
-                        setExpandedId(
-                          expandedId === concept.id ? null : concept.id,
-                        )
-                      }
+                      onClick={() => {
+                        setContentConcept(concept);
+                        setContentTab("products");
+                      }}
                       className={ghostBtnCls}
                     >
-                      {expandedId === concept.id ? "Kapat" : "Ürünler"}
+                      İçerik
                     </button>
                     <PermissionGate permission="concept.create">
                       <button
@@ -583,125 +778,594 @@ export default function ConceptsPage() {
                     </PermissionGate>
                   </div>
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-                {/* Expanded products panel */}
-                {expandedId === concept.id && (
-                  <div className="border-t border-neutral-800 px-5 py-4 bg-neutral-950/40">
-                    {/* Summary card */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-                      <div className="bg-neutral-800/60 rounded-lg px-3 py-2.5">
-                        <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-0.5">
-                          Ürün Toplamı
-                        </p>
-                        <p className="text-sm font-semibold text-neutral-100">
-                          {formatPrice(
-                            concept.products.reduce(
-                              (s, cp) =>
-                                s +
-                                parseFloat(String(cp.product.salePrice)) *
-                                  cp.quantity,
-                              0,
-                            ),
-                            currency,
-                          )}
-                        </p>
-                      </div>
-                      <div className="bg-neutral-800/60 rounded-lg px-3 py-2.5">
-                        <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-0.5">
-                          Hizmet Ücreti
-                        </p>
-                        <p className="text-sm font-semibold text-neutral-100">
-                          {formatPrice(Number(concept.serviceFee), currency)}
-                        </p>
-                      </div>
-                      <div className="bg-amber-950/30 border border-amber-800/20 rounded-lg px-3 py-2.5">
-                        <p className="text-[10px] uppercase tracking-wider text-amber-500 mb-0.5">
-                          Toplam Değer
-                        </p>
-                        <p className="text-sm font-bold text-amber-400">
-                          {formatPrice(totalValue, currency)}
-                        </p>
-                      </div>
+      {/* ============================================================ */}
+      {/*  Content Modal (Ürünler + Ekstra Hizmetler)                    */}
+      {/* ============================================================ */}
+      {contentConcept &&
+        (() => {
+          const concept =
+            concepts.find((c) => c.id === contentConcept.id) ?? contentConcept;
+          const nonSvcProducts = existingNonServiceProducts(concept);
+          const svcProducts = existingServiceProducts(concept);
+          const esItems = concept.extraServices ?? [];
+
+          const nonSvcTotal = nonSvcProducts.reduce(
+            (s, cp) =>
+              s + parseFloat(String(cp.product.salePrice)) * cp.quantity,
+            0,
+          );
+          const svcTotal = svcProducts.reduce(
+            (s, cp) =>
+              s + parseFloat(String(cp.product.salePrice)) * cp.quantity,
+            0,
+          );
+          const esTotal = esItems.reduce((s, ces) => {
+            const p = ces.extraService?.prices?.[0]?.price;
+            return s + (p ? parseFloat(String(p)) : 0) * ces.quantity;
+          }, 0);
+          const totalValue =
+            nonSvcTotal +
+            svcTotal +
+            esTotal +
+            parseFloat(String(concept.serviceFee ?? 0));
+
+          return (
+            <Modal
+              title={`${concept.name} — İçerik`}
+              onClose={() => setContentConcept(null)}
+              maxWidth="max-w-2xl"
+            >
+              {/* Summary card */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div className="bg-neutral-800/60 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                    Ürün Toplamı
+                  </p>
+                  <p className="text-sm font-semibold text-neutral-100">
+                    {formatPrice(nonSvcTotal, currency)}
+                  </p>
+                </div>
+                <div className="bg-neutral-800/60 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                    Ekstra Hizmetler
+                  </p>
+                  <p className="text-sm font-semibold text-purple-300">
+                    {formatPrice(esTotal + svcTotal, currency)}
+                  </p>
+                </div>
+                <div className="bg-neutral-800/60 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                    Hizmet Ücreti
+                  </p>
+                  <p className="text-sm font-semibold text-neutral-100">
+                    {formatPrice(Number(concept.serviceFee), currency)}
+                  </p>
+                </div>
+                <div className="bg-amber-950/30 border border-amber-800/20 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wider text-amber-500 mb-0.5">
+                    Toplam Değer
+                  </p>
+                  <p className="text-sm font-bold text-amber-400">
+                    {formatPrice(totalValue, currency)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tab buttons — only change the add-select */}
+              <div className="flex items-center gap-1 mb-4">
+                <button
+                  onClick={() => setContentTab("products")}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-colors ${contentTab === "products" ? "bg-amber-600 text-neutral-950 font-semibold" : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"}`}
+                >
+                  Ürün Ekle
+                </button>
+                <button
+                  onClick={() => setContentTab("extraServices")}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-colors ${contentTab === "extraServices" ? "bg-purple-600 text-white font-semibold" : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"}`}
+                >
+                  Hizmet Ekle
+                </button>
+              </div>
+
+              {/* Add select — changes based on active tab */}
+              <PermissionGate permission="concept.update">
+                {contentTab === "products" && (
+                  <div className="relative mb-4">
+                    <div
+                      onClick={() => {
+                        setProductDropdownOpen(!productDropdownOpen);
+                        setProductDropdownSearch("");
+                      }}
+                      className={
+                        selectCls +
+                        " cursor-pointer flex items-center justify-between"
+                      }
+                    >
+                      <span className="text-neutral-400 text-sm">
+                        Ürün seçin...
+                      </span>
+                      <span className="text-neutral-500 text-xs">▼</span>
                     </div>
-
-                    <p className="text-xs font-medium text-neutral-400 mb-3">
-                      Ürünler ({concept.products.length})
-                    </p>
-
-                    {concept.products.length === 0 ? (
-                      <p className="text-xs text-neutral-600 mb-3">
-                        Henüz ürün yok.
+                    {productDropdownOpen &&
+                      (() => {
+                        const available = availableProducts(concept);
+                        const q = productDropdownSearch.toLowerCase();
+                        const filtered = q
+                          ? available.filter((p) =>
+                              p.name.toLowerCase().includes(q),
+                            )
+                          : available;
+                        const grouped = new Map<string, Product[]>();
+                        filtered.forEach((p) => {
+                          const gName = p.group?.name ?? "Grupsuz";
+                          if (!grouped.has(gName)) grouped.set(gName, []);
+                          grouped.get(gName)!.push(p);
+                        });
+                        const sortedGroups = [...grouped.entries()].sort(
+                          (a, b) => {
+                            const aSort =
+                              filtered.find(
+                                (pr) => (pr.group?.name ?? "Grupsuz") === a[0],
+                              )?.group?.sortOrder ?? 999;
+                            const bSort =
+                              filtered.find(
+                                (pr) => (pr.group?.name ?? "Grupsuz") === b[0],
+                              )?.group?.sortOrder ?? 999;
+                            return aSort - bSort;
+                          },
+                        );
+                        return (
+                          <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-xl max-h-72 overflow-hidden flex flex-col">
+                            <div className="p-2 border-b border-neutral-800">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={productDropdownSearch}
+                                onChange={(e) =>
+                                  setProductDropdownSearch(e.target.value)
+                                }
+                                placeholder="Ürün ara..."
+                                className={inputCls + " text-sm"}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                            <div className="overflow-y-auto rc-scrollbar flex-1">
+                              {sortedGroups.length === 0 ? (
+                                <p className="text-xs text-neutral-600 p-3">
+                                  Eklenecek ürün kalmadı.
+                                </p>
+                              ) : (
+                                sortedGroups.map(
+                                  ([groupName, groupProducts]) => (
+                                    <div key={groupName}>
+                                      <p className="text-[10px] uppercase tracking-wider text-neutral-500 px-3 pt-2.5 pb-1 font-semibold bg-neutral-950/60 sticky top-0">
+                                        {groupName}
+                                      </p>
+                                      {groupProducts.map((p) => (
+                                        <button
+                                          key={p.id}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAddProductForms((prev) => ({
+                                              ...prev,
+                                              [concept.id]: p.id,
+                                            }));
+                                            setProductDropdownOpen(false);
+                                            setProductDropdownSearch("");
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-800 transition-colors flex items-center justify-between gap-2"
+                                        >
+                                          <span className="text-neutral-200 truncate">
+                                            {p.name}
+                                          </span>
+                                          <span className="text-xs text-neutral-500 shrink-0">
+                                            {formatPrice(p.salePrice, currency)}
+                                          </span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ),
+                                )
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    {addProductForms[concept.id] && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-neutral-300 flex-1 truncate">
+                          {
+                            products.find(
+                              (p) => p.id === addProductForms[concept.id],
+                            )?.name
+                          }
+                        </span>
+                        <button
+                          onClick={() => handleAddProduct(concept.id)}
+                          disabled={addProductLoading[concept.id]}
+                          className={primaryBtnCls + " shrink-0 text-xs"}
+                        >
+                          {addProductLoading[concept.id] ? "..." : "Ekle"}
+                        </button>
+                        <button
+                          onClick={() =>
+                            setAddProductForms((p) => ({
+                              ...p,
+                              [concept.id]: "",
+                            }))
+                          }
+                          className={ghostBtnCls + " shrink-0 text-xs"}
+                        >
+                          İptal
+                        </button>
+                      </div>
+                    )}
+                    {addProductError[concept.id] && (
+                      <p className="text-red-400 text-xs mt-2">
+                        {addProductError[concept.id]}
                       </p>
-                    ) : (
-                      <div className="space-y-1.5 mb-4">
-                        {concept.products.map((cp) => {
-                          const qtyKey = `${concept.id}-${cp.productId}`;
-                          const isUpdating = qtyUpdating[qtyKey];
-                          return (
-                            <div
-                              key={cp.id}
-                              className="flex items-center justify-between bg-neutral-800/60 rounded-lg px-3 py-2"
-                            >
-                              <div className="flex items-center gap-3 text-xs flex-1 min-w-0">
-                                <span className="text-neutral-200 font-medium truncate">
-                                  {cp.product.name}
-                                </span>
+                    )}
+                  </div>
+                )}
 
-                                {/* Inline quantity editor */}
-                                <PermissionGate
-                                  permission="concept.update"
-                                  fallback={
-                                    <span className="text-neutral-500">
-                                      Adet: {cp.quantity}
-                                    </span>
-                                  }
-                                >
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={() =>
-                                        updateConceptProductQty(
-                                          concept.id,
-                                          cp.productId,
-                                          cp.quantity - 1,
-                                        )
-                                      }
-                                      disabled={cp.quantity <= 1 || isUpdating}
-                                      className="w-6 h-6 flex items-center justify-center rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 text-neutral-300 text-sm transition-colors"
-                                    >
-                                      −
-                                    </button>
-                                    <span className="w-8 text-center text-neutral-200 font-medium tabular-nums">
-                                      {cp.quantity}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        updateConceptProductQty(
-                                          concept.id,
-                                          cp.productId,
-                                          cp.quantity + 1,
-                                        )
-                                      }
-                                      disabled={isUpdating}
-                                      className="w-6 h-6 flex items-center justify-center rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 text-neutral-300 text-sm transition-colors"
-                                    >
-                                      +
-                                    </button>
-                                    {isUpdating && (
-                                      <span className="text-[10px] text-amber-400 ml-1 animate-pulse">
-                                        ✓
-                                      </span>
-                                    )}
-                                  </div>
-                                </PermissionGate>
-
-                                <span className="text-yellow-500 shrink-0">
-                                  {formatPrice(
-                                    parseFloat(String(cp.product.salePrice)) *
-                                      cp.quantity,
-                                    currency,
+                {contentTab === "extraServices" && (
+                  <div className="relative mb-4">
+                    <div
+                      onClick={() => {
+                        setEsDropdownOpen(!esDropdownOpen);
+                        setEsDropdownSearch("");
+                      }}
+                      className={
+                        selectCls +
+                        " cursor-pointer flex items-center justify-between"
+                      }
+                    >
+                      <span className="text-neutral-400 text-sm">
+                        Hizmet seçin...
+                      </span>
+                      <span className="text-neutral-500 text-xs">▼</span>
+                    </div>
+                    {esDropdownOpen &&
+                      (() => {
+                        const availableEs = availableExtraServices(concept);
+                        const availableSvc = availableServiceProducts(concept);
+                        const q = esDropdownSearch.toLowerCase();
+                        const filteredEs = q
+                          ? availableEs.filter((es) =>
+                              es.name.toLowerCase().includes(q),
+                            )
+                          : availableEs;
+                        const filteredSvc = q
+                          ? availableSvc.filter((p) =>
+                              p.name.toLowerCase().includes(q),
+                            )
+                          : availableSvc;
+                        const hasItems =
+                          filteredEs.length > 0 || filteredSvc.length > 0;
+                        // Group extra services by category
+                        const esCats = new Map<string, ExtraServiceItem[]>();
+                        filteredEs.forEach((es) => {
+                          const cat = es.category ?? "Genel";
+                          if (!esCats.has(cat)) esCats.set(cat, []);
+                          esCats.get(cat)!.push(es);
+                        });
+                        const sortedEsCats = [...esCats.entries()].sort(
+                          (a, b) => a[0].localeCompare(b[0], "tr"),
+                        );
+                        // Group service products by group name
+                        const svcGroups = new Map<string, Product[]>();
+                        filteredSvc.forEach((p) => {
+                          const gName = p.group?.name ?? "Grupsuz";
+                          if (!svcGroups.has(gName)) svcGroups.set(gName, []);
+                          svcGroups.get(gName)!.push(p);
+                        });
+                        const sortedSvcGroups = [...svcGroups.entries()].sort(
+                          (a, b) => {
+                            const aSort =
+                              filteredSvc.find(
+                                (pr) => (pr.group?.name ?? "Grupsuz") === a[0],
+                              )?.group?.sortOrder ?? 999;
+                            const bSort =
+                              filteredSvc.find(
+                                (pr) => (pr.group?.name ?? "Grupsuz") === b[0],
+                              )?.group?.sortOrder ?? 999;
+                            return aSort - bSort;
+                          },
+                        );
+                        return (
+                          <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-xl max-h-72 overflow-hidden flex flex-col">
+                            <div className="p-2 border-b border-neutral-800">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={esDropdownSearch}
+                                onChange={(e) =>
+                                  setEsDropdownSearch(e.target.value)
+                                }
+                                placeholder="Hizmet ara..."
+                                className={inputCls + " text-sm"}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                            <div className="overflow-y-auto rc-scrollbar flex-1">
+                              {!hasItems ? (
+                                <p className="text-xs text-neutral-600 p-3">
+                                  Eklenecek hizmet kalmadı.
+                                </p>
+                              ) : (
+                                <>
+                                  {/* Extra Services */}
+                                  {sortedEsCats.map(
+                                    ([catName, catServices]) => (
+                                      <div key={"es-" + catName}>
+                                        <p className="text-[10px] uppercase tracking-wider text-purple-400 px-3 pt-2.5 pb-1 font-semibold bg-purple-950/30 sticky top-0">
+                                          {catName}
+                                        </p>
+                                        {catServices.map((es) => {
+                                          const esPrice = es.prices?.[0]?.price;
+                                          return (
+                                            <button
+                                              key={es.id}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setAddEsForm((prev) => ({
+                                                  ...prev,
+                                                  [concept.id]: es.id,
+                                                }));
+                                                setAddProductForms((prev) => ({
+                                                  ...prev,
+                                                  [concept.id]: "",
+                                                }));
+                                                setEsDropdownOpen(false);
+                                                setEsDropdownSearch("");
+                                              }}
+                                              className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-800 transition-colors flex items-center justify-between gap-2"
+                                            >
+                                              <span className="text-neutral-200 truncate">
+                                                {es.name}
+                                              </span>
+                                              <span className="text-xs text-neutral-500 shrink-0">
+                                                {esPrice
+                                                  ? formatPrice(
+                                                      parseFloat(
+                                                        String(esPrice),
+                                                      ),
+                                                      currency,
+                                                    )
+                                                  : "—"}
+                                              </span>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    ),
                                   )}
-                                </span>
-                              </div>
+                                  {/* Service Products */}
+                                  {sortedSvcGroups.map(
+                                    ([groupName, groupProducts]) => (
+                                      <div key={"svc-" + groupName}>
+                                        <p className="text-[10px] uppercase tracking-wider text-teal-400 px-3 pt-2.5 pb-1 font-semibold bg-teal-950/30 sticky top-0">
+                                          {groupName}
+                                        </p>
+                                        {groupProducts.map((p) => (
+                                          <button
+                                            key={p.id}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setAddProductForms((prev) => ({
+                                                ...prev,
+                                                [concept.id]: p.id,
+                                              }));
+                                              setAddEsForm((prev) => ({
+                                                ...prev,
+                                                [concept.id]: "",
+                                              }));
+                                              setEsDropdownOpen(false);
+                                              setEsDropdownSearch("");
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-800 transition-colors flex items-center justify-between gap-2"
+                                          >
+                                            <span className="text-neutral-200 truncate">
+                                              {p.name}
+                                            </span>
+                                            <span className="text-xs text-neutral-500 shrink-0">
+                                              {formatPrice(
+                                                p.salePrice,
+                                                currency,
+                                              )}
+                                            </span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    ),
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    {/* Confirm bar for extra service selection */}
+                    {addEsForm[concept.id] && !addProductForms[concept.id] && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-purple-300 flex-1 truncate">
+                          {
+                            extraServices.find(
+                              (es) => es.id === addEsForm[concept.id],
+                            )?.name
+                          }
+                        </span>
+                        <button
+                          onClick={() => handleAddExtraService(concept.id)}
+                          disabled={addEsLoading[concept.id]}
+                          className={primaryBtnCls + " shrink-0 text-xs"}
+                        >
+                          {addEsLoading[concept.id] ? "..." : "Ekle"}
+                        </button>
+                        <button
+                          onClick={() =>
+                            setAddEsForm((p) => ({ ...p, [concept.id]: "" }))
+                          }
+                          className={ghostBtnCls + " shrink-0 text-xs"}
+                        >
+                          İptal
+                        </button>
+                      </div>
+                    )}
+                    {/* Confirm bar for service product selection */}
+                    {addProductForms[concept.id] && !addEsForm[concept.id] && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-teal-300 flex-1 truncate">
+                          {
+                            products.find(
+                              (p) => p.id === addProductForms[concept.id],
+                            )?.name
+                          }
+                        </span>
+                        <button
+                          onClick={() => handleAddProduct(concept.id)}
+                          disabled={addProductLoading[concept.id]}
+                          className={primaryBtnCls + " shrink-0 text-xs"}
+                        >
+                          {addProductLoading[concept.id] ? "..." : "Ekle"}
+                        </button>
+                        <button
+                          onClick={() =>
+                            setAddProductForms((p) => ({
+                              ...p,
+                              [concept.id]: "",
+                            }))
+                          }
+                          className={ghostBtnCls + " shrink-0 text-xs"}
+                        >
+                          İptal
+                        </button>
+                      </div>
+                    )}
+                    {addEsError[concept.id] && (
+                      <p className="text-red-400 text-xs mt-2">
+                        {addEsError[concept.id]}
+                      </p>
+                    )}
+                    {addProductError[concept.id] && (
+                      <p className="text-red-400 text-xs mt-2">
+                        {addProductError[concept.id]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </PermissionGate>
+
+              {/* ---- Unified Content Table ---- */}
+              {nonSvcProducts.length > 0 ||
+              esItems.length > 0 ||
+              svcProducts.length > 0 ? (
+                <div className="overflow-x-auto rc-scrollbar">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-neutral-700 text-neutral-500 uppercase tracking-wider">
+                        <th className="text-left py-2 px-2 font-semibold">
+                          Tür
+                        </th>
+                        <th className="text-left py-2 px-2 font-semibold">
+                          Ad
+                        </th>
+                        <th className="text-right py-2 px-2 font-semibold">
+                          Fiyat
+                        </th>
+                        <th className="text-center py-2 px-2 font-semibold">
+                          Adet
+                        </th>
+                        <th className="text-right py-2 px-2 font-semibold">
+                          Toplam
+                        </th>
+                        <th className="text-right py-2 px-2 font-semibold">
+                          İşlem
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Non-service products */}
+                      {nonSvcProducts.map((cp) => {
+                        const unitPrice = parseFloat(
+                          String(cp.product.salePrice),
+                        );
+                        const lineTotal = unitPrice * cp.quantity;
+                        const qtyKey = `${concept.id}-${cp.productId}`;
+                        const isUpdating = qtyUpdating[qtyKey];
+                        return (
+                          <tr
+                            key={`p-${cp.id}`}
+                            className="border-b border-neutral-800/50 hover:bg-neutral-800/30 transition-colors"
+                          >
+                            <td className="py-2 px-2">
+                              <span className="px-1.5 py-0.5 rounded bg-amber-950/40 text-amber-400 text-[10px]">
+                                Ürün
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 text-neutral-200 font-medium">
+                              {cp.product.name}
+                            </td>
+                            <td className="py-2 px-2 text-right text-neutral-400">
+                              {formatPrice(unitPrice, currency)}
+                            </td>
+                            <td className="py-2 px-2">
+                              <PermissionGate
+                                permission="concept.update"
+                                fallback={
+                                  <span className="text-neutral-500 text-center block">
+                                    {cp.quantity}
+                                  </span>
+                                }
+                              >
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() =>
+                                      updateConceptProductQty(
+                                        concept.id,
+                                        cp.productId,
+                                        cp.quantity - 1,
+                                      )
+                                    }
+                                    disabled={cp.quantity <= 1 || isUpdating}
+                                    className="w-5 h-5 flex items-center justify-center rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 text-neutral-300 text-xs transition-colors"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-6 text-center text-neutral-200 font-medium tabular-nums">
+                                    {cp.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      updateConceptProductQty(
+                                        concept.id,
+                                        cp.productId,
+                                        cp.quantity + 1,
+                                      )
+                                    }
+                                    disabled={isUpdating}
+                                    className="w-5 h-5 flex items-center justify-center rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 text-neutral-300 text-xs transition-colors"
+                                  >
+                                    +
+                                  </button>
+                                  {isUpdating && (
+                                    <span className="text-[10px] text-amber-400 animate-pulse">
+                                      ✓
+                                    </span>
+                                  )}
+                                </div>
+                              </PermissionGate>
+                            </td>
+                            <td className="py-2 px-2 text-right text-yellow-500 font-medium">
+                              {formatPrice(lineTotal, currency)}
+                            </td>
+                            <td className="py-2 px-2 text-right">
                               <PermissionGate permission="concept.update">
                                 <button
                                   onClick={() =>
@@ -710,61 +1374,211 @@ export default function ConceptsPage() {
                                       cp.productId,
                                     )
                                   }
-                                  className="text-xs text-red-500 hover:text-red-400 transition-colors ml-4 shrink-0"
+                                  className="text-red-500 hover:text-red-400 transition-colors"
                                 >
                                   Kaldır
                                 </button>
                               </PermissionGate>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Add product form */}
-                    <PermissionGate permission="concept.update">
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <select
-                          value={addProductForms[concept.id] ?? ""}
-                          onChange={(e) =>
-                            setAddProductForms((p) => ({
-                              ...p,
-                              [concept.id]: e.target.value,
-                            }))
-                          }
-                          className={selectCls + " flex-1"}
-                        >
-                          <option value="">Ürün seçin...</option>
-                          {availableProducts(concept).map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => handleAddProduct(concept.id)}
-                          disabled={
-                            addProductLoading[concept.id] ||
-                            !addProductForms[concept.id]
-                          }
-                          className={primaryBtnCls + " shrink-0"}
-                        >
-                          {addProductLoading[concept.id] ? "..." : "Ekle"}
-                        </button>
-                      </div>
-                      {addProductError[concept.id] && (
-                        <p className="text-red-400 text-xs mt-2">
-                          {addProductError[concept.id]}
-                        </p>
-                      )}
-                    </PermissionGate>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {/* Extra services */}
+                      {esItems.map((ces) => {
+                        const esPrice = ces.extraService?.prices?.[0]?.price;
+                        const unitPrice = esPrice
+                          ? parseFloat(String(esPrice))
+                          : 0;
+                        const lineTotal = unitPrice * ces.quantity;
+                        const esQtyKey = `${concept.id}-${ces.extraServiceId}`;
+                        const isEsUpdating = esQtyUpdating[esQtyKey];
+                        return (
+                          <tr
+                            key={`es-${ces.id}`}
+                            className="border-b border-neutral-800/50 hover:bg-purple-950/10 transition-colors"
+                          >
+                            <td className="py-2 px-2">
+                              <span className="px-1.5 py-0.5 rounded bg-purple-950/40 text-purple-400 text-[10px]">
+                                Hizmet
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 text-neutral-200 font-medium">
+                              {ces.extraService?.name ?? "—"}
+                            </td>
+                            <td className="py-2 px-2 text-right text-neutral-400">
+                              {formatPrice(unitPrice, currency)}
+                            </td>
+                            <td className="py-2 px-2">
+                              <PermissionGate
+                                permission="concept.update"
+                                fallback={
+                                  <span className="text-neutral-500 text-center block">
+                                    {ces.quantity}
+                                  </span>
+                                }
+                              >
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() =>
+                                      updateExtraServiceQty(
+                                        concept.id,
+                                        ces.extraServiceId,
+                                        ces.quantity - 1,
+                                      )
+                                    }
+                                    disabled={ces.quantity <= 1 || isEsUpdating}
+                                    className="w-5 h-5 flex items-center justify-center rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 text-neutral-300 text-xs transition-colors"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-6 text-center text-neutral-200 font-medium tabular-nums">
+                                    {ces.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      updateExtraServiceQty(
+                                        concept.id,
+                                        ces.extraServiceId,
+                                        ces.quantity + 1,
+                                      )
+                                    }
+                                    disabled={isEsUpdating}
+                                    className="w-5 h-5 flex items-center justify-center rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 text-neutral-300 text-xs transition-colors"
+                                  >
+                                    +
+                                  </button>
+                                  {isEsUpdating && (
+                                    <span className="text-[10px] text-purple-400 animate-pulse">
+                                      ✓
+                                    </span>
+                                  )}
+                                </div>
+                              </PermissionGate>
+                            </td>
+                            <td className="py-2 px-2 text-right text-purple-400 font-medium">
+                              {formatPrice(lineTotal, currency)}
+                            </td>
+                            <td className="py-2 px-2 text-right">
+                              <PermissionGate permission="concept.update">
+                                <button
+                                  onClick={() =>
+                                    handleRemoveExtraService(
+                                      concept.id,
+                                      ces.extraServiceId,
+                                    )
+                                  }
+                                  className="text-red-500 hover:text-red-400 transition-colors"
+                                >
+                                  Kaldır
+                                </button>
+                              </PermissionGate>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {/* Service products */}
+                      {svcProducts.map((cp) => {
+                        const unitPrice = parseFloat(
+                          String(cp.product.salePrice),
+                        );
+                        const lineTotal = unitPrice * cp.quantity;
+                        const qtyKey = `${concept.id}-${cp.productId}`;
+                        const isUpdating = qtyUpdating[qtyKey];
+                        return (
+                          <tr
+                            key={`sp-${cp.id}`}
+                            className="border-b border-neutral-800/50 hover:bg-teal-950/10 transition-colors"
+                          >
+                            <td className="py-2 px-2">
+                              <span className="px-1.5 py-0.5 rounded bg-teal-950/40 text-teal-400 text-[10px]">
+                                Hizmet
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 text-neutral-200 font-medium">
+                              {cp.product.name}
+                            </td>
+                            <td className="py-2 px-2 text-right text-neutral-400">
+                              {formatPrice(unitPrice, currency)}
+                            </td>
+                            <td className="py-2 px-2">
+                              <PermissionGate
+                                permission="concept.update"
+                                fallback={
+                                  <span className="text-neutral-500 text-center block">
+                                    {cp.quantity}
+                                  </span>
+                                }
+                              >
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() =>
+                                      updateConceptProductQty(
+                                        concept.id,
+                                        cp.productId,
+                                        cp.quantity - 1,
+                                      )
+                                    }
+                                    disabled={cp.quantity <= 1 || isUpdating}
+                                    className="w-5 h-5 flex items-center justify-center rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 text-neutral-300 text-xs transition-colors"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-6 text-center text-neutral-200 font-medium tabular-nums">
+                                    {cp.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      updateConceptProductQty(
+                                        concept.id,
+                                        cp.productId,
+                                        cp.quantity + 1,
+                                      )
+                                    }
+                                    disabled={isUpdating}
+                                    className="w-5 h-5 flex items-center justify-center rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-30 text-neutral-300 text-xs transition-colors"
+                                  >
+                                    +
+                                  </button>
+                                  {isUpdating && (
+                                    <span className="text-[10px] text-teal-400 animate-pulse">
+                                      ✓
+                                    </span>
+                                  )}
+                                </div>
+                              </PermissionGate>
+                            </td>
+                            <td className="py-2 px-2 text-right text-teal-400 font-medium">
+                              {formatPrice(lineTotal, currency)}
+                            </td>
+                            <td className="py-2 px-2 text-right">
+                              <PermissionGate permission="concept.update">
+                                <button
+                                  onClick={() =>
+                                    handleRemoveProduct(
+                                      concept.id,
+                                      cp.productId,
+                                    )
+                                  }
+                                  className="text-red-500 hover:text-red-400 transition-colors"
+                                >
+                                  Kaldır
+                                </button>
+                              </PermissionGate>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-neutral-600 text-center py-4">
+                  Henüz içerik eklenmemiş.
+                </p>
+              )}
+            </Modal>
+          );
+        })()}
 
       {/* ============================================================ */}
       {/*  Create Modal                                                 */}

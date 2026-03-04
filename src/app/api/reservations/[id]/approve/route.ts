@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextResponse, after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { PricingEngine } from "@/lib/pricing";
@@ -27,23 +27,38 @@ export const POST = withAuth(
         endDate: true,
         status: true,
         conceptId: true,
+        extraItems_json: true,
+        customRequests: true,
+        customRequestPriced: true,
+        customRequestPrice: true,
         cabana: { select: { conceptId: true } },
       },
     });
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Rezervasyon bulunamadı." },
+        { success: false, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
 
     if (reservation.status !== "PENDING") {
       return NextResponse.json(
-        { error: "Yalnızca bekleyen rezervasyonlar onaylanabilir." },
+        { success: false, error: "Yalnızca bekleyen rezervasyonlar onaylanabilir." },
         { status: 400 },
       );
     }
+
+    // Parse extraItems from reservation
+    const storedExtras: Array<{ productId: string; quantity: number }> =
+      reservation.extraItems_json
+        ? typeof reservation.extraItems_json === "string"
+          ? JSON.parse(reservation.extraItems_json)
+          : (reservation.extraItems_json as Array<{
+              productId: string;
+              quantity: number;
+            }>)
+        : [];
 
     // PricingEngine ile otomatik fiyat hesapla
     const engine = new PricingEngine();
@@ -52,7 +67,39 @@ export const POST = withAuth(
       conceptId: reservation.conceptId ?? reservation.cabana.conceptId ?? null,
       startDate: reservation.startDate,
       endDate: reservation.endDate,
+      extraItems: storedExtras,
     });
+
+    // Add custom request price if priced
+    let customRequestAmount = 0;
+    if (reservation.customRequestPriced && reservation.customRequestPrice) {
+      customRequestAmount = Number(reservation.customRequestPrice);
+    }
+
+    // Approved extra request fiyatlarını topla
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dbAny = prisma as any;
+    const approvedExtrasFromRequests = await dbAny.reservationExtraRequest.findMany({
+      where: { reservationId: id, status: "APPROVED", unitPrice: { not: null } },
+    });
+
+    let extraRequestsTotal = 0;
+    for (const er of approvedExtrasFromRequests) {
+      if (er.unitPrice) {
+        extraRequestsTotal += parseFloat(er.unitPrice.toString()) * er.quantity;
+      }
+    }
+
+    // Fiyatlandırılmamış PENDING talepler için uyarı
+    const pendingExtras = await dbAny.reservationExtraRequest.findMany({
+      where: { reservationId: id, status: "PENDING" },
+    });
+
+    const unpricedCustomExtras = await dbAny.reservationExtraRequest.findMany({
+      where: { reservationId: id, status: "APPROVED", type: "CUSTOM", unitPrice: null },
+    });
+
+    const autoPrice = calculated.grandTotal + customRequestAmount + extraRequestsTotal;
 
     // Admin manuel fiyat verdiyse onu kullan, yoksa hesaplanan fiyatı kullan
     const finalPrice =
@@ -60,11 +107,12 @@ export const POST = withAuth(
       manualPrice !== null &&
       !isNaN(Number(manualPrice))
         ? Number(manualPrice)
-        : calculated.grandTotal;
+        : autoPrice;
 
     if (finalPrice <= 0 && !manualPrice) {
       return NextResponse.json(
         {
+          success: false,
           error: "Fiyat hesaplanamadı. Lütfen manuel fiyat girin.",
           calculatedPrice: calculated,
         },
@@ -123,11 +171,27 @@ export const POST = withAuth(
         totalPrice: finalPrice,
       });
 
+      // Auto-refresh: broadcast to all users except the updater if startDate >= 1 day from now
+      const msUntilStart =
+        new Date(reservation.startDate).getTime() - Date.now();
+      if (msUntilStart >= 24 * 60 * 60 * 1000) {
+        sseManager.broadcastExcludeUser(
+          session.user.id,
+          SSE_EVENTS.RESERVATION_UPDATED,
+          {
+            reservationId: id,
+            cabanaName,
+            guestName: updated.guestName,
+            updatedBy: session.user.id,
+          },
+        );
+      }
+
       await notificationService.send({
         userId: reservation.userId,
         type: NotificationType.APPROVED,
         title: "Rezervasyon Onaylandı",
-        message: `${updated.guestName} için ${cabanaName} kabana rezervasyonu onaylandı. Toplam: ${finalPrice.toFixed(2)}`,
+        message: `${updated.guestName} için ${cabanaName} Cabana rezervasyonu onaylandı. Toplam: ${finalPrice.toFixed(2)}`,
         metadata: { reservationId: id, cabanaName, totalPrice: finalPrice },
       });
 
@@ -147,9 +211,19 @@ export const POST = withAuth(
     });
 
     return NextResponse.json({
-      ...updated,
-      priceBreakdown: calculated,
-      priceSource: manualPrice ? "MANUAL" : "AUTO",
+      success: true,
+      data: {
+        ...updated,
+        priceBreakdown: calculated,
+        priceSource: manualPrice ? "MANUAL" : "AUTO",
+        customRequests: reservation.customRequests,
+        customRequestPriced: reservation.customRequestPriced,
+        hasUnpricedCustomRequest:
+          !!reservation.customRequests && !reservation.customRequestPriced,
+        extraRequestsTotal,
+        pendingExtraRequests: pendingExtras.length,
+        unpricedCustomExtras: unpricedCustomExtras.length,
+      },
     });
   },
   { requiredPermissions: ["reservation.update"] },

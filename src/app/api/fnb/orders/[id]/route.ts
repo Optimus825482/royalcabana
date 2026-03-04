@@ -25,6 +25,7 @@ export const PATCH = withAuth(
     ) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Geçersiz durum. Kabul edilen: PREPARING, READY, DELIVERED, CANCELLED",
         },
@@ -38,17 +39,17 @@ export const PATCH = withAuth(
 
     if (!order) {
       return NextResponse.json(
-        { error: "Sipariş bulunamadı." },
+        { success: false, error: "Sipariş bulunamadı." },
         { status: 404 },
       );
     }
 
-    // Durum geçiş kontrolü
     if (status !== "CANCELLED") {
       const allowed = VALID_TRANSITIONS[order.status as string];
       if (!allowed || !allowed.includes(status)) {
         return NextResponse.json(
           {
+            success: false,
             error: `${order.status} durumundan ${status} durumuna geçiş yapılamaz.`,
           },
           { status: 400 },
@@ -92,7 +93,7 @@ export const PATCH = withAuth(
       });
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
 );
 
@@ -108,7 +109,7 @@ export const DELETE = withAuth(
 
     if (!order) {
       return NextResponse.json(
-        { error: "Sipariş bulunamadı." },
+        { success: false, error: "Sipariş bulunamadı." },
         { status: 404 },
       );
     }
@@ -116,6 +117,7 @@ export const DELETE = withAuth(
     if (order.status !== "PREPARING") {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Yalnızca hazırlanıyor durumundaki siparişler iptal edilebilir.",
         },
@@ -137,6 +139,6 @@ export const DELETE = withAuth(
       newValue: { status: "CANCELLED" },
     });
 
-    return NextResponse.json(cancelled);
+    return NextResponse.json({ success: true, data: cancelled });
   },
 );

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Royal Cabana Uygulama Akış Şeması</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2rem; background:#f9f9f9; }
+  h1 { text-align:center; }
+  .mermaid { background:#fff; padding:1rem; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body>
+<h1>Royal Cabana Uygulama Akış Şeması</h1>
+
+<div class="flowchart">
+  <h2>Uygulama Akış Şeması</h2>
+
+  <section class="subgraph ui">
+    <h3>UI Katmanı</h3>
+    <div class="node">Tarayıcı / PWA</div>
+    <div class="arrow"></div>
+    <div class="node">React UI (Next.js 15 App Router)</div>
+    <div class="arrow"></div>
+    <div class="node">Component Library (shadcn/ui, Tailwind)</div>
+    <div class="arrow"></div>
+    <div class="node">3D Harita (Three.js / React Three Fiber)</div>
+    <div class="arrow"></div>
+    <div class="node">Takvim (FullCalendar)</div>
+    <div class="arrow"></div>
+    <div class="node">Realtime Bildirim (Socket.io)</div>
+  </section>
+
+  <section class="subgraph auth">
+    <h3>Auth Katmanı</h3>
+    <div class="node">Auth Middleware (withAuth())</div>
+    <div class="arrow"></div>
+    <div class="node">JWT Tabanlı Kimlik Doğrulama</div>
+    <div class="arrow"></div>
+    <div class="node">NextAuth (session yönetimi)</div>
+  </section>
+
+  <section class="subgraph api">
+    <h3>API Katmanı</h3>
+    <div class="node">API Routes (src/app/api/)</div>
+    <div class="arrow"></div>
+    <div class="node">Service Layer (src/services/)</div>
+    <div class="arrow"></div>
+    <div class="node">Repository Layer (src/lib/prisma.ts)</div>
+    <div class="arrow"></div>
+    <div class="node">PostgreSQL (Prisma ORM)</div>
+  </section>
+
+  <section class="subgraph cache">
+    <h3>Cache Katmanı</h3>
+    <div class="node">Redis (Session & Rate‑Limit Cache)</div>
+  </section>
+
+  <section class="subgraph external">
+    <h3>Dış Entegrasyonlar</h3>
+    <div class="node">Open‑Meteo API (Hava Durumu)</div>
+    <div class="arrow"></div>
+    <div class="node">Payment Gateway (Opsiyonel)</div>
+  </section>
+
+  <section class="subgraph background">
+    <h3>Arka Plan</h3>
+    <div class="node">Socket.io Server (Real‑time)</div>
+    <div class="arrow"></div>
+    <div class="node">Service Worker (PWA Offline)</div>
+  </section>
+
+  <section class="subgraph auditing">
+    <h3>Denetim</h3>
+    <div class="node">Denetim Kayıtları (src/lib/audit.ts)</div>
+  </section>
+</div>
+
+<style>
+  .flowchart {
+    font-family: Arial, sans-serif;
+    margin: 2rem;
+    background:#f9f9f9;
+  }
+  .flowchart h2 {
+    text-align:center;
+  }
+  .subgraph {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  }
+  .subgraph.ui { background:#e3f2fd; border:2px solid #2196f3; }
+  .subgraph.auth { background:#fff3e0; border:2px solid #ff9800; }
+  .subgraph.api { background:#e8f5e9; border:2px solid #4caf50; }
+  .subgraph.cache { background:#f3e5f5; border:2px solid #9c27b0; }
+  .subgraph.external { background:#ffebee; border:2px solid #f44336; }
+  .subgraph.background { background:#e0f7fa; border:2px solid #00bcd4; }
+  .subgraph.auditing { background:#fffde7; border:2px solid #ffeb3b; }
+  .node {
+    background:#fff;
+    padding:0.5rem 1rem;
+    margin:0.5rem 0;
+    border-radius:4px;
+    position:relative;
+    text-align:center;
+    box-shadow:0 1px 3px rgba(0,0,0,0.1);
+  }
+  .arrow {
+    width:0;
+    height:0;
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+    border-top:10px solid #555;
+    margin:0 auto;
+  }
+</style>
+
+<h2>Şema Açıklaması</h2>
+<ul>
+  <li><strong>UI Katmanı:</strong> Kullanıcılar tarayıcı veya PWA üzerinden React bileşenleriyle etkileşir. shadcn/ui ve Tailwind ile stilize edilmiş.</li>
+  <li><strong>Auth Katmanı:</strong> withAuth() ile korunan API rotaları, JWT ile kimlik doğrulama ve oturum yönetimini sağlar.</li>
+  <li><strong>API Katmanı:</strong> Next.js App Router altında tanımlı API rotaları iş mantığını servislere yönlendirir.</li>
+  <li><strong>Service Katmanı:</strong> İş kuralları, veri işleme ve dış entegrasyonları içerir.</li>
+  <li><strong>Repository Katmanı:</strong> Prisma ORM üzerinden PostgreSQL ile veri erişimi sağlar.</li>
+  <li><strong>Cache Katmanı:</strong> Redis, oturum ve rate‑limit gibi sık kullanılan verileri önbellekler.</li>
+  <li><strong>Dış Entegrasyonlar:</strong> Open‑Meteo hava durumu, ödeme ağ geçitleri ve diğer 3rd‑party servisler.</li>
+  <li><strong>Arka Plan:</strong> Socket.io gerçek‑zamanlı bildirim, Service Worker PWA offline desteği.</li>
+  <li><strong>Denetim:</strong> Tüm kritik işlemler audit loglarıyla kaydedilir.</li>
+</ul>
+
+<p>Bu şema, uygulamanın katmanlı mimarisini, veri akışını ve dış sistemlerle etkileşimini görsel olarak özetlemektedir.</p>
+</body>
+</html>

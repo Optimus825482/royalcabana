@@ -68,8 +68,6 @@ const ENTITIES = [
   "Product",
   "ProductGroup",
   "Reservation",
-  "CabanaPrice",
-  "ConceptPrice",
   "SystemConfig",
   "Profile",
   "ExtraItem",
@@ -112,14 +110,12 @@ const ACTION_COLORS: Record<string, string> = {
 
 const ENTITY_LABELS: Record<string, string> = {
   User: "Kullanıcı",
-  Cabana: "Kabana",
+  Cabana: "Cabana",
   CabanaClass: "Sınıf",
   Concept: "Konsept",
   Product: "Ürün",
   ProductGroup: "Ürün Grubu",
   Reservation: "Rezervasyon",
-  CabanaPrice: "Kabana Fiyat",
-  ConceptPrice: "Konsept Fiyat",
   SystemConfig: "Sistem Ayarı",
   Profile: "Profil",
   ExtraItem: "Ekstra Ürün",
@@ -280,9 +276,10 @@ function AuditTab() {
       if (endDate) params.set("endDate", endDate);
       const res = await fetch(`/api/audit-logs?${params}`);
       if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
-      setLogs(data.logs);
-      setTotal(data.total);
+      const json = await res.json();
+      const data = json.data ?? json;
+      setLogs(Array.isArray(data.logs) ? data.logs : []);
+      setTotal(data.total ?? 0);
     } catch {
       setLogs([]);
       setTotal(0);
@@ -507,9 +504,10 @@ function SessionsTab() {
       if (endDate) params.set("endDate", endDate);
       const res = await fetch(`/api/auth/sessions?${params}`);
       if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
-      setSessions(data.sessions);
-      setTotal(data.total);
+      const json = await res.json();
+      const data = json.data ?? json;
+      setSessions(Array.isArray(data.sessions) ? data.sessions : []);
+      setTotal(data.total ?? 0);
     } catch {
       setSessions([]);
       setTotal(0);

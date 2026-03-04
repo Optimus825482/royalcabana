@@ -32,7 +32,7 @@ export const GET = withAuth(
       (prisma as any).blackoutDate.count({ where }),
     ]);
 
-    return NextResponse.json({ items, total });
+    return NextResponse.json({ success: true, data: { items, total } });
   },
   { requiredPermissions: ["blackout.view"] },
 );
@@ -45,7 +45,10 @@ export const POST = withAuth(
     const parsed = parseBody(createBlackoutDateSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const { cabanaId, startDate, endDate, reason } = parsed.data;
@@ -69,7 +72,7 @@ export const POST = withAuth(
       newValue: { cabanaId, startDate, endDate, reason },
     });
 
-    return NextResponse.json(item, { status: 201 });
+    return NextResponse.json({ success: true, data: item }, { status: 201 });
   },
   { requiredPermissions: ["blackout.create"] },
 );

@@ -8,6 +8,7 @@ import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
 import { notificationService } from "@/services/notification.service";
 import { NotificationType } from "@/types";
+import { emailService } from "@/lib/email";
 
 export const GET = withAuth(
   [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
@@ -26,7 +27,7 @@ export const GET = withAuth(
     if (status) where.status = status;
     if (cabanaId) where.cabanaId = cabanaId;
 
-    // Arama desteği — misafir adı veya kabana adı ile arama
+    // Arama desteği — misafir adı veya Cabana adı ile arama
     const search = searchParams.get("search");
     if (search) {
       where.OR = [
@@ -40,50 +41,36 @@ export const GET = withAuth(
       where.userId = session.user.id;
     }
 
-    const includeSubRequests = [
-      Role.FNB_USER,
-      Role.ADMIN,
-      Role.SYSTEM_ADMIN,
-    ].includes(session.user.role as Role);
-
     const [reservations, total] = await Promise.all([
       prisma.reservation.findMany({
         where,
         include: {
-          cabana: { select: { id: true, name: true } },
+          cabana: {
+            select: {
+              id: true,
+              name: true,
+              cabanaClass: { select: { id: true, name: true } },
+            },
+          },
+          concept: { select: { id: true, name: true } },
           user: { select: { id: true, username: true, email: true } },
-          statusHistory: { orderBy: { createdAt: "asc" } },
-          ...(includeSubRequests && {
-            modifications: {
-              select: {
-                id: true,
-                status: true,
-                newStartDate: true,
-                newEndDate: true,
-                newGuestName: true,
-                newCabanaId: true,
-                rejectionReason: true,
-              },
+          guest: {
+            select: {
+              id: true,
+              name: true,
+              vipLevel: true,
             },
-            cancellations: {
-              select: {
-                id: true,
-                status: true,
-                reason: true,
-              },
+          },
+          _count: {
+            select: {
+              statusHistory: true,
+              modifications: true,
+              cancellations: true,
+              extraConcepts: true,
+              extraItems: true,
+              extraRequests: true,
             },
-            extraConcepts: {
-              select: {
-                id: true,
-                status: true,
-                items: true,
-                rejectionReason: true,
-              },
-            },
-            extraItems: {
-              include: { product: { select: { name: true } } },
-            },
-          }),
+          },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -107,7 +94,10 @@ export const GET = withAuth(
       return r;
     });
 
-    return NextResponse.json({ reservations: sanitized, total });
+    return NextResponse.json({
+      success: true,
+      data: { reservations: sanitized, total },
+    });
   },
   { requiredPermissions: ["reservation.view"] },
 );
@@ -119,24 +109,50 @@ export const POST = withAuth(
     const parsed = parseBody(createReservationSchema, body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
-    const { cabanaId, guestName, startDate, endDate, notes, conceptId } =
-      parsed.data;
+    const {
+      cabanaId,
+      guestName,
+      guestId,
+      startDate,
+      endDate,
+      notes,
+      conceptId,
+      extraItems,
+      customRequests,
+      extraRequests,
+    } = parsed.data;
+
+    // Default concept fallback from SystemConfig
+    let finalConceptId = conceptId ?? null;
+    if (!finalConceptId) {
+      const defaultConfig = await prisma.systemConfig.findUnique({
+        where: { key: "default_concept_id" },
+      });
+      if (defaultConfig) finalConceptId = defaultConfig.value;
+    }
+
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    if (start >= end) {
+    if (start > end) {
       return NextResponse.json(
-        { error: "Başlangıç tarihi bitiş tarihinden önce olmalıdır." },
+        {
+          success: false,
+          error: "Bitiş tarihi başlangıç tarihinden önce olamaz.",
+        },
         { status: 400 },
       );
     }
 
     if (start < new Date()) {
       return NextResponse.json(
-        { error: "Geçmiş tarihler için talep oluşturulamaz." },
+        { success: false, error: "Geçmiş tarihler için talep oluşturulamaz." },
         { status: 400 },
       );
     }
@@ -164,20 +180,67 @@ export const POST = withAuth(
             cabanaId,
             userId: session.user.id,
             guestName,
+            guestId: guestId ?? null,
             startDate: start,
             endDate: end,
             notes: notes ?? null,
-            conceptId: conceptId ?? null,
+            conceptId: finalConceptId,
+            extraItems_json:
+              extraItems && extraItems.length > 0 ? extraItems : undefined,
+            customRequests: customRequests || null,
             status: "PENDING",
           };
 
-          return tx.reservation.create({
+          const created = await tx.reservation.create({
             data: reservationData as never,
             include: {
               cabana: { select: { id: true, name: true } },
               user: { select: { id: true, username: true } },
             },
           });
+
+          // ReservationExtraRequest kayıtları — PRODUCT ve CUSTOM tipi
+          const extraRequestRows: Array<{
+            reservationId: string;
+            type: "PRODUCT" | "CUSTOM";
+            productId?: string | null;
+            customName?: string | null;
+            customDesc?: string | null;
+            quantity: number;
+          }> = [];
+
+          if (extraItems && extraItems.length > 0) {
+            for (const item of extraItems) {
+              extraRequestRows.push({
+                reservationId: created.id,
+                type: "PRODUCT",
+                productId: item.productId,
+                quantity: item.quantity,
+              });
+            }
+          }
+
+          if (extraRequests && extraRequests.length > 0) {
+            for (const er of extraRequests) {
+              extraRequestRows.push({
+                reservationId: created.id,
+                type: er.type as "PRODUCT" | "CUSTOM",
+                productId: er.type === "PRODUCT" ? er.productId : null,
+                customName: er.type === "CUSTOM" ? er.customName : null,
+                customDesc: er.type === "CUSTOM" ? er.customDesc : null,
+                quantity: er.quantity,
+              });
+            }
+          }
+
+          if (extraRequestRows.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (tx as any).reservationExtraRequest.createMany({
+              data: extraRequestRows,
+            });
+          }
+
+          return created;
         },
         { isolationLevel: "Serializable", timeout: 10000 },
       );
@@ -203,9 +266,10 @@ export const POST = withAuth(
         const admins = await prisma.user.findMany({
           where: {
             isActive: true,
+            deletedAt: null,
             role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN] },
           },
-          select: { id: true },
+          select: { id: true, email: true, username: true },
         });
 
         if (admins.length === 0) return;
@@ -224,13 +288,31 @@ export const POST = withAuth(
             },
           })),
         );
+
+        for (const admin of admins) {
+          if (admin.email) {
+            emailService.sendNewRequestNotification(admin.email, {
+              guestName,
+              cabanaName: reservation.cabana?.name ?? "",
+              startDate: new Date(startDate),
+              endDate: new Date(endDate),
+              requestedBy: session.user.name ?? "",
+            });
+          }
+        }
       });
 
-      return NextResponse.json(reservation, { status: 201 });
+      return NextResponse.json(
+        { success: true, data: reservation },
+        { status: 201 },
+      );
     } catch (err) {
       if (err instanceof Error && err.message === "CONFLICT") {
         return NextResponse.json(
-          { error: "Seçilen tarih aralığında bu kabana müsait değildir." },
+          {
+            success: false,
+            error: "Seçilen tarih aralığında bu Cabana müsait değildir.",
+          },
           { status: 409 },
         );
       }

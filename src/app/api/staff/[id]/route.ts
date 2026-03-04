@@ -19,23 +19,30 @@ export const GET = withAuth(
             cabana: { select: { id: true, name: true } },
           },
           orderBy: { date: "desc" },
-          take: 50,
+          take: 10,
+        },
+        servicePointAssignments: {
+          include: {
+            servicePoint: { select: { id: true, name: true, type: true } },
+          },
+          orderBy: { date: "desc" },
+          take: 10,
         },
         tasks: {
           orderBy: { date: "desc" },
-          take: 50,
+          take: 10,
         },
       },
     });
 
     if (!staff || staff.deletedAt) {
       return NextResponse.json(
-        { error: "Personel bulunamadı." },
+        { success: false, error: "Personel bulunamadı." },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(staff);
+    return NextResponse.json({ success: true, data: staff });
   },
   { requiredPermissions: ["staff.view"] },
 );
@@ -52,7 +59,7 @@ export const PATCH = withAuth(
 
     if (!existing || existing.deletedAt) {
       return NextResponse.json(
-        { error: "Personel bulunamadı." },
+        { success: false, error: "Personel bulunamadı." },
         { status: 404 },
       );
     }
@@ -61,7 +68,10 @@ export const PATCH = withAuth(
     const parsed = parseBody(createStaffSchema.partial(), body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400 },
+      );
     }
 
     const updated = await (prisma as any).staff.update({
@@ -83,7 +93,7 @@ export const PATCH = withAuth(
       newValue: parsed.data as Record<string, unknown>,
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ success: true, data: updated });
   },
   { requiredPermissions: ["staff.update"] },
 );
@@ -100,7 +110,7 @@ export const DELETE = withAuth(
 
     if (!existing || existing.deletedAt) {
       return NextResponse.json(
-        { error: "Personel bulunamadı." },
+        { success: false, error: "Personel bulunamadı." },
         { status: 404 },
       );
     }
@@ -118,7 +128,7 @@ export const DELETE = withAuth(
       oldValue: { name: existing.name, position: existing.position },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: null });
   },
   { requiredPermissions: ["staff.delete"] },
 );

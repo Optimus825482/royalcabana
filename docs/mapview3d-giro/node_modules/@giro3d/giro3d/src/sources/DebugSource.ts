@@ -1,0 +1,141 @@
+/**
+ * Copyright (c) 2015-2018, IGN France.
+ * Copyright (c) 2018-2025, Giro3D team.
+ * SPDX-License-Identifier: MIT
+ */
+
+import { CanvasTexture, Color } from 'three';
+
+import type CoordinateSystem from '../core/geographic/CoordinateSystem';
+import type Extent from '../core/geographic/Extent';
+import type { GridExtent } from '../core/geographic/Extent';
+import type { CustomContainsFn, GetImageOptions, ImageResponse } from './ImageSource';
+
+import PromiseUtils from '../utils/PromiseUtils';
+import ImageSource, { ImageResult } from './ImageSource';
+
+export default class DebugSource extends ImageSource {
+    public readonly isDebugSource: boolean = true as const;
+    public override readonly type = 'DebugSource' as const;
+
+    private readonly _delay: () => number;
+    private readonly _extent: Extent;
+    private readonly _opacity: number;
+    private readonly _subdivisions: number;
+    private readonly _color: Color | ((options: GetImageOptions) => Color);
+
+    /**
+     * @param options - options
+     */
+    public constructor(options: {
+        /** The extent. */
+        extent: Extent;
+        /** The delay before loading the images, in milliseconds. */
+        delay?: number | (() => number);
+        /** The opacity of the images. */
+        opacity?: number;
+        /** The color of the images. */
+        color?: Color | ((options: GetImageOptions) => Color);
+        /** How many images per tile are served. */
+        subdivisions?: number;
+        /** The custom function to test if a given extent is contained in this source. */
+        containsFn?: CustomContainsFn;
+    }) {
+        super(options);
+        const { delay, subdivisions, opacity, extent, color } = options;
+
+        if (delay != null) {
+            if (typeof delay === 'function') {
+                this._delay = delay;
+            } else if (typeof delay === 'number') {
+                this._delay = (): number => delay;
+            } else {
+                this._delay = (): number => 0;
+            }
+        } else {
+            this._delay = (): number => 0;
+        }
+
+        this._extent = options.extent;
+        this._opacity = opacity ?? 1;
+        this._subdivisions = subdivisions ?? 1;
+        this._color = color ?? new Color(1, 1, 1);
+        this._extent = extent;
+    }
+
+    public override adjustExtentAndPixelSize(
+        requestExtent: Extent,
+        requestWidth: number,
+        requestHeight: number,
+    ): GridExtent | null {
+        // To help visualize the images, we don't adjust their extent at all.
+        return {
+            extent: requestExtent,
+            height: requestHeight,
+            width: requestWidth,
+        };
+    }
+
+    private getImage(width: number, height: number, id: string, color: Color): CanvasTexture {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+
+        if (!context) {
+            throw new Error('could not acquire 2d context');
+        }
+
+        const prefix = id.substring(0, 10);
+
+        context.fillStyle = `#${color.getHexString()}`;
+        context.globalAlpha = this._opacity ?? 1;
+        context.fillRect(0, 0, width, height);
+        context.globalAlpha = 1;
+        context.strokeStyle = `#${color.getHexString()}`;
+        context.lineWidth = 16;
+        context.strokeRect(0, 0, width, height);
+        context.fillStyle = 'black';
+
+        const margin = 20;
+        context.fillText(prefix, margin, margin);
+
+        const texture = new CanvasTexture(canvas);
+
+        return texture;
+    }
+
+    public getCrs(): CoordinateSystem {
+        return this._extent.crs;
+    }
+
+    public getExtent(): Extent {
+        return this._extent;
+    }
+
+    public getImages(options: GetImageOptions): ImageResponse[] {
+        const { extent, width, height, signal, id } = options;
+        const subdivs = this._subdivisions;
+        const extents = extent.split(subdivs, subdivs);
+
+        const requests = [];
+
+        const w = Math.round(width / subdivs);
+        const h = Math.round(height / subdivs);
+
+        for (let i = 0; i < extents.length; i++) {
+            const ex = extents[i];
+            const imageId = `${id}-${i}`;
+            const color = typeof this._color === 'function' ? this._color(options) : this._color;
+            const request = (): Promise<ImageResult> =>
+                PromiseUtils.delay(this._delay()).then(() => {
+                    signal?.throwIfAborted();
+                    const texture = this.getImage(w, h, imageId, color);
+                    return new ImageResult({ extent: ex, texture, id: imageId });
+                });
+            requests.push({ id: imageId, request });
+        }
+
+        return requests;
+    }
+}

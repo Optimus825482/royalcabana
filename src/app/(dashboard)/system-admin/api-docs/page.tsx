@@ -44,48 +44,48 @@ const API_GROUPS: ApiGroup[] = [
     ],
   },
   {
-    name: "Kabanalar",
+    name: "Cabanalar",
     endpoints: [
       {
         method: "GET",
         path: "/api/cabanas",
-        description: "Tüm kabanaları listele",
+        description: "Tüm Cabanaları listele",
         roles: ["Tüm Roller"],
       },
       {
         method: "POST",
         path: "/api/cabanas",
-        description: "Yeni kabana oluştur",
+        description: "Yeni Cabana oluştur",
         roles: ["SYSTEM_ADMIN"],
       },
       {
         method: "GET",
         path: "/api/cabanas/[id]",
-        description: "Kabana detayı",
+        description: "Cabana detayı",
         roles: ["Tüm Roller"],
       },
       {
         method: "PATCH",
         path: "/api/cabanas/[id]",
-        description: "Kabana güncelle",
+        description: "Cabana güncelle",
         roles: ["SYSTEM_ADMIN"],
       },
       {
         method: "DELETE",
         path: "/api/cabanas/[id]",
-        description: "Kabana sil",
+        description: "Cabana sil",
         roles: ["SYSTEM_ADMIN"],
       },
       {
         method: "GET",
         path: "/api/cabanas/[id]/qr",
-        description: "Kabana QR kodu URL'si",
+        description: "Cabana QR kodu URL'si",
         roles: ["SYSTEM_ADMIN", "ADMIN"],
       },
     ],
   },
   {
-    name: "Kabana Sınıfları",
+    name: "Cabana Sınıfları",
     endpoints: [
       {
         method: "GET",
