@@ -44,9 +44,11 @@ export const authOptions: NextAuthOptions = {
 
         // IP-based rate limiting + account lockout (skip in development)
         if (process.env.NODE_ENV === "production") {
-          const rl = await rateLimitWithInfo(`login:${ip}`, 5, 15 * 60_000);
+          const rl = await rateLimitWithInfo(`login:${ip}`, 20, 15 * 60_000);
           if (!rl.allowed) {
-            throw new Error("Çok fazla deneme. 15 dakika sonra tekrar deneyin.");
+            throw new Error(
+              "Çok fazla deneme. 15 dakika sonra tekrar deneyin.",
+            );
           }
 
           const lockedUntil = await checkAccountLockout(credentials.username);

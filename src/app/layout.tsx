@@ -9,6 +9,7 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
+  preload: false,
 });
 
 const geistMono = Geist_Mono({
