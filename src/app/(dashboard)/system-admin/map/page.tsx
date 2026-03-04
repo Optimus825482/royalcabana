@@ -63,13 +63,13 @@ export default function SystemAdminMapPage() {
       return {
         cabanas: (Array.isArray(cabanasData)
           ? cabanasData
-          : (cabanasData.cabanas ?? [])) as CabanaWithStatus[],
+          : (cabanasData.data ?? [])) as CabanaWithStatus[],
         classes: (Array.isArray(classesData)
           ? classesData
-          : (classesData.classes ?? [])) as CabanaClass[],
+          : (classesData.data ?? [])) as CabanaClass[],
         concepts: (Array.isArray(conceptsData)
           ? conceptsData
-          : (conceptsData.concepts ?? [])) as Concept[],
+          : (conceptsData.data ?? [])) as Concept[],
       };
     },
   });

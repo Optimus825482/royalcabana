@@ -24,88 +24,85 @@ const allRoles = [
   Role.FNB_USER,
 ];
 
-export const GET = withAuth(
-  allRoles,
-  async (req) => {
-    const { searchParams } = new URL(req.url);
-    const classId = searchParams.get("classId");
+export const GET = withAuth(allRoles, async (req) => {
+  const { searchParams } = new URL(req.url);
+  const classId = searchParams.get("classId");
 
-    const cabanas = await prisma.cabana.findMany({
-      where: classId ? { classId } : undefined,
-      include: {
-        cabanaClass: { select: { id: true, name: true } },
-        concept: { select: { id: true, name: true } },
+  const cabanas = await prisma.cabana.findMany({
+    where: {
+      isDeleted: false,
+      ...(classId ? { classId } : {}),
+    },
+    include: {
+      cabanaClass: { select: { id: true, name: true } },
+      concept: { select: { id: true, name: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return NextResponse.json({ success: true, data: cabanas });
+});
+
+export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
+  const body = await req.json();
+  const parsed = createCabanaSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Validation error",
+        errors: parsed.error.flatten(),
       },
-      orderBy: { createdAt: "asc" },
-    });
+      { status: 400 },
+    );
+  }
 
-    return NextResponse.json({ success: true, data: cabanas });
-  },
-);
+  const {
+    name,
+    classId,
+    conceptId,
+    coordX,
+    coordY,
+    rotation,
+    scaleX,
+    scaleY,
+    color,
+  } = parsed.data;
 
-export const POST = withAuth(
-  [Role.SYSTEM_ADMIN],
-  async (req, { session }) => {
-    const body = await req.json();
-    const parsed = createCabanaSchema.safeParse(body);
+  const existing = await prisma.cabana.findUnique({ where: { name } });
+  if (existing) {
+    return NextResponse.json(
+      { success: false, error: "Bu isimde bir Cabana zaten mevcut." },
+      { status: 409 },
+    );
+  }
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Validation error",
-          errors: parsed.error.flatten(),
-        },
-        { status: 400 },
-      );
-    }
-
-    const {
+  const cabana = await prisma.cabana.create({
+    data: {
       name,
       classId,
-      conceptId,
+      conceptId: conceptId ?? null,
       coordX,
       coordY,
-      rotation,
-      scaleX,
-      scaleY,
-      color,
-    } = parsed.data;
+      rotation: rotation ?? 0,
+      scaleX: scaleX ?? 1,
+      scaleY: scaleY ?? 1,
+      color: color ?? null,
+    },
+    include: {
+      cabanaClass: { select: { id: true, name: true } },
+      concept: { select: { id: true, name: true } },
+    },
+  });
 
-    const existing = await prisma.cabana.findUnique({ where: { name } });
-    if (existing) {
-      return NextResponse.json(
-        { success: false, error: "Bu isimde bir Cabana zaten mevcut." },
-        { status: 409 },
-      );
-    }
+  logAudit({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Cabana",
+    entityId: cabana.id,
+    newValue: { name, classId, conceptId, coordX, coordY },
+  });
 
-    const cabana = await prisma.cabana.create({
-      data: {
-        name,
-        classId,
-        conceptId: conceptId ?? null,
-        coordX,
-        coordY,
-        rotation: rotation ?? 0,
-        scaleX: scaleX ?? 1,
-        scaleY: scaleY ?? 1,
-        color: color ?? null,
-      },
-      include: {
-        cabanaClass: { select: { id: true, name: true } },
-        concept: { select: { id: true, name: true } },
-      },
-    });
-
-    logAudit({
-      userId: session.user.id,
-      action: "CREATE",
-      entity: "Cabana",
-      entityId: cabana.id,
-      newValue: { name, classId, conceptId, coordX, coordY },
-    });
-
-    return NextResponse.json({ success: true, data: cabana }, { status: 201 });
-  },
-);
+  return NextResponse.json({ success: true, data: cabana }, { status: 201 });
+});
