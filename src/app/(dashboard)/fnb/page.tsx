@@ -15,6 +15,10 @@ import {
   Package,
   Filter,
   StickyNote,
+  LogIn,
+  LogOut,
+  CalendarDays,
+  Users,
 } from "lucide-react";
 import {
   Modal,
@@ -64,7 +68,12 @@ interface Reservation {
   cabanaId: string;
   guestName: string;
   status: string;
+  startDate: string;
+  endDate: string;
+  checkInAt: string | null;
+  checkOutAt: string | null;
   cabana: { id: string; name: string };
+  concept: { id: string; name: string } | null;
 }
 
 interface Product {
@@ -188,6 +197,29 @@ async function fetchActiveReservations(): Promise<{
       ...(Array.isArray(approved.reservations) ? approved.reservations : []),
     ],
   };
+}
+
+async function fetchTodayReservations(): Promise<Reservation[]> {
+  const today = new Date().toISOString().split("T")[0];
+  const params = new URLSearchParams({ limit: "200", date: today });
+  const [approvedRaw, checkedInRaw, checkedOutRaw] = await Promise.all([
+    fetch(`/api/reservations?status=APPROVED&${params}`).then((r) => r.json()),
+    fetch(`/api/reservations?status=CHECKED_IN&${params}`).then((r) =>
+      r.json(),
+    ),
+    fetch(`/api/reservations?status=CHECKED_OUT&${params}`).then((r) =>
+      r.json(),
+    ),
+  ]);
+  const extract = (raw: Record<string, unknown>) => {
+    const d = (raw.data ?? raw) as Record<string, unknown>;
+    return Array.isArray(d.reservations) ? d.reservations : [];
+  };
+  return [
+    ...extract(approvedRaw),
+    ...extract(checkedInRaw),
+    ...extract(checkedOutRaw),
+  ] as Reservation[];
 }
 
 async function fetchProducts(): Promise<Product[]> {
@@ -661,6 +693,186 @@ function DailySummary({ orders }: { orders: FnbOrder[] }) {
   );
 }
 
+// ── Reservation Status Config ──
+
+const RESERVATION_STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  APPROVED: {
+    label: "Onaylı",
+    color: "text-blue-400",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/30",
+  },
+  CHECKED_IN: {
+    label: "Check-in",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/30",
+  },
+  CHECKED_OUT: {
+    label: "Check-out",
+    color: "text-neutral-400",
+    bg: "bg-neutral-500/10",
+    border: "border-neutral-500/30",
+  },
+};
+
+// ── Today Reservations Panel ──
+
+function TodayReservationsPanel({
+  onCheckIn,
+  onCheckOut,
+  isCheckingIn,
+  isCheckingOut,
+}: {
+  onCheckIn: (id: string) => void;
+  onCheckOut: (id: string) => void;
+  isCheckingIn: boolean;
+  isCheckingOut: boolean;
+}) {
+  const {
+    data: reservations = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["today-reservations"],
+    queryFn: fetchTodayReservations,
+    refetchInterval: 60_000,
+  });
+
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-4">
+        <CalendarDays className="w-4 h-4 text-yellow-400" />
+        <h2 className="text-sm font-medium text-neutral-300">
+          Günün Rezervasyonları
+        </h2>
+        {!isLoading && (
+          <span className="ml-auto text-xs text-neutral-500">
+            {reservations.length} rezervasyon
+          </span>
+        )}
+      </div>
+
+      {isLoading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-28 rounded-lg bg-neutral-800 animate-pulse"
+            />
+          ))}
+        </div>
+      )}
+
+      {isError && (
+        <p className="text-xs text-red-400 py-2">
+          Rezervasyonlar yüklenirken hata oluştu.
+        </p>
+      )}
+
+      {!isLoading && !isError && reservations.length === 0 && (
+        <div className="text-center py-8">
+          <Users className="w-8 h-8 text-neutral-700 mx-auto mb-2" />
+          <p className="text-neutral-500 text-sm">Bugün rezervasyon yok.</p>
+        </div>
+      )}
+
+      {!isLoading && !isError && reservations.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {reservations.map((r) => {
+            const cfg =
+              RESERVATION_STATUS_CONFIG[r.status] ??
+              RESERVATION_STATUS_CONFIG.APPROVED;
+            return (
+              <div
+                key={r.id}
+                className={`bg-neutral-950/50 border rounded-lg p-3 flex flex-col gap-2 ${cfg.border}`}
+              >
+                {/* Cabana + Guest */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-neutral-100 truncate">
+                      {r.cabana.name}
+                    </p>
+                    <p className="text-xs text-neutral-500 truncate">
+                      {r.guestName}
+                    </p>
+                    {r.concept && (
+                      <p className="text-xs text-neutral-600 truncate">
+                        {r.concept.name}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={`shrink-0 inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-md ${cfg.bg} ${cfg.color} ${cfg.border} border`}
+                  >
+                    {cfg.label}
+                  </span>
+                </div>
+
+                {/* Times */}
+                <div className="flex items-center gap-3 text-xs text-neutral-500">
+                  {r.checkInAt && (
+                    <span className="flex items-center gap-1">
+                      <LogIn className="w-3 h-3 text-emerald-500" />
+                      {new Date(r.checkInAt).toLocaleTimeString("tr-TR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
+                  {r.checkOutAt && (
+                    <span className="flex items-center gap-1">
+                      <LogOut className="w-3 h-3 text-neutral-500" />
+                      {new Date(r.checkOutAt).toLocaleTimeString("tr-TR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 mt-auto">
+                  {r.status === "APPROVED" && (
+                    <button
+                      onClick={() => onCheckIn(r.id)}
+                      disabled={isCheckingIn}
+                      className="flex-1 min-h-[32px] flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-colors"
+                    >
+                      <LogIn className="w-3 h-3" />
+                      Check-in
+                    </button>
+                  )}
+                  {r.status === "CHECKED_IN" && (
+                    <button
+                      onClick={() => onCheckOut(r.id)}
+                      disabled={isCheckingOut}
+                      className="flex-1 min-h-[32px] flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 text-neutral-200 transition-colors"
+                    >
+                      <LogOut className="w-3 h-3" />
+                      Check-out
+                    </button>
+                  )}
+                  {r.status === "CHECKED_OUT" && (
+                    <span className="text-xs text-neutral-600 flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Tamamlandı
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Skeleton ──
 
 function OrdersSkeleton() {
@@ -700,17 +912,21 @@ export default function FnbPage() {
       ),
   });
 
-  const handleSSEEvent = useCallback((event: string) => {
-    if (
-      event === SSE_EVENTS.FNB_ORDER_CREATED ||
-      event === SSE_EVENTS.FNB_ORDER_UPDATED ||
-      event === SSE_EVENTS.RESERVATION_UPDATED ||
-      event === SSE_EVENTS.RESERVATION_CHECKED_IN ||
-      event === SSE_EVENTS.RESERVATION_CHECKED_OUT
-    ) {
-      queryClient.invalidateQueries({ queryKey: ["fnb-orders"] });
-    }
-  }, [queryClient]);
+  const handleSSEEvent = useCallback(
+    (event: string) => {
+      if (
+        event === SSE_EVENTS.FNB_ORDER_CREATED ||
+        event === SSE_EVENTS.FNB_ORDER_UPDATED ||
+        event === SSE_EVENTS.RESERVATION_UPDATED ||
+        event === SSE_EVENTS.RESERVATION_CHECKED_IN ||
+        event === SSE_EVENTS.RESERVATION_CHECKED_OUT
+      ) {
+        queryClient.invalidateQueries({ queryKey: ["fnb-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["today-reservations"] });
+      }
+    },
+    [queryClient],
+  );
 
   useSSE({ onEvent: handleSSEEvent as (event: string, data: unknown) => void });
 
@@ -724,6 +940,27 @@ export default function FnbPage() {
       a.name.localeCompare(b.name, "tr"),
     );
   }, [orders]);
+
+  // Check-in / Check-out mutations
+  const checkInMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/reservations/${id}/check-in`, { method: "POST" }).then((r) =>
+        r.json(),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["today-reservations"] });
+    },
+  });
+
+  const checkOutMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/reservations/${id}/check-out`, { method: "POST" }).then((r) =>
+        r.json(),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["today-reservations"] });
+    },
+  });
 
   // Status update mutation
   const statusMutation = useMutation({
@@ -840,6 +1077,14 @@ export default function FnbPage() {
               </div>
             )}
           </div>
+
+          {/* Today Reservations Panel */}
+          <TodayReservationsPanel
+            onCheckIn={(id) => checkInMutation.mutate(id)}
+            onCheckOut={(id) => checkOutMutation.mutate(id)}
+            isCheckingIn={checkInMutation.isPending}
+            isCheckingOut={checkOutMutation.isPending}
+          />
 
           {/* Orders Grid */}
           {isLoading && <OrdersSkeleton />}

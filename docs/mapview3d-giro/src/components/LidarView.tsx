@@ -2,13 +2,13 @@ import { useEffect, useRef } from "react";
 import { CubeTextureLoader, Vector3 } from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 
-import CoordinateSystem from "@giro3d/giro3d/core/geographic/CoordinateSystem.js";
-import Extent from "@giro3d/giro3d/core/geographic/Extent.js";
-import Instance from "@giro3d/giro3d/core/Instance.js";
-import ColorLayer from "@giro3d/giro3d/core/layer/ColorLayer.js";
-import Tiles3D from "@giro3d/giro3d/entities/Tiles3D.js";
-import { MODE } from "@giro3d/giro3d/renderer/PointCloudMaterial.js";
-import WmtsSource from "@giro3d/giro3d/sources/WmtsSource.js";
+import CoordinateSystem from "@giro3d/giro3d/core/geographic/CoordinateSystem";
+import Extent from "@giro3d/giro3d/core/geographic/Extent";
+import Instance from "@giro3d/giro3d/core/Instance";
+import ColorLayer from "@giro3d/giro3d/core/layer/ColorLayer";
+import Tiles3D from "@giro3d/giro3d/entities/Tiles3D";
+import { MODE } from "@giro3d/giro3d/renderer/PointCloudMaterial";
+import WmtsSource from "@giro3d/giro3d/sources/WmtsSource";
 
 const crs = CoordinateSystem.register(
   "EPSG:2154",

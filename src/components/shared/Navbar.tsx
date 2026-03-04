@@ -440,8 +440,14 @@ export const CASINO_NAV: NavItem[] = [
 
 export const FNB_NAV: NavItem[] = [
   {
+    href: "/fnb/reservations",
+    label: "Rezervasyonlar",
+    icon: CalendarDays,
+    color: "text-teal-400",
+  },
+  {
     href: "/fnb",
-    label: "Panel",
+    label: "Siparişler",
     icon: UtensilsCrossed,
     color: "text-rose-400",
   },
@@ -514,7 +520,7 @@ export const ROLE_HOME: Record<string, string> = {
   SYSTEM_ADMIN: "/system-admin",
   ADMIN: "/admin",
   CASINO_USER: "/casino",
-  FNB_USER: "/fnb",
+  FNB_USER: "/fnb/reservations",
 };
 
 // ─── Dropdown Component ─────────────────────────────────────────────────────

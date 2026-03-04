@@ -43,7 +43,6 @@ export const GET = withAuth(
     const config = await getModuleConfig();
     return NextResponse.json({ success: true, data: config });
   },
-  { requiredPermissions: ["system.config.view"] },
 );
 
 // PUT — only SYSTEM_ADMIN can update

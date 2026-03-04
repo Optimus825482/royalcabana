@@ -52,9 +52,9 @@ function SidebarHeader({
           <Image
             src="/logo.png"
             alt="Royal Cabana"
-              width={collapsed ? 44 : 175}
-              height={collapsed ? 44 : 175}
-              className="rounded-lg mix-blend-lighten transition-all duration-200"
+            width={collapsed ? 40 : 140}
+            height={collapsed ? 40 : 140}
+            className="rounded-lg mix-blend-lighten transition-all duration-200 object-contain"
             onError={() => setImgError(true)}
             priority
           />

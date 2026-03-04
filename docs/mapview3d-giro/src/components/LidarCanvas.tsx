@@ -2,12 +2,12 @@ import { useEffect, useRef } from "react";
 import { Vector3 } from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 
-import CoordinateSystem from "@giro3d/giro3d/core/geographic/CoordinateSystem.js";
-import Extent from "@giro3d/giro3d/core/geographic/Extent.js";
-import Instance from "@giro3d/giro3d/core/Instance.js";
-import ColorLayer from "@giro3d/giro3d/core/layer/ColorLayer.js";
-import Giro3dMap from "@giro3d/giro3d/entities/Map.js";
-import WmtsSource from "@giro3d/giro3d/sources/WmtsSource.js";
+import CoordinateSystem from "@giro3d/giro3d/core/geographic/CoordinateSystem";
+import Extent from "@giro3d/giro3d/core/geographic/Extent";
+import Instance from "@giro3d/giro3d/core/Instance";
+import ColorLayer from "@giro3d/giro3d/core/layer/ColorLayer";
+import Giro3dMap from "@giro3d/giro3d/entities/Map";
+import WmtsSource from "@giro3d/giro3d/sources/WmtsSource";
 import { useStore } from "../store/useStore";
 
 // Target: 35.355789, 33.210447 (Girne, North Cyprus)

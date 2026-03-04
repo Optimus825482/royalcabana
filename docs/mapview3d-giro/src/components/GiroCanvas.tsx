@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import * as THREE from "three";
+import * as THREE from "../../node_modules/@types/three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { useStore, type SceneObject } from "../store/useStore";
 

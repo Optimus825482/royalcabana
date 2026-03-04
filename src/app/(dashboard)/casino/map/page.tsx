@@ -267,7 +267,7 @@ export default function CasinoMapPage() {
                 onClick={handleReservationStatusClick}
                 className="w-full min-h-11 py-2.5 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 text-neutral-950 transition-colors"
               >
-                Rezervasyon Durumu
+                Rezervasyon Takvimi
               </button>
             </div>
           </div>

@@ -10,11 +10,6 @@ const nextConfig: NextConfig = {
       "lucide-react",
       "radix-ui",
       "@react-three/drei",
-      "@fullcalendar/core",
-      "@fullcalendar/daygrid",
-      "@fullcalendar/interaction",
-      "@fullcalendar/timegrid",
-      "@fullcalendar/resource-timeline",
     ],
   },
   images: {

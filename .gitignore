@@ -32,8 +32,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+!.env.example
 
 # kiro settings (contains credentials)
 .kiro/settings/
@@ -48,3 +49,13 @@ next-env.d.ts
 # slidev
 /slidev-workspace
 /gorsel
+/docs/
+
+# analysis reports
+SUNUM-ANALIZ-RAPORU.md
+OPTIMIZASYON-UYGULAMA-PLANI.md
+UYGULAMA-AKIS-SHEMA.html
+
+# all-icons
+/all-icons
+/all-icons.zip

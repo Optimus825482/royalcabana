@@ -3729,7 +3729,8 @@ export default function CabanaMapInner({
         </div>
       )}
 
-      {/* Top Toolbar - 3D Effects & Elevation Tools */}
+      {/* Top Toolbar - 3D Effects & Elevation Tools (sadece düzenleme modunda) */}
+      {editable && (
       <div className="flex items-center gap-1 mb-2 p-1.5 bg-neutral-800/80 backdrop-blur rounded-lg border border-neutral-700">
         {/* 3D Effects Toggle Buttons */}
         <div className="flex items-center gap-1 pr-2 border-r border-neutral-600">
@@ -4168,6 +4169,7 @@ export default function CabanaMapInner({
           </div>
         )}
       </div>
+      )}
 
       {/* Three.js Canvas */}
       <div

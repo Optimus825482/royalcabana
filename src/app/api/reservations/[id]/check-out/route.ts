@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { CabanaStatus, Role } from "@/types";
+import { CabanaStatus, NotificationType, Role } from "@/types";
 import { logAudit } from "@/lib/audit";
 import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
@@ -104,23 +104,38 @@ export const POST = withAuth(
 
     after(async () => {
       const cabanaName = updated.cabana?.name ?? "";
+      const guestName = updated.guestName;
 
       sseManager.broadcast(SSE_EVENTS.RESERVATION_CHECKED_OUT, {
         reservationId: id,
         cabanaName,
-        guestName: updated.guestName,
+        guestName,
       });
 
-      await notificationService.send({
-        userId: reservation.userId,
-        type: "CHECK_OUT" as any,
-        title: "Check-out Yapıldı",
-        message: `${updated.guestName} için ${cabanaName} Cabana check-out yapıldı.`,
-        metadata: { reservationId: id, cabanaName },
+      // İşlemi yapan kullanıcı hariç tüm aktif staff kullanıcılarına push bildirimi
+      const otherUsers = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          deletedAt: null,
+          role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN, Role.FNB_USER] },
+          id: { not: session.user.id },
+        },
+        select: { id: true },
       });
+
+      if (otherUsers.length > 0) {
+        await notificationService.sendMany(
+          otherUsers.map((u) => ({
+            userId: u.id,
+            type: NotificationType.CHECK_OUT,
+            title: "Check-out Yapıldı",
+            message: `${guestName} için ${cabanaName} check-out yapıldı.`,
+            metadata: { reservationId: id, cabanaName },
+          })),
+        );
+      }
     });
 
     return NextResponse.json({ success: true, data: updated });
   },
-  { requiredPermissions: ["reservation.update"] },
 );

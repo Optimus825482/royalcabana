@@ -26,5 +26,16 @@ export_coords.sql
 import_coords.sql
 logo*.png
 logo.ico
+docs
 ANALIZ-RAPORU.md
+SUNUM-ANALIZ-RAPORU.md
+OPTIMIZASYON-UYGULAMA-PLANI.md
+UYGULAMA-AKIS-SHEMA.html
 AGENTS.md
+*.md
+!README.md
+.cursor
+.github
+agent-transcripts
+mcps
+terminals
