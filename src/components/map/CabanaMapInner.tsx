@@ -2593,8 +2593,9 @@ export default function CabanaMapInner({
   );
 
   useEffect(() => {
+    if (!editable) return;
     saveBarConfig(COMMON_PARASOL_CONFIG_KEY, commonParasolTransform);
-  }, [commonParasolTransform, saveBarConfig]);
+  }, [commonParasolTransform, saveBarConfig, editable]);
 
   // Building drag state ref
   const buildingDragRef = useRef<{
@@ -3731,216 +3732,185 @@ export default function CabanaMapInner({
 
       {/* Top Toolbar - 3D Effects & Elevation Tools (sadece düzenleme modunda) */}
       {editable && (
-      <div className="flex items-center gap-1 mb-2 p-1.5 bg-neutral-800/80 backdrop-blur rounded-lg border border-neutral-700">
-        {/* 3D Effects Toggle Buttons */}
-        <div className="flex items-center gap-1 pr-2 border-r border-neutral-600">
-          <button
-            onClick={() => setFogEnabled(!fogEnabled)}
-            title="Sis (Fog)"
-            className={`p-2 rounded-lg transition-all ${
-              fogEnabled
-                ? "bg-blue-600 text-white"
-                : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+        <div className="flex items-center gap-1 mb-2 p-1.5 bg-neutral-800/80 backdrop-blur rounded-lg border border-neutral-700">
+          {/* 3D Effects Toggle Buttons */}
+          <div className="flex items-center gap-1 pr-2 border-r border-neutral-600">
+            <button
+              onClick={() => setFogEnabled(!fogEnabled)}
+              title="Sis (Fog)"
+              className={`p-2 rounded-lg transition-all ${
+                fogEnabled
+                  ? "bg-blue-600 text-white"
+                  : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+              }`}
             >
-              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-              <path d="M16 17H7" />
-              <path d="M17 21H9" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setDisplacementEnabled(!displacementEnabled)}
-            title="Yükseklik (Displacement)"
-            className={`p-2 rounded-lg transition-all ${
-              displacementEnabled
-                ? "bg-blue-600 text-white"
-                : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setEnhancedLighting(!enhancedLighting)}
-            title="Gelişmiş Işık"
-            className={`p-2 rounded-lg transition-all ${
-              enhancedLighting
-                ? "bg-yellow-600 text-white"
-                : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2" />
-              <path d="M12 20v2" />
-              <path d="m4.93 4.93 1.41 1.41" />
-              <path d="m17.66 17.66 1.41 1.41" />
-              <path d="M2 12h2" />
-              <path d="M20 12h2" />
-              <path d="m6.34 17.66-1.41 1.41" />
-              <path d="m19.07 4.93-1.41 1.41" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setGridVisible(!gridVisible)}
-            title="Grid Çizgileri"
-            className={`p-2 rounded-lg transition-all ${
-              gridVisible
-                ? "bg-purple-600 text-white"
-                : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M3 9h18" />
-              <path d="M3 15h18" />
-              <path d="M9 3v18" />
-              <path d="M15 3v18" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Displacement Scale Slider */}
-        {displacementEnabled && (
-          <div className="flex items-center gap-2 px-2 border-r border-neutral-600">
-            <span className="text-[10px] text-neutral-500">Yükseklik:</span>
-            <input
-              type="range"
-              min={0}
-              max={200}
-              step={5}
-              value={displacementScale}
-              onChange={(e) => setDisplacementScale(Number(e.target.value))}
-              aria-label="Yükseklik ölçeği"
-              className="w-20 accent-blue-500 h-1"
-            />
-            <span className="text-[10px] text-neutral-400 w-6 tabular-nums">
-              {displacementScale}
-            </span>
-          </div>
-        )}
-
-        {/* Elevation Tool */}
-        {editable && (
-          <>
-            <div className="flex items-center gap-1 px-2 border-r border-neutral-600">
-              <button
-                onClick={() => {
-                  const next = !rectActive;
-                  setRectActive(next);
-                  if (next) {
-                    const dc = dispCanvasRef.current;
-                    if (dc) {
-                      const ctx = dc.getContext("2d", {
-                        willReadFrequently: true,
-                      })!;
-                      const imgData = ctx.getImageData(
-                        0,
-                        0,
-                        dc.width,
-                        dc.height,
-                      );
-                      originalDispDataRef.current = new Uint8ClampedArray(
-                        imgData.data,
-                      );
-                    }
-                    if (displacementScale < 30) setDisplacementScale(60);
-                    if (!displacementEnabled) setDisplacementEnabled(true);
-                  } else {
-                    setRectStart(null);
-                    setRectEnd(null);
-                    setRectDefined(false);
-                    setRectElevation(50);
-                    const dc = dispCanvasRef.current;
-                    const dt = dispTexRef.current;
-                    const committed = originalDispDataRef.current;
-                    if (dc && dt && committed) {
-                      const ctx = dc.getContext("2d", {
-                        willReadFrequently: true,
-                      })!;
-                      const imgData = ctx.getImageData(
-                        0,
-                        0,
-                        dc.width,
-                        dc.height,
-                      );
-                      imgData.data.set(committed);
-                      ctx.putImageData(imgData, 0, 0);
-                      dt.needsUpdate = true;
-                    }
-                  }
-                }}
-                title="Alan Yükselt"
-                className={`p-2 rounded-lg transition-all ${
-                  rectActive
-                    ? "bg-yellow-600 text-white"
-                    : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-                }`}
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect width="18" height="18" x="3" y="3" rx="2" />
-                  <path d="M3 15h18" />
-                  <path d="m15 8-3-3-3 3" />
-                  <path d="M12 5v7" />
-                </svg>
-              </button>
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+                <path d="M16 17H7" />
+                <path d="M17 21H9" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setDisplacementEnabled(!displacementEnabled)}
+              title="Yükseklik (Displacement)"
+              className={`p-2 rounded-lg transition-all ${
+                displacementEnabled
+                  ? "bg-blue-600 text-white"
+                  : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+              }`}
+            >
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setEnhancedLighting(!enhancedLighting)}
+              title="Gelişmiş Işık"
+              className={`p-2 rounded-lg transition-all ${
+                enhancedLighting
+                  ? "bg-yellow-600 text-white"
+                  : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+              }`}
+            >
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2" />
+                <path d="M12 20v2" />
+                <path d="m4.93 4.93 1.41 1.41" />
+                <path d="m17.66 17.66 1.41 1.41" />
+                <path d="M2 12h2" />
+                <path d="M20 12h2" />
+                <path d="m6.34 17.66-1.41 1.41" />
+                <path d="m19.07 4.93-1.41 1.41" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setGridVisible(!gridVisible)}
+              title="Grid Çizgileri"
+              className={`p-2 rounded-lg transition-all ${
+                gridVisible
+                  ? "bg-purple-600 text-white"
+                  : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+              }`}
+            >
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M3 9h18" />
+                <path d="M3 15h18" />
+                <path d="M9 3v18" />
+                <path d="M15 3v18" />
+              </svg>
+            </button>
+          </div>
 
-              {/* Reset Elevation Button */}
-              {onElevationReset && (
+          {/* Displacement Scale Slider */}
+          {displacementEnabled && (
+            <div className="flex items-center gap-2 px-2 border-r border-neutral-600">
+              <span className="text-[10px] text-neutral-500">Yükseklik:</span>
+              <input
+                type="range"
+                min={0}
+                max={200}
+                step={5}
+                value={displacementScale}
+                onChange={(e) => setDisplacementScale(Number(e.target.value))}
+                aria-label="Yükseklik ölçeği"
+                className="w-20 accent-blue-500 h-1"
+              />
+              <span className="text-[10px] text-neutral-400 w-6 tabular-nums">
+                {displacementScale}
+              </span>
+            </div>
+          )}
+
+          {/* Elevation Tool */}
+          {editable && (
+            <>
+              <div className="flex items-center gap-1 px-2 border-r border-neutral-600">
                 <button
                   onClick={() => {
-                    if (
-                      confirm(
-                        "Tüm yükseltme verileri sıfırlanacak. Emin misiniz?",
-                      )
-                    ) {
-                      onElevationReset();
+                    const next = !rectActive;
+                    setRectActive(next);
+                    if (next) {
+                      const dc = dispCanvasRef.current;
+                      if (dc) {
+                        const ctx = dc.getContext("2d", {
+                          willReadFrequently: true,
+                        })!;
+                        const imgData = ctx.getImageData(
+                          0,
+                          0,
+                          dc.width,
+                          dc.height,
+                        );
+                        originalDispDataRef.current = new Uint8ClampedArray(
+                          imgData.data,
+                        );
+                      }
+                      if (displacementScale < 30) setDisplacementScale(60);
+                      if (!displacementEnabled) setDisplacementEnabled(true);
+                    } else {
+                      setRectStart(null);
+                      setRectEnd(null);
+                      setRectDefined(false);
+                      setRectElevation(50);
+                      const dc = dispCanvasRef.current;
+                      const dt = dispTexRef.current;
+                      const committed = originalDispDataRef.current;
+                      if (dc && dt && committed) {
+                        const ctx = dc.getContext("2d", {
+                          willReadFrequently: true,
+                        })!;
+                        const imgData = ctx.getImageData(
+                          0,
+                          0,
+                          dc.width,
+                          dc.height,
+                        );
+                        imgData.data.set(committed);
+                        ctx.putImageData(imgData, 0, 0);
+                        dt.needsUpdate = true;
+                      }
                     }
                   }}
-                  title="Yükseltmeleri Sıfırla"
-                  className="p-2 rounded-lg transition-all bg-red-700/50 text-red-400 hover:bg-red-600 hover:text-white"
+                  title="Alan Yükselt"
+                  className={`p-2 rounded-lg transition-all ${
+                    rectActive
+                      ? "bg-yellow-600 text-white"
+                      : "bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+                  }`}
                 >
                   <svg
                     className="w-4 h-4"
@@ -3951,224 +3921,255 @@ export default function CabanaMapInner({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
+                    <rect width="18" height="18" x="3" y="3" rx="2" />
+                    <path d="M3 15h18" />
+                    <path d="m15 8-3-3-3 3" />
+                    <path d="M12 5v7" />
                   </svg>
                 </button>
-              )}
-            </div>
 
-            {/* Elevation Controls - shown when rect tool active */}
-            {rectActive && (
-              <div className="flex items-center gap-2 px-2">
-                {rectDefined ? (
-                  <>
-                    <span className="text-[10px] text-yellow-400">Alan:</span>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={rectElevation}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        setRectElevation(val);
-                        if (val > 0 && displacementScale < 30)
-                          setDisplacementScale(60);
-                      }}
-                      aria-label="Seçili alan yüksekliği"
-                      className="w-16 accent-yellow-500 h-1"
-                    />
-                    <span className="text-[10px] text-neutral-400 w-6 tabular-nums">
-                      %{rectElevation}
-                    </span>
-                    <button
-                      onClick={() => {
-                        const prev = originalDispDataRef.current;
-                        if (prev) {
-                          dispHistoryRef.current.push(
-                            new Uint8ClampedArray(prev),
-                          );
-                          setCanUndo(true);
-                        }
-                        const dc = dispCanvasRef.current;
-                        if (dc) {
-                          const ctx = dc.getContext("2d", {
-                            willReadFrequently: true,
-                          })!;
-                          const imgData = ctx.getImageData(
-                            0,
-                            0,
-                            dc.width,
-                            dc.height,
-                          );
-                          originalDispDataRef.current = new Uint8ClampedArray(
-                            imgData.data,
-                          );
-                        }
-                        setRectStart(null);
-                        setRectEnd(null);
-                        setRectDefined(false);
-                        setRectElevation(50);
-                      }}
-                      title="Uygula"
-                      className="p-1.5 rounded bg-yellow-600 hover:bg-yellow-500 text-white transition-colors"
+                {/* Reset Elevation Button */}
+                {onElevationReset && (
+                  <button
+                    onClick={() => {
+                      if (
+                        confirm(
+                          "Tüm yükseltme verileri sıfırlanacak. Emin misiniz?",
+                        )
+                      ) {
+                        onElevationReset();
+                      }
+                    }}
+                    title="Yükseltmeleri Sıfırla"
+                    className="p-2 rounded-lg transition-all bg-red-700/50 text-red-400 hover:bg-red-600 hover:text-white"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setRectStart(null);
-                        setRectEnd(null);
-                        setRectDefined(false);
-                        setRectElevation(50);
-                        const dc = dispCanvasRef.current;
-                        const dt = dispTexRef.current;
-                        const orig = originalDispDataRef.current;
-                        if (dc && dt && orig) {
-                          const ctx = dc.getContext("2d", {
-                            willReadFrequently: true,
-                          })!;
-                          const imgData = ctx.getImageData(
-                            0,
-                            0,
-                            dc.width,
-                            dc.height,
-                          );
-                          imgData.data.set(orig);
-                          ctx.putImageData(imgData, 0, 0);
-                          dt.needsUpdate = true;
-                        }
-                      }}
-                      title="İptal"
-                      className="p-1.5 rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300 transition-colors"
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                      </svg>
-                    </button>
-                  </>
-                ) : (
-                  <span className="text-[10px] text-neutral-500">
-                    Sürükleyerek alan seçin
-                  </span>
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                  </button>
                 )}
-                <button
-                  disabled={!canUndo}
-                  onClick={() => {
-                    const history = dispHistoryRef.current;
-                    if (history.length === 0) return;
-                    const prev = history.pop()!;
-                    setCanUndo(history.length > 0);
-                    originalDispDataRef.current = prev;
-                    const dc = dispCanvasRef.current;
-                    const dt = dispTexRef.current;
-                    if (dc && dt) {
-                      const ctx = dc.getContext("2d", {
-                        willReadFrequently: true,
-                      })!;
-                      const imgData = ctx.getImageData(
-                        0,
-                        0,
-                        dc.width,
-                        dc.height,
-                      );
-                      imgData.data.set(prev);
-                      ctx.putImageData(imgData, 0, 0);
-                      dt.needsUpdate = true;
-                    }
-                    setRectStart(null);
-                    setRectEnd(null);
-                    setRectDefined(false);
-                    setRectElevation(50);
-                  }}
-                  title="Geri Al"
-                  className={`p-1.5 rounded transition-colors ${
-                    canUndo
-                      ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-300"
-                      : "bg-neutral-800 text-neutral-600 cursor-not-allowed"
-                  }`}
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 7v6h6" />
-                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => {
-                    const dc = dispCanvasRef.current;
-                    if (dc && onElevationSave) {
-                      onElevationSave(dc.toDataURL("image/png"));
-                    }
-                  }}
-                  title="Kaydet"
-                  className="p-1.5 rounded bg-green-700 hover:bg-green-600 text-white transition-colors"
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                    <polyline points="17 21 17 13 7 13 7 21" />
-                    <polyline points="7 3 7 8 15 8" />
-                  </svg>
-                </button>
               </div>
-            )}
-          </>
-        )}
 
-        {/* Map Lock Indicator */}
-        {mapLocked && (
-          <div className="flex items-center gap-1 px-2 text-yellow-500">
-            <svg
-              className="w-3.5 h-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            <span className="text-[10px] font-medium">Sabit</span>
-          </div>
-        )}
-      </div>
+              {/* Elevation Controls - shown when rect tool active */}
+              {rectActive && (
+                <div className="flex items-center gap-2 px-2">
+                  {rectDefined ? (
+                    <>
+                      <span className="text-[10px] text-yellow-400">Alan:</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={rectElevation}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setRectElevation(val);
+                          if (val > 0 && displacementScale < 30)
+                            setDisplacementScale(60);
+                        }}
+                        aria-label="Seçili alan yüksekliği"
+                        className="w-16 accent-yellow-500 h-1"
+                      />
+                      <span className="text-[10px] text-neutral-400 w-6 tabular-nums">
+                        %{rectElevation}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const prev = originalDispDataRef.current;
+                          if (prev) {
+                            dispHistoryRef.current.push(
+                              new Uint8ClampedArray(prev),
+                            );
+                            setCanUndo(true);
+                          }
+                          const dc = dispCanvasRef.current;
+                          if (dc) {
+                            const ctx = dc.getContext("2d", {
+                              willReadFrequently: true,
+                            })!;
+                            const imgData = ctx.getImageData(
+                              0,
+                              0,
+                              dc.width,
+                              dc.height,
+                            );
+                            originalDispDataRef.current = new Uint8ClampedArray(
+                              imgData.data,
+                            );
+                          }
+                          setRectStart(null);
+                          setRectEnd(null);
+                          setRectDefined(false);
+                          setRectElevation(50);
+                        }}
+                        title="Uygula"
+                        className="p-1.5 rounded bg-yellow-600 hover:bg-yellow-500 text-white transition-colors"
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRectStart(null);
+                          setRectEnd(null);
+                          setRectDefined(false);
+                          setRectElevation(50);
+                          const dc = dispCanvasRef.current;
+                          const dt = dispTexRef.current;
+                          const orig = originalDispDataRef.current;
+                          if (dc && dt && orig) {
+                            const ctx = dc.getContext("2d", {
+                              willReadFrequently: true,
+                            })!;
+                            const imgData = ctx.getImageData(
+                              0,
+                              0,
+                              dc.width,
+                              dc.height,
+                            );
+                            imgData.data.set(orig);
+                            ctx.putImageData(imgData, 0, 0);
+                            dt.needsUpdate = true;
+                          }
+                        }}
+                        title="İptal"
+                        className="p-1.5 rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300 transition-colors"
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M18 6 6 18" />
+                          <path d="m6 6 12 12" />
+                        </svg>
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-neutral-500">
+                      Sürükleyerek alan seçin
+                    </span>
+                  )}
+                  <button
+                    disabled={!canUndo}
+                    onClick={() => {
+                      const history = dispHistoryRef.current;
+                      if (history.length === 0) return;
+                      const prev = history.pop()!;
+                      setCanUndo(history.length > 0);
+                      originalDispDataRef.current = prev;
+                      const dc = dispCanvasRef.current;
+                      const dt = dispTexRef.current;
+                      if (dc && dt) {
+                        const ctx = dc.getContext("2d", {
+                          willReadFrequently: true,
+                        })!;
+                        const imgData = ctx.getImageData(
+                          0,
+                          0,
+                          dc.width,
+                          dc.height,
+                        );
+                        imgData.data.set(prev);
+                        ctx.putImageData(imgData, 0, 0);
+                        dt.needsUpdate = true;
+                      }
+                      setRectStart(null);
+                      setRectEnd(null);
+                      setRectDefined(false);
+                      setRectElevation(50);
+                    }}
+                    title="Geri Al"
+                    className={`p-1.5 rounded transition-colors ${
+                      canUndo
+                        ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-300"
+                        : "bg-neutral-800 text-neutral-600 cursor-not-allowed"
+                    }`}
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 7v6h6" />
+                      <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const dc = dispCanvasRef.current;
+                      if (dc && onElevationSave) {
+                        onElevationSave(dc.toDataURL("image/png"));
+                      }
+                    }}
+                    title="Kaydet"
+                    className="p-1.5 rounded bg-green-700 hover:bg-green-600 text-white transition-colors"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                      <polyline points="17 21 17 13 7 13 7 21" />
+                      <polyline points="7 3 7 8 15 8" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Map Lock Indicator */}
+          {mapLocked && (
+            <div className="flex items-center gap-1 px-2 text-yellow-500">
+              <svg
+                className="w-3.5 h-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span className="text-[10px] font-medium">Sabit</span>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Three.js Canvas */}
@@ -4222,9 +4223,9 @@ export default function CabanaMapInner({
             ? { x: Math.round(sp.x), y: Math.round(sp.y) }
             : bt === "common-parasol"
               ? {
-                x: Math.round(commonParasolTransform.x),
-                y: Math.round(commonParasolTransform.y),
-              }
+                  x: Math.round(commonParasolTransform.x),
+                  y: Math.round(commonParasolTransform.y),
+                }
               : null;
           const accentClass = sp?.name.toLowerCase().includes("blue")
             ? "text-blue-400"

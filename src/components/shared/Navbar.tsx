@@ -19,7 +19,6 @@ import {
   ClipboardList,
   DollarSign,
   CalendarDays,
-  Cuboid,
   BookOpen,
   UtensilsCrossed,
   Lightbulb,
@@ -452,7 +451,7 @@ export const FNB_NAV: NavItem[] = [
     color: "text-rose-400",
   },
   {
-    label: "Keşfet",
+    label: "Harita & Takvim",
     icon: Map,
     color: "text-teal-400",
     children: [
@@ -461,13 +460,6 @@ export const FNB_NAV: NavItem[] = [
         label: "Harita",
         icon: Map,
         color: "text-teal-400",
-        requiredPermission: "map.view",
-      },
-      {
-        href: "/casino/view",
-        label: "3D Görünüm",
-        icon: Cuboid,
-        color: "text-violet-400",
         requiredPermission: "map.view",
       },
       {

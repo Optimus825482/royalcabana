@@ -289,6 +289,7 @@ const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "product.view",
     "task.definition.view",
     "reservation.view",
+    "system.config.view",
   ],
 };
 
