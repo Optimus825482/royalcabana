@@ -190,6 +190,11 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
+        const fieldErrors = data.errors?.fieldErrors;
+        if (fieldErrors) {
+          const msgs = Object.values(fieldErrors).flat().filter(Boolean);
+          if (msgs.length > 0) throw new Error(msgs.join(" "));
+        }
         throw new Error(
           data.error || data.message || "Kullanıcı oluşturulamadı.",
         );
@@ -234,6 +239,11 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
+        const fieldErrors = data.errors?.fieldErrors;
+        if (fieldErrors) {
+          const msgs = Object.values(fieldErrors).flat().filter(Boolean);
+          if (msgs.length > 0) throw new Error(msgs.join(" "));
+        }
         throw new Error(
           data.error || data.message || "Kullanıcı güncellenemedi.",
         );
@@ -587,14 +597,21 @@ export default function UsersPage() {
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
+                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
+                title="En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam"
+                autoComplete="new-password"
                 value={createForm.password}
                 onChange={(e) =>
                   setCreateForm((f) => ({ ...f, password: e.target.value }))
                 }
                 className={inputCls}
-                placeholder="En az 6 karakter"
+                placeholder="En az 8 karakter, büyük/küçük harf ve rakam"
               />
+              <p className="text-xs text-neutral-500 mt-1">
+                En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam
+                içermelidir.
+              </p>
             </Field>
             <Field label="Rol">
               <select
@@ -706,17 +723,23 @@ export default function UsersPage() {
             <Field label="Yeni Şifre">
               <input
                 type="password"
-                minLength={6}
+                minLength={8}
+                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
+                title="En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam"
+                autoComplete="new-password"
                 value={editForm.newPassword}
                 onChange={(e) =>
                   setEditForm((f) =>
                     f ? { ...f, newPassword: e.target.value } : f,
                   )
                 }
-                title="Yeni şifre"
                 className={inputCls}
                 placeholder="Boş bırakılırsa değişmez"
               />
+              <p className="text-xs text-neutral-500 mt-1">
+                En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam
+                içermelidir.
+              </p>
             </Field>
             {editError && <ErrorMsg msg={editError} />}
             <div className="flex justify-end gap-2 pt-2">
