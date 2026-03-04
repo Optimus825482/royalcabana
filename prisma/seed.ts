@@ -1308,16 +1308,66 @@ async function main() {
 
   // ── Guests (10 adet) ──
   const guestData = [
-    { name: "Ahmet Yılmaz", phone: "+905321234567", email: "ahmet.yilmaz@email.com", vipLevel: VipLevel.STANDARD },
-    { name: "Elif Kaya", phone: "+905339876543", email: "elif.kaya@email.com", vipLevel: VipLevel.SILVER },
-    { name: "Mehmet Demir", phone: "+905441112233", email: "mehmet.demir@email.com", vipLevel: VipLevel.GOLD },
-    { name: "Zeynep Çelik", phone: "+905552223344", email: "zeynep.celik@email.com", vipLevel: VipLevel.PLATINUM },
-    { name: "Burak Şahin", phone: "+905363334455", email: "burak.sahin@email.com", vipLevel: VipLevel.STANDARD },
-    { name: "Ayşe Öztürk", phone: "+905424445566", email: "ayse.ozturk@email.com", vipLevel: VipLevel.SILVER },
-    { name: "Emre Arslan", phone: "+905515556677", email: "emre.arslan@email.com", vipLevel: VipLevel.GOLD },
-    { name: "Fatma Doğan", phone: "+905376667788", email: "fatma.dogan@email.com", vipLevel: VipLevel.STANDARD },
-    { name: "Can Yıldırım", phone: "+905487778899", email: "can.yildirim@email.com", vipLevel: VipLevel.PLATINUM },
-    { name: "Selin Koç", phone: "+905398889900", email: "selin.koc@email.com", vipLevel: VipLevel.SILVER },
+    {
+      name: "Ahmet Yılmaz",
+      phone: "+905321234567",
+      email: "ahmet.yilmaz@email.com",
+      vipLevel: VipLevel.STANDARD,
+    },
+    {
+      name: "Elif Kaya",
+      phone: "+905339876543",
+      email: "elif.kaya@email.com",
+      vipLevel: VipLevel.SILVER,
+    },
+    {
+      name: "Mehmet Demir",
+      phone: "+905441112233",
+      email: "mehmet.demir@email.com",
+      vipLevel: VipLevel.GOLD,
+    },
+    {
+      name: "Zeynep Çelik",
+      phone: "+905552223344",
+      email: "zeynep.celik@email.com",
+      vipLevel: VipLevel.PLATINUM,
+    },
+    {
+      name: "Burak Şahin",
+      phone: "+905363334455",
+      email: "burak.sahin@email.com",
+      vipLevel: VipLevel.STANDARD,
+    },
+    {
+      name: "Ayşe Öztürk",
+      phone: "+905424445566",
+      email: "ayse.ozturk@email.com",
+      vipLevel: VipLevel.SILVER,
+    },
+    {
+      name: "Emre Arslan",
+      phone: "+905515556677",
+      email: "emre.arslan@email.com",
+      vipLevel: VipLevel.GOLD,
+    },
+    {
+      name: "Fatma Doğan",
+      phone: "+905376667788",
+      email: "fatma.dogan@email.com",
+      vipLevel: VipLevel.STANDARD,
+    },
+    {
+      name: "Can Yıldırım",
+      phone: "+905487778899",
+      email: "can.yildirim@email.com",
+      vipLevel: VipLevel.PLATINUM,
+    },
+    {
+      name: "Selin Koç",
+      phone: "+905398889900",
+      email: "selin.koc@email.com",
+      vipLevel: VipLevel.SILVER,
+    },
   ];
 
   const guests = [];
@@ -1348,26 +1398,131 @@ async function main() {
 
   const reservationConfigs = [
     // 3 PENDING
-    { guestIdx: 0, cabIdx: 0, status: ReservationStatus.PENDING, daysFromNow: 5, duration: 2, price: null },
-    { guestIdx: 1, cabIdx: 1, status: ReservationStatus.PENDING, daysFromNow: 7, duration: 3, price: null },
-    { guestIdx: 4, cabIdx: 4, status: ReservationStatus.PENDING, daysFromNow: 10, duration: 1, price: null },
+    {
+      guestIdx: 0,
+      cabIdx: 0,
+      status: ReservationStatus.PENDING,
+      daysFromNow: 5,
+      duration: 2,
+      price: null,
+    },
+    {
+      guestIdx: 1,
+      cabIdx: 1,
+      status: ReservationStatus.PENDING,
+      daysFromNow: 7,
+      duration: 3,
+      price: null,
+    },
+    {
+      guestIdx: 4,
+      cabIdx: 4,
+      status: ReservationStatus.PENDING,
+      daysFromNow: 10,
+      duration: 1,
+      price: null,
+    },
     // 4 APPROVED
-    { guestIdx: 2, cabIdx: 2, status: ReservationStatus.APPROVED, daysFromNow: 1, duration: 2, price: 2500 },
-    { guestIdx: 3, cabIdx: 3, status: ReservationStatus.APPROVED, daysFromNow: 2, duration: 3, price: 4500 },
-    { guestIdx: 5, cabIdx: 5, status: ReservationStatus.APPROVED, daysFromNow: 3, duration: 1, price: 1800 },
-    { guestIdx: 6, cabIdx: 6, status: ReservationStatus.APPROVED, daysFromNow: 4, duration: 2, price: 3200 },
+    {
+      guestIdx: 2,
+      cabIdx: 2,
+      status: ReservationStatus.APPROVED,
+      daysFromNow: 1,
+      duration: 2,
+      price: 2500,
+    },
+    {
+      guestIdx: 3,
+      cabIdx: 3,
+      status: ReservationStatus.APPROVED,
+      daysFromNow: 2,
+      duration: 3,
+      price: 4500,
+    },
+    {
+      guestIdx: 5,
+      cabIdx: 5,
+      status: ReservationStatus.APPROVED,
+      daysFromNow: 3,
+      duration: 1,
+      price: 1800,
+    },
+    {
+      guestIdx: 6,
+      cabIdx: 6,
+      status: ReservationStatus.APPROVED,
+      daysFromNow: 4,
+      duration: 2,
+      price: 3200,
+    },
     // 2 CHECKED_IN
-    { guestIdx: 7, cabIdx: 7, status: ReservationStatus.CHECKED_IN, daysFromNow: 0, duration: 2, price: 2200 },
-    { guestIdx: 8, cabIdx: 8, status: ReservationStatus.CHECKED_IN, daysFromNow: -1, duration: 3, price: 5000 },
+    {
+      guestIdx: 7,
+      cabIdx: 7,
+      status: ReservationStatus.CHECKED_IN,
+      daysFromNow: 0,
+      duration: 2,
+      price: 2200,
+    },
+    {
+      guestIdx: 8,
+      cabIdx: 8,
+      status: ReservationStatus.CHECKED_IN,
+      daysFromNow: -1,
+      duration: 3,
+      price: 5000,
+    },
     // 3 CHECKED_OUT
-    { guestIdx: 9, cabIdx: 9, status: ReservationStatus.CHECKED_OUT, daysFromNow: -5, duration: 2, price: 1900 },
-    { guestIdx: 0, cabIdx: 10, status: ReservationStatus.CHECKED_OUT, daysFromNow: -7, duration: 1, price: 1200 },
-    { guestIdx: 1, cabIdx: 11, status: ReservationStatus.CHECKED_OUT, daysFromNow: -10, duration: 3, price: 4000 },
+    {
+      guestIdx: 9,
+      cabIdx: 9,
+      status: ReservationStatus.CHECKED_OUT,
+      daysFromNow: -5,
+      duration: 2,
+      price: 1900,
+    },
+    {
+      guestIdx: 0,
+      cabIdx: 10,
+      status: ReservationStatus.CHECKED_OUT,
+      daysFromNow: -7,
+      duration: 1,
+      price: 1200,
+    },
+    {
+      guestIdx: 1,
+      cabIdx: 11,
+      status: ReservationStatus.CHECKED_OUT,
+      daysFromNow: -10,
+      duration: 3,
+      price: 4000,
+    },
     // 2 CANCELLED
-    { guestIdx: 2, cabIdx: 12, status: ReservationStatus.CANCELLED, daysFromNow: 8, duration: 2, price: null },
-    { guestIdx: 3, cabIdx: 13, status: ReservationStatus.CANCELLED, daysFromNow: 12, duration: 1, price: null },
+    {
+      guestIdx: 2,
+      cabIdx: 12,
+      status: ReservationStatus.CANCELLED,
+      daysFromNow: 8,
+      duration: 2,
+      price: null,
+    },
+    {
+      guestIdx: 3,
+      cabIdx: 13,
+      status: ReservationStatus.CANCELLED,
+      daysFromNow: 12,
+      duration: 1,
+      price: null,
+    },
     // 1 REJECTED
-    { guestIdx: 4, cabIdx: 14 % allCabanas.length, status: ReservationStatus.REJECTED, daysFromNow: 6, duration: 2, price: null },
+    {
+      guestIdx: 4,
+      cabIdx: 14 % allCabanas.length,
+      status: ReservationStatus.REJECTED,
+      daysFromNow: 6,
+      duration: 2,
+      price: null,
+    },
   ];
 
   const reservations = [];
@@ -1396,13 +1551,19 @@ async function main() {
         status: cfg.status,
         totalPrice: cfg.price,
         notes: i % 3 === 0 ? "VIP misafir, özel ilgi gösterilmeli" : null,
-        rejectionReason: cfg.status === ReservationStatus.REJECTED ? "Cabana bakımda, alternatif önerildi" : null,
-        checkInAt: cfg.status === ReservationStatus.CHECKED_IN || cfg.status === ReservationStatus.CHECKED_OUT
-          ? new Date(startDate.getTime() + 10 * 3600000)
-          : null,
-        checkOutAt: cfg.status === ReservationStatus.CHECKED_OUT
-          ? new Date(endDate.getTime() + 16 * 3600000)
-          : null,
+        rejectionReason:
+          cfg.status === ReservationStatus.REJECTED
+            ? "Cabana bakımda, alternatif önerildi"
+            : null,
+        checkInAt:
+          cfg.status === ReservationStatus.CHECKED_IN ||
+          cfg.status === ReservationStatus.CHECKED_OUT
+            ? new Date(startDate.getTime() + 10 * 3600000)
+            : null,
+        checkOutAt:
+          cfg.status === ReservationStatus.CHECKED_OUT
+            ? new Date(endDate.getTime() + 16 * 3600000)
+            : null,
         conceptId: basicConcept.id,
       },
     });
@@ -1428,7 +1589,9 @@ async function main() {
 
   // ── FnbOrders (8 adet — APPROVED veya CHECKED_IN rezlere bağlı) ──
   const activeReservations = reservations.filter(
-    (r) => r.status === ReservationStatus.APPROVED || r.status === ReservationStatus.CHECKED_IN,
+    (r) =>
+      r.status === ReservationStatus.APPROVED ||
+      r.status === ReservationStatus.CHECKED_IN,
   );
 
   const fnbStatuses: FnbOrderStatus[] = [
@@ -1455,6 +1618,13 @@ async function main() {
     "product-water-package",
   ];
 
+  // Tüm fnb ürünlerini tek sorguda çek
+  const fnbProducts = await prisma.product.findMany({
+    where: { id: { in: fnbProductIds } },
+    select: { id: true, salePrice: true },
+  });
+  const fnbProductMap = new Map(fnbProducts.map((p) => [p.id, p.salePrice]));
+
   for (let i = 0; i < 8; i++) {
     const rez = activeReservations[i % activeReservations.length];
     const orderId = `fnb-seed-${i.toString().padStart(2, "0")}`;
@@ -1464,19 +1634,16 @@ async function main() {
     });
     if (existingOrder) continue;
 
-    const itemCount = 2 + (i % 3); // 2, 3, or 4 items
+    const itemCount = 2 + (i % 3);
     const orderItems = [];
     for (let j = 0; j < itemCount; j++) {
       const prodId = fnbProductIds[(i * 3 + j) % fnbProductIds.length];
-      const product = await prisma.product.findUnique({
-        where: { id: prodId },
-        select: { salePrice: true },
-      });
-      if (product) {
+      const salePrice = fnbProductMap.get(prodId);
+      if (salePrice) {
         orderItems.push({
           productId: prodId,
           quantity: 1 + (j % 3),
-          unitPrice: product.salePrice,
+          unitPrice: salePrice,
         });
       }
     }
@@ -1575,6 +1742,397 @@ async function main() {
           extraServiceId: extraService.id,
           price: svc.price,
           changedBy: systemAdmin.id,
+        },
+      });
+    }
+  }
+
+  // ── Staff (10 personel) ──
+  const staffData = [
+    {
+      name: "Kemal Aydın",
+      phone: "+905321110001",
+      email: "kemal.aydin@royalcabana.com",
+      position: "Barmen",
+    },
+    {
+      name: "Leyla Şimşek",
+      phone: "+905321110002",
+      email: "leyla.simsek@royalcabana.com",
+      position: "Garson",
+    },
+    {
+      name: "Tarık Güneş",
+      phone: "+905321110003",
+      email: "tarik.gunes@royalcabana.com",
+      position: "Kasiyer",
+    },
+    {
+      name: "Neslihan Yurt",
+      phone: "+905321110004",
+      email: "neslihan.yurt@royalcabana.com",
+      position: "Garson",
+    },
+    {
+      name: "Oğuz Karahan",
+      phone: "+905321110005",
+      email: "oguz.karahan@royalcabana.com",
+      position: "Barmen",
+    },
+    {
+      name: "Pınar Erdoğan",
+      phone: "+905321110006",
+      email: "pinar.erdogan@royalcabana.com",
+      position: "Masör",
+    },
+    {
+      name: "Serkan Bulut",
+      phone: "+905321110007",
+      email: "serkan.bulut@royalcabana.com",
+      position: "Güvenlik",
+    },
+    {
+      name: "Tuba Çakır",
+      phone: "+905321110008",
+      email: "tuba.cakir@royalcabana.com",
+      position: "Resepsiyonist",
+    },
+    {
+      name: "Uğur Polat",
+      phone: "+905321110009",
+      email: "ugur.polat@royalcabana.com",
+      position: "Şef",
+    },
+    {
+      name: "Vildan Kılıç",
+      phone: "+905321110010",
+      email: "vildan.kilic@royalcabana.com",
+      position: "Garson",
+    },
+  ];
+
+  const staffMembers = [];
+  for (let i = 0; i < staffData.length; i++) {
+    const s = staffData[i];
+    const staffId = `staff-seed-${i.toString().padStart(2, "0")}`;
+    const member = await prisma.staff.upsert({
+      where: { id: staffId },
+      update: { position: s.position, isActive: true },
+      create: {
+        id: staffId,
+        name: s.name,
+        phone: s.phone,
+        email: s.email,
+        position: s.position,
+        isActive: true,
+      },
+    });
+    staffMembers.push(member);
+  }
+
+  // ── TaskDefinitions (8 adet) ──
+  const taskDefData = [
+    {
+      title: "Cabana Temizliği",
+      description: "Günlük cabana temizlik ve düzenleme",
+      category: "CLEANING",
+      priority: "HIGH",
+    },
+    {
+      title: "Havlu Değişimi",
+      description: "Misafir havlularının değiştirilmesi",
+      category: "HOUSEKEEPING",
+      priority: "NORMAL",
+    },
+    {
+      title: "Minibar Kontrolü",
+      description: "Minibar stok kontrolü ve yenileme",
+      category: "STOCK",
+      priority: "NORMAL",
+    },
+    {
+      title: "Ekipman Bakımı",
+      description: "Şezlong ve şemsiye bakımı",
+      category: "MAINTENANCE",
+      priority: "LOW",
+    },
+    {
+      title: "VIP Karşılama Hazırlığı",
+      description: "VIP misafir için özel hazırlık",
+      category: "VIP",
+      priority: "HIGH",
+    },
+    {
+      title: "Bar Stok Sayımı",
+      description: "Günlük bar stok sayımı ve raporu",
+      category: "STOCK",
+      priority: "NORMAL",
+    },
+    {
+      title: "Güvenlik Turu",
+      description: "Saatlik güvenlik turu",
+      category: "SECURITY",
+      priority: "HIGH",
+    },
+    {
+      title: "Müşteri Memnuniyet Anketi",
+      description: "Check-out sonrası anket uygulaması",
+      category: "QUALITY",
+      priority: "LOW",
+    },
+  ];
+
+  const taskDefs = [];
+  for (let i = 0; i < taskDefData.length; i++) {
+    const t = taskDefData[i];
+    const tdId = `taskdef-seed-${i.toString().padStart(2, "0")}`;
+    const td = await prisma.taskDefinition.upsert({
+      where: { id: tdId },
+      update: { priority: t.priority },
+      create: {
+        id: tdId,
+        title: t.title,
+        description: t.description,
+        category: t.category,
+        priority: t.priority,
+        isActive: true,
+      },
+    });
+    taskDefs.push(td);
+  }
+
+  // ── StaffTasks (10 adet) ──
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < 10; i++) {
+    const stId = `stafftask-seed-${i.toString().padStart(2, "0")}`;
+    const existing = await prisma.staffTask.findFirst({ where: { id: stId } });
+    if (!existing) {
+      await prisma.staffTask.create({
+        data: {
+          id: stId,
+          staffId: staffMembers[i % staffMembers.length].id,
+          taskDefinitionId: taskDefs[i % taskDefs.length].id,
+          title: taskDefs[i % taskDefs.length].title,
+          description: taskDefs[i % taskDefs.length].description,
+          date: todayDate,
+          isCompleted: i < 4,
+          completedAt: i < 4 ? new Date() : null,
+        },
+      });
+    }
+  }
+
+  // ── StaffAssignments (8 adet) ──
+  const cabanaSubset = allCabanas.slice(0, 8);
+  for (let i = 0; i < 8; i++) {
+    const saId = `staffassign-seed-${i.toString().padStart(2, "0")}`;
+    const existing = await prisma.staffAssignment.findFirst({
+      where: { id: saId },
+    });
+    if (!existing) {
+      await prisma.staffAssignment.create({
+        data: {
+          id: saId,
+          staffId: staffMembers[i % staffMembers.length].id,
+          cabanaId: cabanaSubset[i % cabanaSubset.length].id,
+          date: todayDate,
+          shift: i % 2 === 0 ? "MORNING" : "AFTERNOON",
+        },
+      });
+    }
+  }
+
+  // ── ServicePoints (4 adet) ──
+  const servicePointData = [
+    {
+      name: "Sunset Bar",
+      type: "BAR",
+      description: "Ana platform üzerindeki bar",
+      coordX: 873.24,
+      coordY: 326.52,
+      requiredStaffCount: 3,
+      staffRoles: ["Barmen", "Garson", "Kasiyer"],
+    },
+    {
+      name: "Blue Sea Bar",
+      type: "BEACH_BAR",
+      description: "Kıyı barı",
+      coordX: 320.35,
+      coordY: 191.05,
+      requiredStaffCount: 2,
+      staffRoles: ["Barmen", "Garson"],
+    },
+    {
+      name: "Pool Restaurant",
+      type: "RESTAURANT",
+      description: "Havuz kenarı restoran",
+      coordX: 620,
+      coordY: 420,
+      requiredStaffCount: 4,
+      staffRoles: ["Şef", "Garson", "Garson", "Kasiyer"],
+    },
+    {
+      name: "Spa & Wellness",
+      type: "SPA",
+      description: "Spa ve wellness merkezi",
+      coordX: 750,
+      coordY: 300,
+      requiredStaffCount: 2,
+      staffRoles: ["Masör", "Resepsiyonist"],
+    },
+  ];
+
+  for (let i = 0; i < servicePointData.length; i++) {
+    const sp = servicePointData[i];
+    const spId = `sp-seed-${i.toString().padStart(2, "0")}`;
+    await prisma.servicePoint.upsert({
+      where: { name: sp.name },
+      update: { coordX: sp.coordX, coordY: sp.coordY },
+      create: {
+        id: spId,
+        name: sp.name,
+        type: sp.type,
+        description: sp.description,
+        coordX: sp.coordX,
+        coordY: sp.coordY,
+        requiredStaffCount: sp.requiredStaffCount,
+        staffRoles: sp.staffRoles,
+        isActive: true,
+      },
+    });
+  }
+
+  // ── ServicePointStaff (6 adet) ──
+  const servicePoints = await prisma.servicePoint.findMany({ take: 4 });
+  const spStaffData = [
+    { spIdx: 0, staffIdx: 0, role: "Barmen", shift: "FULL_DAY" },
+    { spIdx: 0, staffIdx: 1, role: "Garson", shift: "MORNING" },
+    { spIdx: 0, staffIdx: 2, role: "Kasiyer", shift: "FULL_DAY" },
+    { spIdx: 1, staffIdx: 4, role: "Barmen", shift: "AFTERNOON" },
+    { spIdx: 2, staffIdx: 8, role: "Şef", shift: "FULL_DAY" },
+    { spIdx: 3, staffIdx: 5, role: "Masör", shift: "FULL_DAY" },
+  ];
+
+  for (let i = 0; i < spStaffData.length; i++) {
+    const d = spStaffData[i];
+    const sp = servicePoints[d.spIdx];
+    const st = staffMembers[d.staffIdx];
+    if (!sp || !st) continue;
+    const existing = await prisma.servicePointStaff.findFirst({
+      where: {
+        servicePointId: sp.id,
+        staffId: st.id,
+        date: todayDate,
+        role: d.role,
+      },
+    });
+    if (!existing) {
+      await prisma.servicePointStaff.create({
+        data: {
+          servicePointId: sp.id,
+          staffId: st.id,
+          role: d.role,
+          shift: d.shift,
+          date: todayDate,
+        },
+      });
+    }
+  }
+
+  // ── WaitlistEntries (4 adet) ──
+  const waitlistData = [
+    { guestIdx: 0, cabIdx: 0, daysFromNow: 3, duration: 2 },
+    { guestIdx: 2, cabIdx: 1, daysFromNow: 5, duration: 1 },
+    { guestIdx: 5, cabIdx: 2, daysFromNow: 7, duration: 3 },
+    { guestIdx: 8, cabIdx: 3, daysFromNow: 10, duration: 2 },
+  ];
+
+  for (let i = 0; i < waitlistData.length; i++) {
+    const w = waitlistData[i];
+    const wlId = `wl-seed-${i.toString().padStart(2, "0")}`;
+    const existing = await prisma.waitlistEntry.findFirst({
+      where: { id: wlId },
+    });
+    if (!existing) {
+      const desiredStart = new Date(today.getTime() + w.daysFromNow * dayMs);
+      const desiredEnd = new Date(desiredStart.getTime() + w.duration * dayMs);
+      await prisma.waitlistEntry.create({
+        data: {
+          id: wlId,
+          cabanaId: allCabanas[w.cabIdx % allCabanas.length].id,
+          userId: casinoUser.id,
+          guestName: guests[w.guestIdx].name,
+          desiredStart,
+          desiredEnd,
+          notes: i === 0 ? "VIP misafir, öncelikli bildirim isteniyor" : null,
+          isNotified: false,
+        },
+      });
+    }
+  }
+
+  // ── Reviews (3 adet — CHECKED_OUT rezervasyonlara) ──
+  const checkedOutReservations = reservations.filter(
+    (r) => r.status === ReservationStatus.CHECKED_OUT,
+  );
+
+  const reviewData = [
+    { rating: 5, comment: "Mükemmel hizmet, kesinlikle tekrar geleceğiz!" },
+    {
+      rating: 4,
+      comment:
+        "Çok güzel bir deneyimdi, küçük aksaklıklar vardı ama genel olarak harika.",
+    },
+    { rating: 5, comment: "VIP hizmet kalitesi gerçekten üst düzeydi." },
+  ];
+
+  for (
+    let i = 0;
+    i < Math.min(reviewData.length, checkedOutReservations.length);
+    i++
+  ) {
+    const rez = checkedOutReservations[i];
+    const existing = await prisma.review.findFirst({
+      where: { reservationId: rez.id },
+    });
+    if (!existing) {
+      await prisma.review.create({
+        data: {
+          reservationId: rez.id,
+          userId: casinoUser.id,
+          rating: reviewData[i].rating,
+          comment: reviewData[i].comment,
+        },
+      });
+    }
+  }
+
+  // ── BlackoutDates (3 adet) ──
+  const blackoutData = [
+    { daysFromNow: 20, duration: 2, reason: "Bakım ve onarım" },
+    { daysFromNow: 30, duration: 3, reason: "Özel etkinlik rezervasyonu" },
+    { daysFromNow: 45, duration: 1, reason: "Teknik kontrol" },
+  ];
+
+  for (let i = 0; i < blackoutData.length; i++) {
+    const b = blackoutData[i];
+    const bdId = `blackout-seed-${i.toString().padStart(2, "0")}`;
+    const existing = await prisma.blackoutDate.findFirst({
+      where: { id: bdId },
+    });
+    if (!existing) {
+      const startDate = new Date(today.getTime() + b.daysFromNow * dayMs);
+      const endDate = new Date(startDate.getTime() + b.duration * dayMs);
+      await prisma.blackoutDate.create({
+        data: {
+          id: bdId,
+          cabanaId: allCabanas[i % allCabanas.length].id,
+          startDate,
+          endDate,
+          reason: b.reason,
+          createdBy: admin.id,
         },
       });
     }
