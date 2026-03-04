@@ -45,8 +45,8 @@ function buildCspHeader(nonce: string, isDev: boolean): string {
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
-    // nonce allows Next.js-injected style tags; 'unsafe-inline' allows style attributes (Tailwind, libs)
-    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
+    // nonce in style-src would cause 'unsafe-inline' to be ignored (CSP spec); use only 'unsafe-inline' so inline style attributes work
+    "style-src 'self' 'unsafe-inline'",
     "img-src 'self' blob: data:",
     "font-src 'self'",
     "object-src 'none'",
