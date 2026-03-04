@@ -170,6 +170,7 @@ export const MODULE_ACCESS: Record<Role, string[]> = {
   [Role.ADMIN]: ["/admin"],
   [Role.CASINO_USER]: ["/casino", "/reports"],
   [Role.FNB_USER]: [
+    "/fnb/reservations",
     "/fnb",
     "/casino/map",
     "/casino/calendar",

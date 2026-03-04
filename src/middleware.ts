@@ -45,14 +45,16 @@ function buildCspHeader(nonce: string, isDev: boolean): string {
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'unsafe-inline'`,
+    // nonce allows Next.js-injected style tags; 'unsafe-inline' allows style attributes (Tailwind, libs)
+    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
     "img-src 'self' blob: data:",
     "font-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "connect-src 'self'",
+    // allow same-origin + Google Analytics if used; avoid blocking login /api/auth
+    "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.google-analytics.com",
   ];
   return directives.join("; ");
 }

@@ -85,3 +85,4 @@ Bir subagent olarak çalışıyorsan:
 - Prisma `findMany` default olarak soft-deleted kayıtları da getirir — `where: { isDeleted: false }` ekle
 - Next.js App Router'da `cookies()` ve `headers()` async — await unutma
 - Docker'da Prisma client generate edilmeli — `prisma generate` Dockerfile'da var
+- **CSP (deploy):** Login/UI bozuluyorsa sunucuda veya reverse proxy'de (nginx, Cloudflare) ek bir `Content-Security-Policy` header'ı olabilir. Tarayıcı tüm CSP'leri birlikte uygular; proxy sadece `style-src 'self' 'nonce-...'` gönderiyorsa inline stiller bloklanır. Çözüm: proxy'de CSP'yi kaldırın veya `style-src` içine `'unsafe-inline'` ekleyin; `connect-src` için gerekirse `https://www.google-analytics.com` vb. ekleyin.

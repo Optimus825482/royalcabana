@@ -233,6 +233,12 @@ const PERMISSION_TEMPLATES: PermissionTemplate[] = [
     module: "Personel Yönetimi",
     action: "delete",
   },
+  {
+    key: "fnb.view",
+    name: "F&B sipariş yönetimini görüntüle",
+    module: "F&B Yönetimi",
+    action: "view",
+  },
 ];
 
 const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
@@ -278,6 +284,7 @@ const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "staff.view",
   ],
   [Role.FNB_USER]: [
+    "fnb.view",
     "concept.view",
     "product.view",
     "task.definition.view",
@@ -1963,15 +1970,6 @@ async function main() {
       coordY: 191.05,
       requiredStaffCount: 2,
       staffRoles: ["Barmen", "Garson"],
-    },
-    {
-      name: "Pool Restaurant",
-      type: "RESTAURANT",
-      description: "Havuz kenarı restoran",
-      coordX: 620,
-      coordY: 420,
-      requiredStaffCount: 4,
-      staffRoles: ["Şef", "Garson", "Garson", "Kasiyer"],
     },
     {
       name: "Spa & Wellness",
