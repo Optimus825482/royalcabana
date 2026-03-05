@@ -105,10 +105,10 @@ function detectColumn(headers: string[], keywords: string[]): string {
 }
 
 const statusRowCls: Record<MatchStatus, string> = {
-  NEW: "bg-emerald-500/10",
-  MATCH: "bg-blue-500/10",
-  NO_CHANGE: "bg-neutral-800/50",
-  UNMATCHED: "bg-amber-500/10",
+  NEW: "bg-[var(--rc-success)]/10",
+  MATCH: "bg-[var(--rc-info)]/10",
+  NO_CHANGE: "bg-[var(--rc-surface-elevated)]",
+  UNMATCHED: "bg-[var(--rc-warning)]/10",
 };
 
 const statusLabel: Record<MatchStatus, string> = {
@@ -138,16 +138,16 @@ const colorMap: Record<
   { active: string; idle: string }
 > = {
   green: {
-    active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
-    idle: "text-neutral-500 border-neutral-700 hover:text-emerald-400 hover:border-emerald-500/30",
+    active: "bg-[var(--rc-success)]/20 text-[var(--rc-success)] border-[var(--rc-success)]/40",
+    idle: "text-[var(--rc-text-muted)] border-[var(--rc-surface-border)] hover:text-[var(--rc-success)] hover:border-[var(--rc-success)]/30",
   },
   gray: {
-    active: "bg-neutral-700/50 text-neutral-300 border-neutral-600",
-    idle: "text-neutral-500 border-neutral-700 hover:text-neutral-300 hover:border-neutral-600",
+    active: "bg-[var(--rc-surface-elevated)] text-[var(--rc-text-primary)] border-[var(--rc-surface-border)]",
+    idle: "text-[var(--rc-text-muted)] border-[var(--rc-surface-border)] hover:text-[var(--rc-text-primary)] hover:border-[var(--rc-surface-border)]",
   },
   blue: {
-    active: "bg-blue-500/20 text-blue-400 border-blue-500/40",
-    idle: "text-neutral-500 border-neutral-700 hover:text-blue-400 hover:border-blue-500/30",
+    active: "bg-[var(--rc-info)]/20 text-[var(--rc-info)] border-[var(--rc-info)]/40",
+    idle: "text-[var(--rc-text-muted)] border-[var(--rc-surface-border)] hover:text-[var(--rc-info)] hover:border-[var(--rc-info)]/30",
   },
 };
 
@@ -401,24 +401,24 @@ export default function ImportModal({
       onClick={handleClose}
     >
       <div
-        className="bg-neutral-900 border border-neutral-800 rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-2xl sm:mx-4 max-h-[90vh] flex flex-col"
+        className="bg-[var(--rc-card)] border border-[var(--rc-surface-border)] rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-2xl sm:mx-4 max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle for mobile */}
         <div className="flex justify-center pt-2 pb-0 sm:hidden shrink-0">
-          <div className="w-10 h-1 rounded-full bg-neutral-700" />
+          <div className="w-10 h-1 rounded-full bg-[var(--rc-drag-handle)]" />
         </div>
         {/* ---- Header ---- */}
-        <div className="sticky top-0 z-10 bg-neutral-900 flex items-center justify-between px-5 py-4 border-b border-neutral-800 shrink-0">
+        <div className="sticky top-0 z-10 bg-[var(--rc-card)] flex items-center justify-between px-5 py-4 border-b border-[var(--rc-surface-border)] shrink-0">
           <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-yellow-400" />
-            <h2 className="text-sm font-semibold text-yellow-400">
+            <FileSpreadsheet className="w-4 h-4 text-[var(--rc-gold)]" />
+            <h2 className="text-sm font-semibold text-[var(--rc-gold)]">
               Ürün İçe Aktarma
             </h2>
           </div>
           <button
             onClick={handleClose}
-            className="w-11 h-11 flex items-center justify-center text-neutral-500 hover:text-neutral-300 transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-[var(--rc-text-muted)] hover:text-[var(--rc-text-primary)] transition-colors min-h-[44px]"
             aria-label="Kapat"
           >
             <X className="w-4 h-4" />
@@ -426,17 +426,17 @@ export default function ImportModal({
         </div>
 
         {/* ---- Step indicator ---- */}
-        <div className="px-5 pt-4 pb-2 flex items-center gap-1 text-xs text-neutral-500 shrink-0">
+        <div className="px-5 pt-4 pb-2 flex items-center gap-1 text-xs text-[var(--rc-text-muted)] shrink-0">
           {(["Dosya", "Eşleştirme", "Önizleme", "Sonuç"] as const).map(
             (label, i) => (
               <React.Fragment key={label}>
-                {i > 0 && <ChevronRight className="w-3 h-3 text-neutral-700" />}
+                {i > 0 && <ChevronRight className="w-3 h-3 text-[var(--rc-surface-border)]" />}
                 <span
                   className={
                     step === i + 1
-                      ? "text-yellow-400 font-medium"
+                      ? "text-[var(--rc-gold)] font-medium"
                       : step > i + 1
-                        ? "text-neutral-400"
+                        ? "text-[var(--rc-text-secondary)]"
                         : ""
                   }
                 >
@@ -467,16 +467,16 @@ export default function ImportModal({
                   transition-colors
                   ${
                     dragOver
-                      ? "border-yellow-500 bg-yellow-500/5"
-                      : "border-neutral-700 hover:border-neutral-600 bg-neutral-800/40"
+                      ? "border-[var(--rc-gold)] bg-[var(--rc-gold)]/10"
+                      : "border-[var(--rc-surface-border)] hover:border-[var(--rc-surface-border)] bg-[var(--rc-surface-elevated)]"
                   }
                 `}
               >
-                <Upload className="w-8 h-8 mx-auto mb-3 text-neutral-500" />
-                <p className="text-sm text-neutral-300 mb-1">
+                <Upload className="w-8 h-8 mx-auto mb-3 text-[var(--rc-text-muted)]" />
+                <p className="text-sm text-[var(--rc-text-primary)] mb-1">
                   Dosyayı sürükleyip bırakın veya tıklayın
                 </p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-[var(--rc-text-muted)]">
                   .xlsx, .xls veya .csv dosyaları
                 </p>
                 <input
@@ -488,8 +488,8 @@ export default function ImportModal({
                 />
               </div>
               {file && (
-                <div className="flex items-center gap-2 text-sm text-neutral-300 bg-neutral-800 rounded-lg px-3 py-2">
-                  <FileSpreadsheet className="w-4 h-4 text-yellow-400 shrink-0" />
+                <div className="flex items-center gap-2 text-sm text-[var(--rc-text-primary)] bg-[var(--rc-surface-elevated)] rounded-lg px-3 py-2">
+                  <FileSpreadsheet className="w-4 h-4 text-[var(--rc-gold)] shrink-0" />
                   <span className="truncate">{file.name}</span>
                 </div>
               )}
@@ -499,7 +499,7 @@ export default function ImportModal({
           {/* ======== STEP 2: Column Mapping ======== */}
           {step === 2 && (
             <div className="space-y-4">
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-[var(--rc-text-secondary)]">
                 Dosyadaki sütunları aşağıdaki alanlarla eşleştirin.
               </p>
               {(
@@ -558,30 +558,30 @@ export default function ImportModal({
               {/* Summary bar */}
               <div className="flex flex-wrap gap-3 text-xs">
                 {counts.NEW ? (
-                  <span className="text-emerald-400">{counts.NEW} yeni</span>
+                  <span className="text-[var(--rc-success)]">{counts.NEW} yeni</span>
                 ) : null}
                 {counts.MATCH ? (
-                  <span className="text-blue-400">
+                  <span className="text-[var(--rc-info)]">
                     {counts.MATCH} güncelleme
                   </span>
                 ) : null}
                 {counts.UNMATCHED ? (
-                  <span className="text-amber-400">
+                  <span className="text-[var(--rc-warning)]">
                     {counts.UNMATCHED} belirsiz
                   </span>
                 ) : null}
                 {counts.NO_CHANGE ? (
-                  <span className="text-neutral-400">
+                  <span className="text-[var(--rc-text-secondary)]">
                     {counts.NO_CHANGE} değişiklik yok
                   </span>
                 ) : null}
               </div>
 
               {/* Table */}
-              <div className="overflow-x-auto rounded-lg border border-neutral-800">
+              <div className="overflow-x-auto rounded-lg border border-[var(--rc-surface-border)]">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="bg-neutral-800/60 text-neutral-400">
+                    <tr className="bg-[var(--rc-surface-elevated)] text-[var(--rc-text-secondary)]">
                       <th className="text-left px-3 py-2 font-medium">Ürün</th>
                       <th className="text-right px-3 py-2 font-medium">
                         Maliyet
@@ -603,19 +603,19 @@ export default function ImportModal({
                       return (
                         <tr key={i} className={statusRowCls[row.status]}>
                           {/* Name */}
-                          <td className="px-3 py-2 text-neutral-200">
+                          <td className="px-3 py-2 text-[var(--rc-text-primary)]">
                             {row.name}
                             {row.status === "MATCH" &&
                               row.matchedProduct &&
                               row.name !== row.matchedProduct.name && (
-                                <span className="flex items-center gap-1 text-blue-400 mt-0.5 text-[10px]">
+                                <span className="flex items-center gap-1 text-[var(--rc-info)] mt-0.5 text-[10px]">
                                   <ArrowRightLeft className="w-3 h-3" />
                                   {row.matchedProduct.name} ({row.similarity}%)
                                 </span>
                               )}
                             {row.status === "UNMATCHED" &&
                               row.suggestedProduct && (
-                                <span className="flex items-center gap-1 text-amber-400/80 mt-0.5 text-[10px]">
+                                <span className="flex items-center gap-1 text-[var(--rc-warning)]/80 mt-0.5 text-[10px]">
                                   <AlertTriangle className="w-3 h-3" />
                                   Öneri: {row.suggestedProduct.name} (%
                                   {row.suggestedSimilarity} benzerlik)
@@ -623,11 +623,11 @@ export default function ImportModal({
                               )}
                           </td>
                           {/* Purchase */}
-                          <td className="text-right px-3 py-2 text-neutral-300 whitespace-nowrap">
+                          <td className="text-right px-3 py-2 text-[var(--rc-text-primary)] whitespace-nowrap">
                             {fmt(row.purchasePrice, currency)}
                           </td>
                           {/* Sale */}
-                          <td className="text-right px-3 py-2 text-neutral-300 whitespace-nowrap">
+                          <td className="text-right px-3 py-2 text-[var(--rc-text-primary)] whitespace-nowrap">
                             {fmt(row.salePrice, currency)}
                           </td>
                           {/* Status badge */}
@@ -635,12 +635,12 @@ export default function ImportModal({
                             <span
                               className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium ${
                                 row.status === "NEW"
-                                  ? "bg-emerald-500/20 text-emerald-400"
+                                  ? "bg-[var(--rc-success)]/20 text-[var(--rc-success)]"
                                   : row.status === "MATCH"
-                                    ? "bg-blue-500/20 text-blue-400"
+                                    ? "bg-[var(--rc-info)]/20 text-[var(--rc-info)]"
                                     : row.status === "UNMATCHED"
-                                      ? "bg-amber-500/20 text-amber-400"
-                                      : "bg-neutral-700/50 text-neutral-500"
+                                      ? "bg-[var(--rc-warning)]/20 text-[var(--rc-warning)]"
+                                      : "bg-[var(--rc-surface-elevated)] text-[var(--rc-text-muted)]"
                               }`}
                             >
                               {statusLabel[row.status]}
@@ -649,12 +649,12 @@ export default function ImportModal({
                           {/* Action */}
                           <td className="px-3 py-2">
                             {row.status === "MATCH" && (
-                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-400">
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--rc-info)]/20 text-[var(--rc-info)]">
                                 Güncelleme
                               </span>
                             )}
                             {row.status === "NO_CHANGE" && (
-                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-700/50 text-neutral-500">
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--rc-surface-elevated)] text-[var(--rc-text-muted)]">
                                 Değişiklik Yok
                               </span>
                             )}
@@ -742,29 +742,29 @@ export default function ImportModal({
           {/* ======== STEP 4: Result ======== */}
           {step === 4 && summary && (
             <div className="space-y-4 text-center py-4">
-              <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-400" />
-              <p className="text-sm font-medium text-neutral-200">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-[var(--rc-success)]" />
+              <p className="text-sm font-medium text-[var(--rc-text-primary)]">
                 İçe aktarma tamamlandı
               </p>
               <div className="flex justify-center gap-6 text-xs">
                 <div>
-                  <span className="block text-lg font-bold text-emerald-400">
+                  <span className="block text-lg font-bold text-[var(--rc-success)]">
                     {summary.created}
                   </span>
-                  <span className="text-neutral-500">Yeni</span>
+                  <span className="text-[var(--rc-text-muted)]">Yeni</span>
                 </div>
                 <div>
-                  <span className="block text-lg font-bold text-blue-400">
+                  <span className="block text-lg font-bold text-[var(--rc-info)]">
                     {summary.updated}
                   </span>
-                  <span className="text-neutral-500">Güncellenen</span>
+                  <span className="text-[var(--rc-text-muted)]">Güncellenen</span>
                 </div>
                 {summary.errors > 0 && (
                   <div>
-                    <span className="block text-lg font-bold text-red-400">
+                    <span className="block text-lg font-bold text-[var(--rc-danger)]">
                       {summary.errors}
                     </span>
-                    <span className="text-neutral-500">Hata</span>
+                    <span className="text-[var(--rc-text-muted)]">Hata</span>
                   </div>
                 )}
               </div>

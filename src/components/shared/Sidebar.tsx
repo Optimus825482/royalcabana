@@ -36,7 +36,7 @@ function SidebarHeader({
       {/* Collapse toggle - top right corner, desktop only */}
       <button
         onClick={onToggle}
-        className="hidden lg:flex absolute top-1 right-1 items-center justify-center w-7 h-7 text-neutral-500 hover:text-amber-400 hover:bg-neutral-800/50 rounded-md transition-colors z-10"
+        className="hidden lg:flex absolute top-1 right-1 items-center justify-center w-7 h-7 text-[var(--rc-text-muted)] hover:text-[var(--rc-gold)] hover:bg-[var(--rc-card-hover)] rounded-md transition-colors z-10"
         aria-label={collapsed ? "Menüyü genişlet" : "Menüyü daralt"}
       >
         <ChevronDown
@@ -47,7 +47,7 @@ function SidebarHeader({
       {/* Logo - centered, larger */}
       <Link href={homeHref} className="flex items-center justify-center">
         {imgError ? (
-          <span className="text-amber-400 font-semibold text-lg">RC</span>
+          <span className="text-[var(--rc-gold)] font-semibold text-lg">RC</span>
         ) : (
           <Image
             src="/logo.png"
@@ -89,14 +89,14 @@ function SidebarGroup({
 
   const IconComp = group.icon;
 
-  const iconColor = group.color ?? "text-neutral-400";
+  const iconColor = group.color ?? "text-[var(--rc-text-muted)]";
 
   if (collapsed) {
     return (
       <div className="relative group/tip">
         <div
           className={`flex items-center justify-center w-11 h-11 mx-auto rounded-lg transition-colors ${
-            isGroupActive ? "bg-neutral-800" : "hover:bg-neutral-800"
+            isGroupActive ? "bg-[var(--rc-card-hover)]" : "hover:bg-[var(--rc-card-hover)]"
           }`}
         >
           {IconComp && (
@@ -106,7 +106,7 @@ function SidebarGroup({
           )}
         </div>
         {/* Tooltip */}
-        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-neutral-800 text-neutral-200 text-xs rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity z-50">
+        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[var(--rc-card)] text-[var(--rc-text-primary)] text-xs rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity z-50 border border-[var(--rc-border-subtle)]">
           {group.label}
         </div>
       </div>
@@ -118,7 +118,7 @@ function SidebarGroup({
       <button
         onClick={() => setOpen((v) => !v)}
         className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${
-          isGroupActive ? "bg-neutral-800/50" : "hover:bg-neutral-800/50"
+          isGroupActive ? "bg-[var(--rc-card-hover)]/80" : "hover:bg-[var(--rc-card-hover)]/50"
         }`}
       >
         {IconComp && (
@@ -127,28 +127,28 @@ function SidebarGroup({
           />
         )}
         <span
-          className={`flex-1 text-left truncate ${isGroupActive ? "text-neutral-100" : "text-neutral-400 group-hover:text-neutral-200"}`}
+          className={`flex-1 text-left truncate ${isGroupActive ? "text-[var(--rc-text-primary)]" : "text-[var(--rc-text-muted)] group-hover:text-[var(--rc-text-secondary)]"}`}
         >
           {group.label}
         </span>
         <ChevronDown
-          className={`w-3.5 h-3.5 shrink-0 text-neutral-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`w-3.5 h-3.5 shrink-0 text-[var(--rc-text-muted)] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         />
       </button>
       {open && (
-        <div className="ml-3 pl-3 border-l border-neutral-800 space-y-0.5 mt-0.5">
+        <div className="ml-3 pl-3 border-l border-[var(--rc-border-subtle)] space-y-0.5 mt-0.5">
           {group.children.map((child) => {
             const isActive =
               pathname === child.href || pathname.startsWith(child.href + "/");
             const ChildIcon = child.icon;
-            const childColor = child.color ?? "text-neutral-400";
+            const childColor = child.color ?? "text-[var(--rc-text-muted)]";
             return (
               <Link
                 key={child.href}
                 href={child.href}
                 onClick={onNavigate}
                 className={`flex items-center gap-2 px-3 min-h-[44px] py-2.5 text-sm rounded-md transition-colors ${
-                  isActive ? "bg-neutral-800/70" : "hover:bg-neutral-800/50"
+                  isActive ? "bg-[var(--rc-card-hover)]" : "hover:bg-[var(--rc-card-hover)]/50"
                 }`}
               >
                 {ChildIcon && (
@@ -157,7 +157,7 @@ function SidebarGroup({
                   />
                 )}
                 <span
-                  className={`truncate ${isActive ? "text-neutral-100" : "text-neutral-500 hover:text-neutral-200"}`}
+                  className={`truncate ${isActive ? "text-[var(--rc-text-primary)]" : "text-[var(--rc-text-muted)] hover:text-[var(--rc-text-secondary)]"}`}
                 >
                   {child.label}
                 </span>
@@ -186,7 +186,7 @@ function SidebarLink({
   const isActive =
     pathname === item.href || pathname.startsWith(item.href + "/");
   const IconComp = item.icon;
-  const iconColor = item.color ?? "text-neutral-400";
+  const iconColor = item.color ?? "text-[var(--rc-text-muted)]";
 
   if (collapsed) {
     return (
@@ -195,7 +195,7 @@ function SidebarLink({
           href={item.href}
           onClick={onNavigate}
           className={`flex items-center justify-center w-11 h-11 mx-auto rounded-lg transition-colors ${
-            isActive ? "bg-neutral-800" : "hover:bg-neutral-800"
+            isActive ? "bg-[var(--rc-card-hover)]" : "hover:bg-[var(--rc-card-hover)]"
           }`}
         >
           {IconComp && (
@@ -204,7 +204,7 @@ function SidebarLink({
             />
           )}
         </Link>
-        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-neutral-800 text-neutral-200 text-xs rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity z-50">
+        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[var(--rc-card)] text-[var(--rc-text-primary)] text-xs rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover/tip:opacity-100 transition-opacity z-50 border border-[var(--rc-border-subtle)]">
           {item.label}
         </div>
       </div>
@@ -216,7 +216,7 @@ function SidebarLink({
       href={item.href}
       onClick={onNavigate}
       className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${
-        isActive ? "bg-neutral-800/50" : "hover:bg-neutral-800/50"
+        isActive ? "bg-[var(--rc-card-hover)]/80" : "hover:bg-[var(--rc-card-hover)]/50"
       }`}
     >
       {IconComp && (
@@ -225,7 +225,7 @@ function SidebarLink({
         />
       )}
       <span
-        className={`truncate ${isActive ? "text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
+        className={`truncate ${isActive ? "text-[var(--rc-text-primary)]" : "text-[var(--rc-text-muted)] hover:text-[var(--rc-text-secondary)]"}`}
       >
         {item.label}
       </span>
@@ -330,7 +330,7 @@ export default function Sidebar({
         className={`
           fixed lg:static inset-y-0 left-0 z-50
           flex flex-col
-          bg-neutral-900 border-r border-neutral-800
+          bg-[var(--rc-sidebar)] border-r border-[var(--rc-border-subtle)]
           transition-all duration-300 ease-in-out
           ${collapsed ? "lg:w-16" : "lg:w-60"}
           ${open ? "w-60 translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -350,7 +350,7 @@ export default function Sidebar({
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-9 rounded-lg bg-neutral-800/40 animate-pulse"
+                  className="h-9 rounded-lg bg-[var(--rc-surface-elevated)] animate-pulse"
                 />
               ))}
             </div>
@@ -381,11 +381,11 @@ export default function Sidebar({
         </nav>
 
         {/* Bottom section - mobile only (profile + logout) */}
-        <div className="lg:hidden border-t border-neutral-800 p-3 space-y-1">
+        <div className="lg:hidden border-t border-[var(--rc-border-subtle)] p-3 space-y-1">
           <Link
             href="/profile"
             onClick={handleMobileNavigate}
-            className="flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-300 hover:text-amber-400 rounded-lg hover:bg-neutral-800/50 transition-colors"
+            className="flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--rc-text-secondary)] hover:text-[var(--rc-gold)] rounded-lg hover:bg-[var(--rc-card-hover)]/50 transition-colors"
           >
             <UserIcon className="w-4 h-4 shrink-0" />
             Profilim
@@ -398,7 +398,7 @@ export default function Sidebar({
               } catch {}
               signOut({ callbackUrl: "/login" });
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-500 hover:text-red-400 rounded-lg hover:bg-neutral-800/50 transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--rc-text-muted)] hover:text-[var(--rc-danger)] rounded-lg hover:bg-[var(--rc-card-hover)]/50 transition-colors"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             Çıkış Yap

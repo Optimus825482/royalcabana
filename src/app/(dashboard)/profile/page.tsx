@@ -118,10 +118,11 @@ export default function ProfilePage() {
       setToast({ type: "error", message: "Yeni şifreler eşleşmiyor." });
       return;
     }
-    if (newPassword && newPassword.length < 6) {
+    if (newPassword && newPassword.length < 8) {
       setToast({
         type: "error",
-        message: "Yeni şifre en az 6 karakter olmalı.",
+        message:
+          "Yeni şifre en az 8 karakter olmalı, 1 büyük harf, 1 küçük harf ve 1 rakam içermelidir.",
       });
       return;
     }
@@ -318,8 +319,11 @@ export default function ProfilePage() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-lg pl-10 pr-10 py-3 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors"
-              placeholder="En az 6 karakter"
-              minLength={6}
+              placeholder="En az 8 karakter, büyük/küçük harf ve rakam"
+              minLength={8}
+              pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
+              title="En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam"
+              autoComplete="new-password"
             />
             <button
               type="button"
@@ -380,7 +384,9 @@ export default function ProfilePage() {
           ) : (
             <Save className="w-4 h-4" />
           )}
-          {updateMutation.isPending ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
+          {updateMutation.isPending
+            ? "Kaydediliyor..."
+            : "Değişiklikleri Kaydet"}
         </button>
       </form>
     </div>

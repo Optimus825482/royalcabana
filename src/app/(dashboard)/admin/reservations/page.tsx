@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   useQuery,
   useMutation,
@@ -322,7 +323,7 @@ function DetailPanel({
         <button
           onClick={onClose}
           aria-label="Detayı kapat"
-          className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-neutral-200"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 transition-colors text-neutral-400 hover:text-neutral-200 touch-manipulation"
         >
           <X className="w-5 h-5" />
         </button>
@@ -512,9 +513,9 @@ function DetailPanel({
                     })
                   }
                   disabled={actionLoading || !approvePrice}
-                  className={successBtnCls + " flex items-center gap-1.5"}
+                  className={successBtnCls + " min-h-[48px] flex items-center justify-center gap-2 rounded-xl touch-manipulation"}
                 >
-                  <CheckCircle className="w-4 h-4" />
+                  <CheckCircle className="w-4 h-4 shrink-0" />
                   Onayla
                 </button>
               </div>
@@ -522,11 +523,11 @@ function DetailPanel({
                 <button
                   onClick={() => setShowReject(true)}
                   className={
-                    "w-full flex items-center justify-center gap-1.5 " +
+                    "w-full min-h-[48px] flex items-center justify-center gap-2 rounded-xl touch-manipulation " +
                     dangerSoftBtnCls
                   }
                 >
-                  <XCircle className="w-4 h-4" />
+                  <XCircle className="w-4 h-4 shrink-0" />
                   Reddet
                 </button>
               ) : (
@@ -546,7 +547,7 @@ function DetailPanel({
                         })
                       }
                       disabled={actionLoading || !rejectReason.trim()}
-                      className={"flex-1 " + dangerBtnCls}
+                      className={"flex-1 min-h-[48px] rounded-xl touch-manipulation " + dangerBtnCls}
                     >
                       Reddet
                     </button>
@@ -555,7 +556,7 @@ function DetailPanel({
                         setShowReject(false);
                         setRejectReason("");
                       }}
-                      className="px-3 py-2 bg-neutral-800 text-neutral-400 text-sm rounded-lg hover:text-neutral-200 transition-colors"
+                      className="min-h-[48px] px-4 py-2.5 bg-neutral-800 text-neutral-400 text-sm rounded-xl hover:text-neutral-200 active:bg-neutral-700 transition-colors touch-manipulation"
                     >
                       İptal
                     </button>
@@ -576,10 +577,10 @@ function DetailPanel({
                 onClick={() => onAction("check-in", reservation.id)}
                 disabled={actionLoading}
                 className={
-                  "w-full flex items-center justify-center gap-2 " + infoBtnCls
+                  "w-full min-h-[48px] flex items-center justify-center gap-2 rounded-xl touch-manipulation " + infoBtnCls
                 }
               >
-                <LogIn className="w-4 h-4" />
+                <LogIn className="w-4 h-4 shrink-0" />
                 Check-in Yap
               </button>
             </div>
@@ -595,9 +596,9 @@ function DetailPanel({
               <button
                 onClick={() => onAction("check-out", reservation.id)}
                 disabled={actionLoading}
-                className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full min-h-[48px] px-4 py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-medium rounded-xl disabled:opacity-50 transition-colors flex items-center justify-center gap-2 touch-manipulation"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 shrink-0" />
                 Check-out Yap
               </button>
             </div>
@@ -619,12 +620,19 @@ function DetailPanel({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminReservationsPage() {
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Bildirimden tıklanınca gelen ?reservationId= ile detayı aç
+  useEffect(() => {
+    const id = searchParams.get("reservationId");
+    if (id) setSelectedId(id);
+  }, [searchParams]);
   const [sortField, setSortField] = useState<"createdAt" | "startDate">(
     "createdAt",
   );
@@ -948,7 +956,7 @@ export default function AdminReservationsPage() {
                   <button
                     key={r.id}
                     onClick={() => setSelectedId(r.id)}
-                    className={`w-full text-left px-5 py-3.5 border-b border-neutral-800/60 hover:bg-neutral-800/40 transition-colors ${
+                    className={`w-full text-left min-h-[48px] px-4 sm:px-5 py-3.5 border-b border-neutral-800/60 hover:bg-neutral-800/40 active:bg-neutral-800/60 transition-colors touch-manipulation ${
                       selectedId === r.id ? "bg-neutral-800/60" : ""
                     }`}
                   >
@@ -1019,12 +1027,12 @@ export default function AdminReservationsPage() {
               <p className="text-xs text-neutral-500">
                 Sayfa {page}/{totalPages}
               </p>
-              <div className="flex gap-1">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                   aria-label="Önceki sayfa"
-                  className="p-2 rounded-lg hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400 touch-manipulation"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -1032,7 +1040,7 @@ export default function AdminReservationsPage() {
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   aria-label="Sonraki sayfa"
-                  className="p-2 rounded-lg hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400 touch-manipulation"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

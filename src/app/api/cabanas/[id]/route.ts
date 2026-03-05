@@ -9,6 +9,7 @@ const updateCabanaSchema = z.object({
   name: z.string().min(1).optional(),
   classId: z.string().cuid().optional(),
   conceptId: z.string().cuid().nullable().optional(),
+  minibarTypeId: z.string().cuid().nullable().optional(),
   coordX: z.number().optional(),
   coordY: z.number().optional(),
 });
@@ -20,29 +21,27 @@ const allRoles = [
   Role.FNB_USER,
 ];
 
-export const GET = withAuth(
-  allRoles,
-  async (_req, { params }) => {
-    const id = params!.id;
+export const GET = withAuth(allRoles, async (_req, { params }) => {
+  const id = params!.id;
 
-    const cabana = await prisma.cabana.findUnique({
-      where: { id },
-      include: {
-        cabanaClass: true,
-        concept: true,
-      },
-    });
+  const cabana = await prisma.cabana.findUnique({
+    where: { id },
+    include: {
+      cabanaClass: true,
+      concept: true,
+      minibarType: { select: { id: true, name: true } },
+    },
+  });
 
-    if (!cabana) {
-      return NextResponse.json(
-        { success: false, error: "Cabana bulunamadı." },
-        { status: 404 },
-      );
-    }
+  if (!cabana) {
+    return NextResponse.json(
+      { success: false, error: "Cabana bulunamadı." },
+      { status: 404 },
+    );
+  }
 
-    return NextResponse.json({ success: true, data: cabana });
-  },
-);
+  return NextResponse.json({ success: true, data: cabana });
+});
 
 export const PATCH = withAuth(
   [Role.SYSTEM_ADMIN],
@@ -77,6 +76,7 @@ export const PATCH = withAuth(
       include: {
         cabanaClass: { select: { id: true, name: true } },
         concept: { select: { id: true, name: true } },
+        minibarType: { select: { id: true, name: true } },
       },
     });
 
@@ -89,6 +89,7 @@ export const PATCH = withAuth(
         name: cabana.name,
         classId: cabana.classId,
         conceptId: cabana.conceptId,
+        minibarTypeId: cabana.minibarTypeId,
         coordX: cabana.coordX,
         coordY: cabana.coordY,
       },

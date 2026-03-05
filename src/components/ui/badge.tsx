@@ -13,11 +13,19 @@ const badgeVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
         destructive:
-          "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
+          "bg-destructive text-white focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
         outline:
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
+        /* Status — badge/icon only; token-based */
+        success:
+          "bg-[var(--rc-success)]/20 text-[var(--rc-success)] border border-[var(--rc-success)]/30 [a&]:hover:bg-[var(--rc-success)]/30",
+        warning:
+          "bg-[var(--rc-warning)]/20 text-[var(--rc-warning)] border border-[var(--rc-warning)]/30 [a&]:hover:bg-[var(--rc-warning)]/30",
+        info: "bg-[var(--rc-info)]/20 text-[var(--rc-info)] border border-[var(--rc-info)]/30 [a&]:hover:bg-[var(--rc-info)]/30",
+        danger:
+          "bg-[var(--rc-danger)]/20 text-[var(--rc-danger)] border border-[var(--rc-danger)]/30 [a&]:hover:bg-[var(--rc-danger)]/30",
       },
     },
     defaultVariants: {

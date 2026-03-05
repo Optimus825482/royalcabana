@@ -15,6 +15,7 @@ const createCabanaSchema = z.object({
   scaleX: z.number().min(0.1).max(5).optional(),
   scaleY: z.number().min(0.1).max(5).optional(),
   color: z.string().optional(),
+  minibarTypeId: z.string().cuid().optional(),
 });
 
 const allRoles = [
@@ -36,6 +37,7 @@ export const GET = withAuth(allRoles, async (req) => {
     include: {
       cabanaClass: { select: { id: true, name: true } },
       concept: { select: { id: true, name: true } },
+      minibarType: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -68,6 +70,7 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
     scaleX,
     scaleY,
     color,
+    minibarTypeId,
   } = parsed.data;
 
   const existing = await prisma.cabana.findUnique({ where: { name } });
@@ -89,10 +92,12 @@ export const POST = withAuth([Role.SYSTEM_ADMIN], async (req, { session }) => {
       scaleX: scaleX ?? 1,
       scaleY: scaleY ?? 1,
       color: color ?? null,
+      minibarTypeId: minibarTypeId ?? null,
     },
     include: {
       cabanaClass: { select: { id: true, name: true } },
       concept: { select: { id: true, name: true } },
+      minibarType: { select: { id: true, name: true } },
     },
   });
 

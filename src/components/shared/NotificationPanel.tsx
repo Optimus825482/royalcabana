@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
@@ -29,6 +30,7 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
+  metadata?: { reservationId?: string; [key: string]: unknown };
 }
 
 const TYPE_ICON: Record<string, typeof ClipboardList> = {
@@ -74,8 +76,44 @@ async function fetchUnread(): Promise<{
   };
 }
 
+const RESERVATION_NOTIFICATION_TYPES = new Set([
+  "NEW_REQUEST",
+  "APPROVED",
+  "REJECTED",
+  "MODIFICATION_REQUEST",
+  "CANCELLATION_REQUEST",
+  "EXTRA_CONCEPT_REQUEST",
+  "EXTRA_ADDED",
+  "STATUS_CHANGED",
+  "CHECK_IN",
+  "CHECK_OUT",
+  "FNB_ORDER",
+]);
+
+function getNotificationTargetUrl(
+  n: Notification,
+  role: string,
+): string | null {
+  const meta = n.metadata as { reservationId?: string } | undefined;
+  const reservationId = meta?.reservationId;
+  if (!reservationId || !RESERVATION_NOTIFICATION_TYPES.has(n.type))
+    return null;
+  switch (role) {
+    case "ADMIN":
+    case "SYSTEM_ADMIN":
+      return `/admin/reservations?reservationId=${encodeURIComponent(reservationId)}`;
+    case "CASINO_USER":
+      return `/casino/reservations?reservationId=${encodeURIComponent(reservationId)}`;
+    case "FNB_USER":
+      return `/fnb/reservations?reservationId=${encodeURIComponent(reservationId)}`;
+    default:
+      return null;
+  }
+}
+
 export default function NotificationPanel() {
   const { data: session } = useSession();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -143,6 +181,19 @@ export default function NotificationPanel() {
       queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
     },
     [queryClient],
+  );
+
+  const handleNotificationClick = useCallback(
+    (n: Notification) => {
+      const role = session?.user?.role as string | undefined;
+      const targetUrl = role ? getNotificationTargetUrl(n, role) : null;
+      if (targetUrl) {
+        setOpen(false);
+        router.push(targetUrl);
+      }
+      markOneRead(n.id);
+    },
+    [session?.user?.role, router, markOneRead],
   );
 
   const [pushState, setPushState] = useState<
@@ -222,7 +273,7 @@ export default function NotificationPanel() {
               data.notifications.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => markOneRead(n.id)}
+                  onClick={() => handleNotificationClick(n)}
                   className={`w-full text-left px-4 py-3 border-b border-neutral-800/60 hover:bg-neutral-800/50 transition-colors ${
                     !n.isRead ? "bg-neutral-800/30" : ""
                   }`}

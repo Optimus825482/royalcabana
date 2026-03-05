@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSSE } from "@/hooks/useSSE";
 import { SSE_EVENTS } from "@/lib/sse-events";
@@ -142,12 +143,25 @@ function daysBetween(start: string, end: string) {
 
 export default function CasinoReservationsPage() {
   useSession({ required: true });
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "">("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedDetail, setExpandedDetail] = useState<ReservationDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Bildirimden tıklanınca gelen ?reservationId= ile detayı aç
+  useEffect(() => {
+    const id = searchParams.get("reservationId");
+    if (!id) return;
+    setExpandedId(id);
+    setDetailLoading(true);
+    fetchReservationDetail(id)
+      .then((detail) => setExpandedDetail(detail))
+      .catch(() => setExpandedDetail(null))
+      .finally(() => setDetailLoading(false));
+  }, [searchParams]);
   const [editingReservation, setEditingReservation] =
     useState<ReservationItem | null>(null);
   const [editForm, setEditForm] = useState({
@@ -297,12 +311,12 @@ export default function CasinoReservationsPage() {
           </p>
         </div>
 
-        {/* Status filter chips */}
+        {/* Status filter chips — touch-friendly */}
         <div className="flex flex-wrap items-center gap-2 mb-5">
-          <Filter className="w-4 h-4 text-neutral-500" />
+          <Filter className="w-4 h-4 text-neutral-500 shrink-0" />
           <button
             onClick={() => setStatusFilter("")}
-            className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+            className={`min-h-[44px] px-4 py-2.5 text-sm rounded-xl border transition-colors touch-manipulation active:scale-[0.98] ${
               statusFilter === ""
                 ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
                 : "bg-neutral-800/50 border-neutral-700/50 text-neutral-400 hover:text-neutral-200"
@@ -318,7 +332,7 @@ export default function CasinoReservationsPage() {
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                className={`min-h-[44px] px-4 py-2.5 text-sm rounded-xl border transition-colors touch-manipulation active:scale-[0.98] ${
                   statusFilter === s
                     ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
                     : "bg-neutral-800/50 border-neutral-700/50 text-neutral-400 hover:text-neutral-200"
@@ -371,7 +385,7 @@ export default function CasinoReservationsPage() {
                         setDetailLoading(false);
                       }
                     }}
-                    className="w-full text-left px-4 py-4 flex items-center gap-3"
+                    className="w-full text-left px-4 py-4 min-h-[48px] flex items-center gap-3 touch-manipulation active:bg-neutral-800/50"
                   >
                     <StatusIcon
                       className={`w-5 h-5 shrink-0 ${cfg.badge.includes("text-") ? cfg.badge.split(" ").find((c: string) => c.startsWith("text-")) : "text-neutral-400"}`}
@@ -456,9 +470,9 @@ export default function CasinoReservationsPage() {
                         <div className="mt-3 pt-3 border-t border-neutral-800">
                           <button
                             onClick={() => openEditModal(r)}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600/20 border border-amber-700/30 text-amber-300 text-xs hover:bg-amber-600/30 transition-colors"
+                            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl bg-amber-600/20 border border-amber-700/30 text-amber-300 text-sm hover:bg-amber-600/30 active:bg-amber-600/40 transition-colors touch-manipulation"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-4 h-4 shrink-0" />
                             Talebi Güncelle
                           </button>
                         </div>
@@ -518,7 +532,7 @@ export default function CasinoReservationsPage() {
               </h2>
               <button
                 onClick={() => setEditingReservation(null)}
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors active:scale-95"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 text-neutral-400 hover:text-neutral-200 transition-colors touch-manipulation"
                 aria-label="Kapat"
               >
                 <XCircle className="w-5 h-5" />
@@ -542,7 +556,7 @@ export default function CasinoReservationsPage() {
                     }))
                   }
                   title="Misafir adı"
-                  className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
+                  className="w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-neutral-800 border border-neutral-700 text-neutral-100 text-base focus:outline-none focus:border-amber-500 touch-manipulation"
                 />
               </div>
 
@@ -562,7 +576,7 @@ export default function CasinoReservationsPage() {
                       }))
                     }
                     title="Başlangıç tarihi"
-                    className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
+                    className="w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-neutral-800 border border-neutral-700 text-neutral-100 text-base focus:outline-none focus:border-amber-500 touch-manipulation"
                   />
                 </div>
                 <div>
@@ -580,7 +594,7 @@ export default function CasinoReservationsPage() {
                       }))
                     }
                     title="Bitiş tarihi"
-                    className="w-full h-11 px-3 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-100 focus:outline-none focus:border-amber-500"
+                    className="w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-neutral-800 border border-neutral-700 text-neutral-100 text-base focus:outline-none focus:border-amber-500 touch-manipulation"
                   />
                 </div>
               </div>
@@ -606,18 +620,18 @@ export default function CasinoReservationsPage() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-1">
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingReservation(null)}
-                  className="px-4 h-10 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm"
+                  className="min-h-[48px] px-4 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 active:bg-neutral-600 text-neutral-200 text-sm touch-manipulation"
                 >
                   Vazgeç
                 </button>
                 <button
                   type="submit"
                   disabled={editLoading}
-                  className="px-4 h-10 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-neutral-950 font-semibold text-sm"
+                  className="min-h-[48px] px-4 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 active:bg-amber-700 disabled:opacity-50 text-neutral-950 font-semibold text-sm touch-manipulation"
                 >
                   {editLoading ? "Kaydediliyor..." : "Güncelle"}
                 </button>

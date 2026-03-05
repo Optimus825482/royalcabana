@@ -1,6 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Sun,
+  Cloud,
+  CloudRain,
+  CloudLightning,
+  CloudSnow,
+  CloudFog,
+} from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,6 +100,16 @@ interface CustomExtraRequest {
   quantity: number;
 }
 
+interface MinibarTypeOption {
+  id: string;
+  name: string;
+  description: string | null;
+  products: Array<{
+    product: { id: string; name: string; salePrice: number | string };
+    quantity: number;
+  }>;
+}
+
 interface ReservationRequestFormProps {
   cabanaId: string;
   cabanaName: string;
@@ -102,9 +121,10 @@ interface ReservationRequestFormProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { key: "guest", label: "Misafir & Tarih", icon: "👤" },
-  { key: "customize", label: "Konsept & Ürünler", icon: "🎨" },
-  { key: "summary", label: "Özet & Gönder", icon: "✓" },
+  { key: "guest", label: "Misafir & Tarih" },
+  { key: "concept", label: "Konsept & Minibar" },
+  { key: "extras", label: "Ekstralar & Notlar" },
+  { key: "summary", label: "Özet & Gönder" },
 ] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -122,13 +142,49 @@ function daysBetween(start: string, end: string): number {
   return Math.max(0, Math.round(ms / (1000 * 60 * 60 * 24)));
 }
 
+// ─── Weather (summary step) ───────────────────────────────────────────────────
+
+interface DailyForecastSummary {
+  dt: number;
+  temp: { min: number; max: number; day?: number };
+  description: string;
+  icon: string;
+}
+
+interface ForecastApiResponse {
+  success: boolean;
+  data?: {
+    daily?: DailyForecastSummary[];
+  };
+}
+
+type WeatherIconComponent = typeof Cloud;
+const WEATHER_ICON_MAP: Record<string, WeatherIconComponent> = {
+  "01": Sun,
+  "02": Cloud,
+  "03": Cloud,
+  "04": Cloud,
+  "09": CloudRain,
+  "10": CloudRain,
+  "11": CloudLightning,
+  "13": CloudSnow,
+  "50": CloudFog,
+};
+
+function getWeatherIcon(iconCode?: string | null): WeatherIconComponent {
+  if (!iconCode || typeof iconCode !== "string" || iconCode.length < 2)
+    return Cloud;
+  const prefix = iconCode.slice(0, 2);
+  return WEATHER_ICON_MAP[prefix] ?? Cloud;
+}
+
 // ─── Stepper Header ──────────────────────────────────────────────────────────
 
 function StepperHeader({ currentStep }: { currentStep: number }) {
   return (
     <nav
       aria-label="Rezervasyon adımları"
-      className="flex items-center justify-between px-1 mb-6"
+      className="flex items-center justify-between px-0.5 mb-3"
     >
       {STEPS.map((step, i) => {
         const isActive = i === currentStep;
@@ -136,38 +192,38 @@ function StepperHeader({ currentStep }: { currentStep: number }) {
         return (
           <div
             key={step.key}
-            className="flex items-center flex-1 last:flex-none"
+            className="flex items-center flex-1 last:flex-none min-w-0"
           >
-            <div className="flex flex-col items-center gap-1.5 min-w-0">
+            <div className="flex flex-col items-center gap-1 min-w-0 flex-1">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 shrink-0 ${
                   isDone
-                    ? "bg-amber-500 text-neutral-950 shadow-lg shadow-amber-500/20"
+                    ? "bg-[var(--rc-gold)] text-[var(--rc-btn-primary-text)] shadow-[0_0_8px_color-mix(in_srgb,var(--rc-gold)_30%,transparent)]"
                     : isActive
-                      ? "bg-amber-500/20 text-amber-400 border-2 border-amber-500 shadow-lg shadow-amber-500/10"
-                      : "bg-neutral-800 text-neutral-600 border border-neutral-700"
+                      ? "bg-[var(--rc-gold)]/20 text-[var(--rc-gold)] border-2 border-[var(--rc-gold)]"
+                      : "bg-[var(--rc-card-hover)] text-[var(--rc-text-muted)] border border-[var(--rc-border-subtle)]"
                 }`}
                 aria-current={isActive ? "step" : undefined}
               >
                 {isDone ? "✓" : i + 1}
               </div>
               <span
-                className={`text-[10px] font-medium text-center leading-tight transition-colors ${
+                className={`text-[9px] font-medium text-center leading-tight transition-colors truncate w-full ${
                   isActive
-                    ? "text-amber-400"
+                    ? "text-[var(--rc-gold)]"
                     : isDone
-                      ? "text-amber-500/70"
-                      : "text-neutral-600"
+                      ? "text-[var(--rc-text-secondary)]"
+                      : "text-[var(--rc-text-muted)]"
                 }`}
               >
                 {step.label}
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className="flex-1 mx-2 mt-[-18px]">
+              <div className="flex-1 mx-1 mt-[-14px] min-w-2">
                 <div
                   className={`h-0.5 rounded-full transition-all duration-500 ${
-                    isDone ? "bg-amber-500" : "bg-neutral-800"
+                    isDone ? "bg-[var(--rc-gold)]" : "bg-[var(--rc-border-subtle)]"
                   }`}
                   aria-hidden="true"
                 />
@@ -219,11 +275,17 @@ export default function ReservationRequestForm({
   const [selectedExtras, setSelectedExtras] = useState<ExtraSelection[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [customRequests, setCustomRequests] = useState("");
-  const [customExtraRequests, setCustomExtraRequests] = useState<CustomExtraRequest[]>([]);
+  const [customExtraRequests, setCustomExtraRequests] = useState<
+    CustomExtraRequest[]
+  >([]);
+
+  // ── Minibar Types ──
+  const [minibarTypeId, setMinibarTypeId] = useState<string | null>(null);
+  const [minibarTypes, setMinibarTypes] = useState<MinibarTypeOption[]>([]);
+  const [minibarTypesLoading, setMinibarTypesLoading] = useState(true);
 
   // ── Step 3: Summary ──
   const [notes, setNotes] = useState("");
-  const [isGuestPrivate, setIsGuestPrivate] = useState(false);
   const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(
     null,
   );
@@ -235,6 +297,28 @@ export default function ReservationRequestForm({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
+
+  // ── Weather forecast (summary step only) ──
+  const { data: forecastData, isLoading: forecastLoading, isError: forecastError } = useQuery<ForecastApiResponse>({
+    queryKey: ["weather-forecast", startDate, endDate],
+    queryFn: async () => {
+      const res = await fetch("/api/weather/forecast");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "Forecast failed");
+      return json;
+    },
+    enabled: step === 3 && !!startDate && !!endDate,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const summaryWeatherDays = useMemo((): DailyForecastSummary[] => {
+    const daily = forecastData?.data?.daily ?? [];
+    if (!startDate || !endDate) return [];
+    return daily.filter((d) => {
+      const dateStr = new Date(d.dt * 1000).toISOString().slice(0, 10);
+      return dateStr >= startDate && dateStr <= endDate;
+    });
+  }, [forecastData?.data?.daily, startDate, endDate]);
 
   // ── Data Fetching (parallel on mount) ──
   useEffect(() => {
@@ -272,9 +356,17 @@ export default function ReservationRequestForm({
           );
         })
         .catch(() => setAvailableProducts([])),
+      fetch("/api/minibar-types")
+        .then((r) => r.json())
+        .then((json) => {
+          const raw = json.data ?? json;
+          setMinibarTypes(Array.isArray(raw) ? raw : []);
+        })
+        .catch(() => setMinibarTypes([])),
     ]).finally(() => {
       setConceptsLoading(false);
       setProductsLoading(false);
+      setMinibarTypesLoading(false);
     });
   }, []);
 
@@ -397,6 +489,7 @@ export default function ReservationRequestForm({
           startDate,
           endDate,
           extraItems: selectedExtras,
+          minibarTypeId: minibarTypeId || null,
         }),
       });
       if (res.ok) {
@@ -410,7 +503,7 @@ export default function ReservationRequestForm({
     } finally {
       setPriceLoading(false);
     }
-  }, [cabanaId, conceptId, startDate, endDate, selectedExtras]);
+  }, [cabanaId, conceptId, startDate, endDate, selectedExtras, minibarTypeId]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -431,6 +524,18 @@ export default function ReservationRequestForm({
     }, 0);
   }, [selectedExtras, availableProducts]);
 
+  const selectedMinibarType = minibarTypes.find((m) => m.id === minibarTypeId);
+  const minibarTotal = useMemo(() => {
+    if (!selectedMinibarType?.products) return 0;
+    return selectedMinibarType.products.reduce((sum, mp) => {
+      const price =
+        typeof mp.product.salePrice === "string"
+          ? parseFloat(mp.product.salePrice)
+          : mp.product.salePrice;
+      return sum + price * mp.quantity;
+    }, 0);
+  }, [selectedMinibarType]);
+
   // ── Step Validation ──
   const guestNameError =
     touched.guestName && guestName.trim().length < 2
@@ -446,7 +551,10 @@ export default function ReservationRequestForm({
       : null;
 
   const canGoStep2 =
-    guestName.trim().length >= 2 && startDate && endDate && endDate >= startDate;
+    guestName.trim().length >= 2 &&
+    startDate &&
+    endDate &&
+    endDate >= startDate;
   const canSubmit = canGoStep2;
 
   function nextStep() {
@@ -501,8 +609,8 @@ export default function ReservationRequestForm({
           startDate,
           endDate,
           notes: notes || undefined,
-          isGuestPrivate,
           conceptId: conceptId || undefined,
+          minibarTypeId: minibarTypeId || undefined,
           extraItems: selectedExtras.length > 0 ? selectedExtras : undefined,
           customRequests: customRequests.trim() || undefined,
           extraRequests: extraRequests.length > 0 ? extraRequests : undefined,
@@ -526,48 +634,70 @@ export default function ReservationRequestForm({
   // ═══════════════════════════════════════════════════════════════════════════
 
   const inputBase =
-    "w-full px-3.5 py-2.5 text-sm bg-neutral-900/60 border border-neutral-700/60 rounded-xl text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-amber-500/50 focus:bg-neutral-900/80 transition-all duration-200";
+    "w-full min-h-[44px] px-3.5 py-2.5 text-base sm:text-sm bg-[var(--rc-input-bg)] border border-[var(--rc-input-border)] rounded-xl text-[var(--rc-text-primary)] placeholder-[var(--rc-placeholder)] focus:outline-none focus:border-[var(--rc-input-focus)] focus:bg-[var(--rc-input-bg)] transition-all duration-200 touch-manipulation";
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-3 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/25 flex items-center justify-center">
-            <span className="text-amber-400 text-sm">☀</span>
+      {/* Header — mobile-first padding */}
+      <div className="px-4 sm:px-5 pt-4 pb-2 flex-shrink-0">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-[var(--rc-gold)]/20 border border-[var(--rc-gold)]/30 flex items-center justify-center">
+            <span className="text-[var(--rc-gold)] text-sm">☀</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-400 tracking-tight">{cabanaName}</p>
-            <p className="text-[10px] text-neutral-500 tracking-wide uppercase">Yeni Rezervasyon Talebi</p>
+            <p className="text-sm font-semibold text-[var(--rc-gold)] tracking-tight">
+              {cabanaName}
+            </p>
+            <p className="text-[10px] text-[var(--rc-text-muted)] tracking-wide uppercase">
+              Yeni Rezervasyon Talebi
+            </p>
           </div>
           <button
             type="button"
             onClick={onCancel}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-600 hover:text-neutral-300 hover:bg-neutral-800 transition-all"
+            className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-[var(--rc-text-muted)] hover:text-[var(--rc-text-primary)] hover:bg-[var(--rc-card-hover)] active:bg-[var(--rc-card-hover)] transition-all touch-manipulation"
             aria-label="Kapat"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M1 1l12 12M13 1L1 13"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         </div>
         <StepperHeader currentStep={step} />
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-neutral-700/50 to-transparent flex-shrink-0" />
+      <div className="h-px bg-[var(--rc-border-subtle)] flex-shrink-0" />
 
       {/* Step Content */}
-      <div className="flex-1 overflow-y-auto rc-scrollbar min-h-0 px-5 py-4">
+      <div className="flex-1 overflow-y-auto rc-scrollbar min-h-0 px-4 sm:px-5 py-3">
         {/* ═══ STEP 1: Misafir & Tarih ═══ */}
         {step === 0 && (
-          <div className="space-y-5 animate-in fade-in slide-in-from-right-2 duration-300">
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
             {/* Guest Search */}
-            <div className="space-y-2 relative" ref={suggestionsRef}>
-              <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+            <div className="space-y-1.5 relative" ref={suggestionsRef}>
+              <label className="text-[11px] font-semibold text-[var(--rc-text-muted)] uppercase tracking-wider">
                 Misafir
               </label>
               <div className="relative group">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-600 group-focus-within:text-amber-500/60 transition-colors">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--rc-text-muted)] group-focus-within:text-[var(--rc-gold)] transition-colors">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
                 </div>
                 <input
                   type="text"
@@ -598,7 +728,7 @@ export default function ReservationRequestForm({
                       setGuestName("");
                       setGuestHistory(null);
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-neutral-500 hover:text-neutral-200 hover:bg-neutral-700/50 text-xs transition-all"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-[var(--rc-text-muted)] hover:text-[var(--rc-text-primary)] hover:bg-[var(--rc-card-hover)] text-xs transition-all"
                   >
                     ✕
                   </button>
@@ -606,15 +736,17 @@ export default function ReservationRequestForm({
               </div>
               {guestId && (
                 <div className="flex items-center gap-2 px-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <p className="text-[10px] text-emerald-400 font-medium">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--rc-success)] animate-pulse" />
+                  <p className="text-[10px] text-[var(--rc-success)] font-medium">
                     Kayıtlı misafir eşleştirildi
                   </p>
                 </div>
               )}
 
               {guestNameError && (
-                <p className="text-[10px] text-red-400 px-1">{guestNameError}</p>
+                <p className="text-[10px] text-[var(--rc-danger)] px-1">
+                  {guestNameError}
+                </p>
               )}
 
               {/* Autocomplete Dropdown */}
@@ -623,7 +755,7 @@ export default function ReservationRequestForm({
                   role="listbox"
                   id="guest-suggestions-listbox"
                   aria-label="Misafir önerileri"
-                  className="absolute z-50 top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-700/60 rounded-xl shadow-2xl shadow-black/50 max-h-48 overflow-y-auto rc-scrollbar backdrop-blur-xl"
+                  className="absolute z-50 top-full left-0 right-0 mt-1 bg-[var(--rc-card)] border border-[var(--rc-border-subtle)] rounded-xl shadow-2xl max-h-48 overflow-y-auto rc-scrollbar"
                 >
                   {guestSuggestions.map((g, idx) => (
                     <button
@@ -633,25 +765,33 @@ export default function ReservationRequestForm({
                       role="option"
                       aria-selected={guestId === g.id}
                       onClick={() => selectGuest(g)}
-                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 transition-all text-left border-b border-neutral-800/40 last:border-0 ${
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 transition-all text-left border-b border-[var(--rc-border-subtle)] last:border-0 ${
                         idx === highlightedIndex
-                          ? "bg-amber-500/10"
-                          : "hover:bg-neutral-800/60"
+                          ? "bg-[var(--rc-gold)]/10"
+                          : "hover:bg-[var(--rc-card-hover)]"
                       }`}
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600/25 to-amber-700/10 flex items-center justify-center flex-shrink-0 border border-amber-600/15">
-                        <span className="text-xs font-bold text-amber-400">
+                      <div className="w-8 h-8 rounded-full bg-[var(--rc-gold)]/20 flex items-center justify-center flex-shrink-0 border border-[var(--rc-gold)]/20">
+                        <span className="text-xs font-bold text-[var(--rc-gold)]">
                           {g.name.charAt(0)}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-neutral-100 truncate">{g.name}</p>
-                        <p className="text-[10px] text-neutral-500">
+                        <p className="text-sm text-[var(--rc-text-primary)] truncate">
+                          {g.name}
+                        </p>
+                        <p className="text-[10px] text-[var(--rc-text-muted)]">
                           {g.totalVisits} ziyaret
                           {g.vipLevel !== "STANDARD" && (
-                            <span className="text-amber-400 ml-1.5 font-medium">VIP {g.vipLevel}</span>
+                            <span className="text-[var(--rc-gold)] ml-1.5 font-medium">
+                              VIP {g.vipLevel}
+                            </span>
                           )}
-                          {g.phone && <span className="ml-1.5 text-neutral-600">· {g.phone}</span>}
+                          {g.phone && (
+                            <span className="ml-1.5 text-[var(--rc-text-muted)]">
+                              · {g.phone}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </button>
@@ -662,45 +802,49 @@ export default function ReservationRequestForm({
 
             {/* Guest History Card */}
             {historyLoading && (
-              <div className="px-3.5 py-3 bg-neutral-800/30 border border-neutral-700/20 rounded-xl">
-                <p className="text-xs text-neutral-500 animate-pulse">Misafir geçmişi yükleniyor...</p>
+              <div className="px-3.5 py-3 bg-[var(--rc-card-hover)]/50 border border-[var(--rc-border-subtle)] rounded-xl">
+                <p className="text-xs text-[var(--rc-text-muted)] animate-pulse">
+                  Misafir geçmişi yükleniyor...
+                </p>
               </div>
             )}
             {guestHistory && !historyLoading && (
-              <div className="rounded-xl border border-amber-600/15 bg-gradient-to-b from-amber-950/15 to-neutral-900/0 overflow-hidden">
-                <div className="px-3.5 py-2.5 border-b border-amber-700/10 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wider">Misafir Geçmişi</span>
+              <div className="rounded-xl border border-[var(--rc-gold)]/20 bg-[var(--rc-card)] overflow-hidden">
+                <div className="px-3.5 py-2.5 border-b border-[var(--rc-border-subtle)] flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-[var(--rc-gold)] uppercase tracking-wider">
+                    Misafir Geçmişi
+                  </span>
                   {guestHistory.guest.vipLevel !== "STANDARD" && (
-                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-600/15 text-amber-300 border border-amber-600/20 font-medium">
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-[var(--rc-gold)]/15 text-[var(--rc-gold)] border border-[var(--rc-gold)]/25 font-medium">
                       VIP {guestHistory.guest.vipLevel}
                     </span>
                   )}
                 </div>
                 <div className="px-3.5 py-3 grid grid-cols-2 gap-3 text-[10px]">
                   <div>
-                    <span className="text-neutral-500">Ziyaret</span>
-                    <p className="text-neutral-200 font-semibold text-xs mt-0.5">
+                    <span className="text-[var(--rc-text-muted)]">Ziyaret</span>
+                    <p className="text-[var(--rc-text-primary)] font-semibold text-xs mt-0.5">
                       {guestHistory.summary.totalVisits}
                     </p>
                   </div>
                   <div>
-                    <span className="text-neutral-500">Harcama</span>
-                    <p className="text-neutral-200 font-semibold text-xs mt-0.5">
+                    <span className="text-[var(--rc-text-muted)]">Harcama</span>
+                    <p className="text-[var(--rc-text-primary)] font-semibold text-xs mt-0.5">
                       {formatPriceVal(guestHistory.summary.totalSpent)} ₺
                     </p>
                   </div>
                   {guestHistory.summary.favoriteCabana && (
                     <div>
-                      <span className="text-neutral-500">Favori Cabana</span>
-                      <p className="text-neutral-200 font-medium text-xs mt-0.5">
+                      <span className="text-[var(--rc-text-muted)]">Favori Cabana</span>
+                      <p className="text-[var(--rc-text-primary)] font-medium text-xs mt-0.5">
                         {guestHistory.summary.favoriteCabana}
                       </p>
                     </div>
                   )}
                   {guestHistory.summary.favoriteConcept && (
                     <div>
-                      <span className="text-neutral-500">Favori Konsept</span>
-                      <p className="text-neutral-200 font-medium text-xs mt-0.5">
+                      <span className="text-[var(--rc-text-muted)]">Favori Konsept</span>
+                      <p className="text-[var(--rc-text-primary)] font-medium text-xs mt-0.5">
                         {guestHistory.summary.favoriteConcept}
                       </p>
                     </div>
@@ -708,30 +852,44 @@ export default function ReservationRequestForm({
                 </div>
                 {guestHistory.reservations.length > 0 && (
                   <div className="px-3.5 pb-3 space-y-1">
-                    <p className="text-[9px] text-neutral-600 uppercase tracking-wider font-medium mb-1">Son Ziyaretler</p>
+                    <p className="text-[9px] text-[var(--rc-text-muted)] uppercase tracking-wider font-medium mb-1">
+                      Son Ziyaretler
+                    </p>
                     {guestHistory.reservations.slice(0, 3).map((r) => (
-                      <div key={r.id} className="flex items-center justify-between text-[10px] bg-neutral-800/25 rounded-lg px-2.5 py-1.5">
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between text-[10px] bg-[var(--rc-card-hover)]/40 rounded-lg px-2.5 py-1.5"
+                      >
                         <div className="flex items-center gap-1.5">
-                          <span className="text-neutral-300">{r.cabanaName}</span>
-                          <span className="text-neutral-700">·</span>
-                          <span className="text-neutral-500">{r.days} gün</span>
+                          <span className="text-[var(--rc-text-secondary)]">
+                            {r.cabanaName}
+                          </span>
+                          <span className="text-[var(--rc-text-muted)]">·</span>
+                          <span className="text-[var(--rc-text-muted)]">{r.days} gün</span>
                           {r.conceptName && (
                             <>
-                              <span className="text-neutral-700">·</span>
-                              <span className="text-amber-400/50">{r.conceptName}</span>
+                              <span className="text-[var(--rc-text-muted)]">·</span>
+                              <span className="text-[var(--rc-gold)]/80">
+                                {r.conceptName}
+                              </span>
                             </>
                           )}
                         </div>
-                        <span className="text-neutral-600 tabular-nums">
-                          {new Date(r.startDate).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
+                        <span className="text-[var(--rc-text-muted)] tabular-nums">
+                          {new Date(r.startDate).toLocaleDateString("tr-TR", {
+                            day: "2-digit",
+                            month: "short",
+                          })}
                         </span>
                       </div>
                     ))}
                   </div>
                 )}
                 {guestHistory.guest.isBlacklisted && (
-                  <div className="px-3.5 py-2 bg-red-950/30 border-t border-red-800/20">
-                    <p className="text-[10px] text-red-400 font-semibold">⚠ Bu misafir kara listede</p>
+                  <div className="px-3.5 py-2 bg-[var(--rc-danger)]/10 border-t border-[var(--rc-danger)]/20">
+                    <p className="text-[10px] text-[var(--rc-danger)] font-semibold">
+                      ⚠ Bu misafir kara listede
+                    </p>
                   </div>
                 )}
               </div>
@@ -739,43 +897,50 @@ export default function ReservationRequestForm({
 
             {/* Date Pickers */}
             <div className="space-y-2">
-              <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+              <label className="text-[11px] font-semibold text-[var(--rc-text-muted)] uppercase tracking-wider">
                 Tarih
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <span className="text-[10px] text-neutral-500 font-medium">Başlangıç</span>
+                  <span className="text-[10px] text-[var(--rc-text-muted)] font-medium">Başlangıç</span>
                   <input
                     type="date"
                     value={startDate}
                     min={today}
                     onChange={(e) => setStartDate(e.target.value)}
                     onBlur={() => setTouched((t) => ({ ...t, startDate: true }))}
-                    className={`${inputBase} ${pastDateError ? "!border-red-500/50" : ""}`}
+                    className={`${inputBase} ${pastDateError ? "!border-[var(--rc-danger)]" : ""}`}
                   />
-                  {pastDateError && <p className="text-[10px] text-red-400">{pastDateError}</p>}
+                  {pastDateError && (
+                    <p className="text-[10px] text-[var(--rc-danger)]">{pastDateError}</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
-                  <span className="text-[10px] text-neutral-500 font-medium">Bitiş</span>
+                  <span className="text-[10px] text-[var(--rc-text-muted)] font-medium">Bitiş</span>
                   <input
                     type="date"
                     value={endDate}
                     min={startDate ?? today}
                     onChange={(e) => setEndDate(e.target.value)}
                     onBlur={() => setTouched((t) => ({ ...t, endDate: true }))}
-                    className={`${inputBase} ${dateError ? "!border-red-500/50" : ""}`}
+                    className={`${inputBase} ${dateError ? "!border-[var(--rc-danger)]" : ""}`}
                   />
-                  {dateError && <p className="text-[10px] text-red-400">{dateError}</p>}
+                  {dateError && (
+                    <p className="text-[10px] text-[var(--rc-danger)]">{dateError}</p>
+                  )}
                 </div>
               </div>
             </div>
 
             {startDate && endDate && endDate >= startDate && (
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-[var(--rc-gold)]/10 border border-[var(--rc-gold)]/20 rounded-xl">
+                <div className="w-6 h-6 rounded-md bg-[var(--rc-gold)]/20 flex items-center justify-center flex-shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--rc-gold)]">
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <path d="M16 2v4M8 2v4M3 10h18" />
+                  </svg>
                 </div>
-                <span className="text-xs text-amber-300/80 font-medium">
+                <span className="text-xs text-[var(--rc-gold)] font-medium">
                   {days === 0 ? "Günübirlik kullanım" : `${days} gün`}
                 </span>
               </div>
@@ -783,12 +948,11 @@ export default function ReservationRequestForm({
           </div>
         )}
 
-        {/* ═══ STEP 2: Konsept & Ürünler ═══ */}
+        {/* ═══ STEP 2: Konsept & Minibar (kompakt, ekrana sığar) ═══ */}
         {step === 1 && (
-          <div className="space-y-5 animate-in fade-in slide-in-from-right-2 duration-300">
-            {/* Concept Selection */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+            <div className="space-y-3">
+              <label className="text-[11px] font-semibold text-[var(--rc-text-muted)] uppercase tracking-wider">
                 Konsept
               </label>
               <div className="relative">
@@ -798,25 +962,62 @@ export default function ReservationRequestForm({
                   disabled={conceptsLoading}
                   className={`${inputBase} appearance-none pr-10 cursor-pointer`}
                 >
-                  <option value="">Konsept Seçin (Standart otomatik atanır)</option>
+                  <option value="">Konsept seçin (standart otomatik atanır)</option>
                   {concepts.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-600">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--rc-text-muted)]">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
                 </div>
               </div>
               {selectedConcept && (
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-neutral-800/30 border border-neutral-700/20 rounded-lg">
-                  <span className="text-[11px] text-neutral-400 flex-1">{selectedConcept.description}</span>
-                  <span className="text-[10px] text-amber-400/60 whitespace-nowrap font-medium">
-                    {selectedConcept.products.length} ürün
-                  </span>
-                </div>
+                <p className="text-[10px] text-[var(--rc-text-muted)] line-clamp-2">
+                  {selectedConcept.description} · {selectedConcept.products.length} ürün
+                </p>
               )}
             </div>
 
+            <div className="space-y-2">
+              <label className="text-[11px] font-semibold text-[var(--rc-text-muted)] uppercase tracking-wider">
+                Minibar (opsiyonel)
+              </label>
+              <div className="relative">
+                <select
+                  value={minibarTypeId ?? ""}
+                  onChange={(e) => setMinibarTypeId(e.target.value || null)}
+                  disabled={minibarTypesLoading}
+                  className={`${inputBase} appearance-none pr-10 cursor-pointer`}
+                >
+                  <option value="">Minibar seçin</option>
+                  {minibarTypes.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--rc-text-muted)]">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
+              </div>
+              {selectedMinibarType && selectedMinibarType.products.length > 0 && (
+                <p className="text-[10px] text-[var(--rc-success)]">
+                  {selectedMinibarType.products.length} ürün · {formatPriceVal(minibarTotal)} ₺
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ STEP 3: Ekstralar & Notlar ═══ */}
+        {step === 2 && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300 overflow-y-auto max-h-[50vh] sm:max-h-none pr-1">
             {/* Extra Products */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -824,41 +1025,43 @@ export default function ReservationRequestForm({
                   Ekstra Ürünler
                 </label>
                 {selectedExtras.length > 0 && (
-                  <span className="text-[10px] text-amber-400 font-semibold tabular-nums">
+                  <span className="text-[10px] text-[var(--rc-gold)] font-semibold tabular-nums">
                     {selectedExtras.length} ürün · {formatPriceVal(extrasTotal)} ₺
                   </span>
                 )}
               </div>
               {productsLoading ? (
                 <div className="flex items-center gap-2 px-3 py-3">
-                  <div className="w-3 h-3 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
-                  <p className="text-xs text-neutral-500">Ürünler yükleniyor...</p>
+                  <div className="w-3 h-3 border-2 border-[var(--rc-surface-border)] border-t-[var(--rc-gold)] rounded-full animate-spin" />
+                  <p className="text-xs text-[var(--rc-text-muted)]">Ürünler yükleniyor...</p>
                 </div>
               ) : availableProducts.length === 0 ? (
-                <div className="px-3.5 py-3 bg-neutral-800/20 border border-neutral-700/20 rounded-xl text-center">
-                  <p className="text-xs text-neutral-600">Eklenebilir ürün bulunamadı</p>
+                <div className="px-3.5 py-3 bg-[var(--rc-card-hover)]/50 border border-[var(--rc-border-subtle)] rounded-xl text-center">
+                  <p className="text-xs text-[var(--rc-text-muted)]">Eklenebilir ürün bulunamadı</p>
                 </div>
               ) : (
-                <div className="max-h-56 overflow-y-auto rc-scrollbar space-y-1 rounded-xl border border-neutral-700/20 bg-neutral-900/30 p-1.5">
+                <div className="max-h-40 overflow-y-auto rc-scrollbar space-y-1 rounded-xl border border-[var(--rc-border-subtle)] bg-[var(--rc-card-hover)]/30 p-1.5">
                   {availableProducts.map((product) => {
-                    const existing = selectedExtras.find((e) => e.productId === product.id);
+                    const existing = selectedExtras.find(
+                      (e) => e.productId === product.id,
+                    );
                     return (
                       <div
                         key={product.id}
                         className={`flex items-center justify-between gap-2 py-2 px-3 rounded-lg transition-all duration-200 ${
                           existing
-                            ? "bg-amber-500/[0.06] border border-amber-500/15 shadow-sm shadow-amber-500/5"
-                            : "hover:bg-neutral-800/50 border border-transparent"
+                            ? "bg-[var(--rc-gold)]/10 border border-[var(--rc-gold)]/20"
+                            : "hover:bg-[var(--rc-card-hover)] border border-transparent"
                         }`}
                       >
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs truncate ${existing ? "text-amber-200 font-medium" : "text-neutral-200"}`}>
+                          <p className={`text-xs truncate ${existing ? "text-[var(--rc-gold)] font-medium" : "text-[var(--rc-text-primary)]"}`}>
                             {product.name}
                           </p>
-                          <p className="text-[10px] text-neutral-500 tabular-nums">
+                          <p className="text-[10px] text-[var(--rc-text-muted)] tabular-nums">
                             {formatPriceVal(product.salePrice)} ₺
                             {product.groupName && (
-                              <span className="text-neutral-600 ml-1">· {product.groupName}</span>
+                              <span className="text-[var(--rc-text-muted)] ml-1">· {product.groupName}</span>
                             )}
                           </p>
                         </div>
@@ -869,32 +1072,50 @@ export default function ReservationRequestForm({
                                 type="button"
                                 onClick={() =>
                                   setSelectedExtras((prev) =>
-                                    prev.map((e) => e.productId === product.id ? { ...e, quantity: Math.max(0, e.quantity - 1) } : e).filter((e) => e.quantity > 0)
+                                    prev
+                                      .map((e) =>
+                                        e.productId === product.id
+                                          ? { ...e, quantity: Math.max(0, e.quantity - 1) }
+                                          : e,
+                                      )
+                                      .filter((e) => e.quantity > 0),
                                   )
                                 }
-                                className="w-7 h-7 rounded-md bg-neutral-800/80 text-neutral-400 text-xs flex items-center justify-center hover:bg-neutral-700 hover:text-neutral-200 transition-all"
+                                className="w-7 h-7 rounded-md bg-[var(--rc-card-hover)] text-[var(--rc-text-muted)] text-xs flex items-center justify-center hover:text-[var(--rc-text-primary)] transition-all min-h-[44px] min-w-[28px]"
                                 aria-label={`${product.name} azalt`}
-                              >−</button>
-                              <span className="text-xs text-amber-400 w-6 text-center font-bold tabular-nums" aria-live="polite">
+                              >
+                                −
+                              </button>
+                              <span className="text-xs text-[var(--rc-gold)] w-6 text-center font-bold tabular-nums" aria-live="polite">
                                 {existing.quantity}
                               </span>
                               <button
                                 type="button"
                                 onClick={() =>
                                   setSelectedExtras((prev) =>
-                                    prev.map((e) => e.productId === product.id ? { ...e, quantity: Math.min(e.quantity + 1, 99) } : e)
+                                    prev.map((e) =>
+                                      e.productId === product.id
+                                        ? { ...e, quantity: Math.min(e.quantity + 1, 99) }
+                                        : e,
+                                    ),
                                   )
                                 }
-                                className="w-7 h-7 rounded-md bg-neutral-800/80 text-neutral-400 text-xs flex items-center justify-center hover:bg-neutral-700 hover:text-neutral-200 transition-all"
+                                className="w-7 h-7 rounded-md bg-[var(--rc-card-hover)] text-[var(--rc-text-muted)] text-xs flex items-center justify-center hover:text-[var(--rc-text-primary)] transition-all min-h-[44px] min-w-[28px]"
                                 aria-label={`${product.name} artır`}
-                              >+</button>
+                              >
+                                +
+                              </button>
                             </>
                           ) : (
                             <button
                               type="button"
-                              onClick={() => setSelectedExtras((prev) => [...prev, { productId: product.id, quantity: 1 }])}
-                              className="px-3 py-1.5 text-[10px] rounded-md bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all font-semibold"
-                            >Ekle</button>
+                              onClick={() =>
+                                setSelectedExtras((prev) => [...prev, { productId: product.id, quantity: 1 }])
+                              }
+                              className="px-3 py-1.5 text-[10px] rounded-md bg-[var(--rc-gold)]/15 text-[var(--rc-gold)] hover:bg-[var(--rc-gold)]/25 transition-all font-semibold min-h-[44px]"
+                            >
+                              Ekle
+                            </button>
                           )}
                         </div>
                       </div>
@@ -918,15 +1139,25 @@ export default function ReservationRequestForm({
                       { id: crypto.randomUUID(), customName: "", customDesc: "", quantity: 1 },
                     ])
                   }
-                  className="flex items-center gap-1 px-2.5 py-1 text-[10px] rounded-md bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-all font-semibold"
+                  className="flex items-center gap-1 px-2.5 py-1 text-[10px] rounded-md bg-[var(--rc-warning)]/15 text-[var(--rc-warning)] hover:bg-[var(--rc-warning)]/25 transition-all font-semibold"
                 >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
                   Yeni Talep
                 </button>
               </div>
 
               {customExtraRequests.length === 0 ? (
-                <p className="text-[10px] text-neutral-600 px-1 leading-relaxed">
+                <p className="text-[10px] text-[var(--rc-text-muted)] px-1 leading-relaxed">
                   Sistemde bulunmayan özel taleplerinizi buradan ekleyebilirsiniz.
                 </p>
               ) : (
@@ -934,7 +1165,7 @@ export default function ReservationRequestForm({
                   {customExtraRequests.map((req) => (
                     <div
                       key={req.id}
-                      className="rounded-xl border border-orange-500/15 bg-orange-950/[0.06] p-3 space-y-2"
+                      className="rounded-xl border border-[var(--rc-warning)]/20 bg-[var(--rc-warning)]/5 p-3 space-y-2"
                     >
                       <div className="flex items-center gap-2">
                         <input
@@ -942,69 +1173,102 @@ export default function ReservationRequestForm({
                           value={req.customName}
                           onChange={(e) =>
                             setCustomExtraRequests((prev) =>
-                              prev.map((r) => r.id === req.id ? { ...r, customName: e.target.value } : r)
+                              prev.map((r) =>
+                                r.id === req.id
+                                  ? { ...r, customName: e.target.value }
+                                  : r,
+                              ),
                             )
                           }
                           placeholder="Talep adı"
-                          className="flex-1 px-3 py-2 text-xs bg-neutral-900/60 border border-neutral-700/50 rounded-lg text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-amber-500/50 transition-all"
+                          className="flex-1 px-3 py-2 text-xs bg-[var(--rc-input-bg)] border border-[var(--rc-input-border)] rounded-lg text-[var(--rc-text-primary)] placeholder-[var(--rc-placeholder)] focus:outline-none focus:border-[var(--rc-input-focus)] transition-all"
                         />
-                        <div className="flex items-center bg-neutral-800/50 rounded-lg border border-neutral-700/30">
+                        <div className="flex items-center bg-[var(--rc-card-hover)] rounded-lg border border-[var(--rc-border-subtle)]">
                           <button
                             type="button"
                             onClick={() =>
                               setCustomExtraRequests((prev) =>
-                                prev.map((r) => r.id === req.id ? { ...r, quantity: Math.max(1, r.quantity - 1) } : r)
+                                prev.map((r) =>
+                                  r.id === req.id ? { ...r, quantity: Math.max(1, r.quantity - 1) } : r,
+                                ),
                               )
                             }
-                            className="w-7 h-7 text-neutral-400 text-xs flex items-center justify-center hover:text-neutral-200 transition-colors"
-                          >−</button>
-                          <span className="text-xs text-amber-400 w-5 text-center font-bold tabular-nums">{req.quantity}</span>
+                            className="w-7 h-7 text-[var(--rc-text-muted)] text-xs flex items-center justify-center hover:text-[var(--rc-text-primary)] transition-colors"
+                          >
+                            −
+                          </button>
+                          <span className="text-xs text-[var(--rc-gold)] w-5 text-center font-bold tabular-nums">
+                            {req.quantity}
+                          </span>
                           <button
                             type="button"
                             onClick={() =>
                               setCustomExtraRequests((prev) =>
-                                prev.map((r) => r.id === req.id ? { ...r, quantity: Math.min(99, r.quantity + 1) } : r)
+                                prev.map((r) =>
+                                  r.id === req.id
+                                    ? {
+                                        ...r,
+                                        quantity: Math.min(99, r.quantity + 1),
+                                      }
+                                    : r,
+                                ),
                               )
                             }
                             className="w-7 h-7 text-neutral-400 text-xs flex items-center justify-center hover:text-neutral-200 transition-colors"
-                          >+</button>
+                          >
+                            +
+                          </button>
                         </div>
                         <button
                           type="button"
-                          onClick={() => setCustomExtraRequests((prev) => prev.filter((r) => r.id !== req.id))}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-600 hover:text-red-400 hover:bg-red-950/30 transition-all"
+                          onClick={() =>
+                            setCustomExtraRequests((prev) =>
+                              prev.filter((r) => r.id !== req.id),
+                            )
+                          }
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--rc-text-muted)] hover:text-[var(--rc-danger)] hover:bg-[var(--rc-danger)]/10 transition-all"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          >
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
                         </button>
                       </div>
                       <textarea
                         value={req.customDesc}
                         onChange={(e) =>
                           setCustomExtraRequests((prev) =>
-                            prev.map((r) => r.id === req.id ? { ...r, customDesc: e.target.value } : r)
+                            prev.map((r) =>
+                              r.id === req.id
+                                ? { ...r, customDesc: e.target.value }
+                                : r,
+                            ),
                           )
                         }
                         placeholder="Açıklama (isteğe bağlı)"
                         rows={1}
-                        className="w-full px-3 py-1.5 text-[11px] bg-neutral-900/40 border border-neutral-700/30 rounded-lg text-neutral-300 placeholder-neutral-600 focus:outline-none focus:border-amber-500/40 transition-all resize-none"
+                        className="w-full px-3 py-1.5 text-[11px] bg-[var(--rc-input-bg)] border border-[var(--rc-input-border)] rounded-lg text-[var(--rc-text-secondary)] placeholder-[var(--rc-placeholder)] focus:outline-none focus:border-[var(--rc-input-focus)] transition-all resize-none"
                       />
                     </div>
                   ))}
                 </div>
               )}
               {customExtraRequests.length > 0 && (
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-1 h-1 rounded-full bg-orange-400/60" />
-                  <p className="text-[10px] text-orange-400/70 leading-relaxed">
-                    Admin onayına tabidir. Fiyatlandırma onay sonrası yapılır.
-                  </p>
-                </div>
+                <p className="text-[10px] text-[var(--rc-warning)] leading-relaxed">
+                  Admin onayına tabidir. Fiyatlandırma onay sonrası yapılır.
+                </p>
               )}
             </div>
 
-            {/* Legacy Custom Request (free text) */}
             <div className="space-y-2">
-              <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+              <label className="text-[11px] font-semibold text-[var(--rc-text-muted)] uppercase tracking-wider">
                 Ek Notlar
               </label>
               <textarea
@@ -1018,72 +1282,128 @@ export default function ReservationRequestForm({
           </div>
         )}
 
-        {/* ═══ STEP 3: Özet & Gönder ═══ */}
-        {step === 2 && (
+        {/* ═══ STEP 4: Özet & Gönder ═══ */}
+        {step === 3 && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
             {/* Reservation Summary Card */}
-            <div className="rounded-xl border border-neutral-700/30 overflow-hidden">
-              <div className="px-4 py-2.5 bg-neutral-800/30 border-b border-neutral-700/20">
-                <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Rezervasyon Özeti</p>
+            <div className="rounded-xl border border-[var(--rc-border-subtle)] overflow-hidden bg-[var(--rc-card)]">
+              <div className="px-4 py-2.5 bg-[var(--rc-card-hover)]/50 border-b border-[var(--rc-border-subtle)]">
+                <p className="text-[11px] font-semibold text-[var(--rc-text-muted)] uppercase tracking-wider">
+                  Rezervasyon Özeti
+                </p>
               </div>
               <div className="p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <div>
-                    <span className="text-[10px] text-neutral-600 uppercase tracking-wider">Misafir</span>
-                    <p className="text-sm text-neutral-100 font-medium mt-0.5">{guestName}</p>
+                    <span className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider">Misafir</span>
+                    <p className="text-sm text-[var(--rc-text-primary)] font-medium mt-0.5">
+                      {guestName}
+                    </p>
                     {guestId && (
-                      <span className="inline-flex items-center gap-1 mt-1 text-[9px] text-emerald-400 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
-                        <div className="w-1 h-1 rounded-full bg-emerald-400" />
+                      <span className="inline-flex items-center gap-1 mt-1 text-[9px] text-[var(--rc-success)] font-medium bg-[var(--rc-success)]/10 px-1.5 py-0.5 rounded-md">
+                        <div className="w-1 h-1 rounded-full bg-[var(--rc-success)]" />
                         Kayıtlı
                       </span>
                     )}
                   </div>
                   <div>
-                    <span className="text-[10px] text-neutral-600 uppercase tracking-wider">Cabana</span>
-                    <p className="text-sm text-amber-400 font-medium mt-0.5">{cabanaName}</p>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-neutral-600 uppercase tracking-wider">Giriş</span>
-                    <p className="text-sm text-neutral-100 font-medium mt-0.5 tabular-nums">
-                      {new Date(startDate).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" })}
+                    <span className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider">Cabana</span>
+                    <p className="text-sm text-[var(--rc-gold)] font-medium mt-0.5">
+                      {cabanaName}
                     </p>
                   </div>
                   <div>
-                    <span className="text-[10px] text-neutral-600 uppercase tracking-wider">Çıkış</span>
-                    <p className="text-sm text-neutral-100 font-medium mt-0.5 tabular-nums">
+                    <span className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider">Giriş</span>
+                    <p className="text-sm text-[var(--rc-text-primary)] font-medium mt-0.5 tabular-nums">
+                      {new Date(startDate).toLocaleDateString("tr-TR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider">Çıkış</span>
+                    <p className="text-sm text-[var(--rc-text-primary)] font-medium mt-0.5 tabular-nums">
                       {endDate
-                        ? new Date(endDate).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" })
+                        ? new Date(endDate).toLocaleDateString("tr-TR", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })
                         : "—"}
                     </p>
                   </div>
                   <div>
-                    <span className="text-[10px] text-neutral-600 uppercase tracking-wider">Süre</span>
-                    <p className="text-sm text-neutral-100 font-medium mt-0.5">
+                    <span className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider">Süre</span>
+                    <p className="text-sm text-[var(--rc-text-primary)] font-medium mt-0.5">
                       {days === 0 ? "Günübirlik" : `${days} gün`}
                     </p>
                   </div>
                   {selectedConcept && (
                     <div>
-                      <span className="text-[10px] text-neutral-600 uppercase tracking-wider">Konsept</span>
-                      <p className="text-sm text-neutral-100 font-medium mt-0.5">{selectedConcept.name}</p>
+                      <span className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider">Konsept</span>
+                      <p className="text-sm text-[var(--rc-text-primary)] font-medium mt-0.5">
+                        {selectedConcept.name}
+                      </p>
                     </div>
                   )}
                 </div>
 
-                {/* Selected Extras Summary */}
+                <div className="pt-3 border-t border-[var(--rc-border-subtle)]">
+                  <p className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider font-medium mb-2">
+                    Seçilen Tarihlerde Hava Durumu
+                  </p>
+                  {forecastLoading && (
+                    <p className="text-xs text-[var(--rc-text-muted)] py-2">Hava durumu yükleniyor…</p>
+                  )}
+                  {!forecastLoading && (forecastError || (!summaryWeatherDays.length && forecastData)) && (
+                    <p className="text-xs text-[var(--rc-text-muted)] py-2">Hava durumu şu an gösterilemiyor</p>
+                  )}
+                  {!forecastLoading && !forecastError && summaryWeatherDays.length > 0 && (
+                    <div className="space-y-2">
+                      {summaryWeatherDays.map((d) => {
+                        const IconComponent = getWeatherIcon(d.icon);
+                        const dateStr = new Date(d.dt * 1000).toLocaleDateString("tr-TR", {
+                          weekday: "short",
+                          day: "2-digit",
+                          month: "short",
+                        });
+                        return (
+                          <div
+                            key={d.dt}
+                            className="flex items-center gap-3 rounded-lg border border-[var(--rc-border-subtle)] bg-[var(--rc-card-hover)]/30 px-3 py-2.5"
+                          >
+                            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[var(--rc-gold)]/15 flex items-center justify-center text-[var(--rc-gold)]">
+                              <IconComponent className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[var(--rc-text-primary)] tabular-nums">{dateStr}</p>
+                              <p className="text-xs text-[var(--rc-text-muted)] truncate">{d.description}</p>
+                            </div>
+                            <p className="text-sm font-semibold text-[var(--rc-text-primary)] tabular-nums whitespace-nowrap">
+                              {d.temp.min}° / {d.temp.max}°
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 {selectedExtras.length > 0 && (
-                  <div className="pt-3 border-t border-neutral-800/50">
-                    <p className="text-[10px] text-neutral-600 uppercase tracking-wider font-medium mb-2">Ekstra Ürünler</p>
+                  <div className="pt-3 border-t border-[var(--rc-border-subtle)]">
+                    <p className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider font-medium mb-2">Ekstra Ürünler</p>
                     <div className="space-y-1.5">
                       {selectedExtras.map((e) => {
                         const p = availableProducts.find((ap) => ap.id === e.productId);
                         if (!p) return null;
                         return (
                           <div key={e.productId} className="flex justify-between text-xs">
-                            <span className="text-neutral-300">
-                              {p.name} <span className="text-neutral-600 tabular-nums">×{e.quantity}</span>
+                            <span className="text-[var(--rc-text-secondary)]">
+                              {p.name} <span className="text-[var(--rc-text-muted)] tabular-nums">×{e.quantity}</span>
                             </span>
-                            <span className="text-neutral-400 tabular-nums font-medium">
+                            <span className="text-[var(--rc-text-primary)] tabular-nums font-medium">
                               {formatPriceVal(p.salePrice * e.quantity)} ₺
                             </span>
                           </div>
@@ -1093,75 +1413,105 @@ export default function ReservationRequestForm({
                   </div>
                 )}
 
-                {/* Custom Extra Requests Summary */}
-                {customExtraRequests.filter((r) => r.customName.trim()).length > 0 && (
-                  <div className="pt-3 border-t border-neutral-800/50">
-                    <p className="text-[10px] text-neutral-600 uppercase tracking-wider font-medium mb-2">Liste Dışı Talepler</p>
+                {selectedMinibarType && (
+                  <div className="pt-3 border-t border-[var(--rc-border-subtle)]">
+                    <p className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider font-medium mb-2">
+                      Minibar: {selectedMinibarType.name}
+                    </p>
                     <div className="space-y-1.5">
-                      {customExtraRequests.filter((r) => r.customName.trim()).map((r) => (
-                        <div key={r.id} className="flex justify-between items-center text-xs">
-                          <span className="text-orange-300/80">
-                            {r.customName} <span className="text-neutral-600 tabular-nums">×{r.quantity}</span>
-                          </span>
-                          <span className="text-[9px] text-orange-400/50 italic bg-orange-500/5 px-2 py-0.5 rounded-md">
-                            Onay bekliyor
-                          </span>
-                        </div>
-                      ))}
+                      {selectedMinibarType.products.map((mp, i) => {
+                        const price =
+                          typeof mp.product.salePrice === "string"
+                            ? parseFloat(mp.product.salePrice)
+                            : mp.product.salePrice;
+                        return (
+                          <div key={i} className="flex justify-between text-xs">
+                            <span className="text-[var(--rc-text-secondary)]">
+                              {mp.product.name} <span className="text-[var(--rc-text-muted)] tabular-nums">×{mp.quantity}</span>
+                            </span>
+                            <span className="text-[var(--rc-text-primary)] tabular-nums font-medium">
+                              {formatPriceVal(price * mp.quantity)} ₺
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* Custom Request Summary */}
+                {customExtraRequests.filter((r) => r.customName.trim()).length > 0 && (
+                  <div className="pt-3 border-t border-[var(--rc-border-subtle)]">
+                    <p className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider font-medium mb-2">Liste Dışı Talepler</p>
+                    <div className="space-y-1.5">
+                      {customExtraRequests
+                        .filter((r) => r.customName.trim())
+                        .map((r) => (
+                          <div key={r.id} className="flex justify-between items-center text-xs">
+                            <span className="text-[var(--rc-warning)]">
+                              {r.customName} <span className="text-[var(--rc-text-muted)] tabular-nums">×{r.quantity}</span>
+                            </span>
+                            <span className="text-[9px] text-[var(--rc-warning)]/80 italic bg-[var(--rc-warning)]/10 px-2 py-0.5 rounded-md">
+                              Onay bekliyor
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
                 {customRequests.trim() && (
-                  <div className="pt-3 border-t border-neutral-800/50">
-                    <p className="text-[10px] text-neutral-600 uppercase tracking-wider font-medium mb-1">Ek Notlar</p>
-                    <p className="text-xs text-neutral-400 leading-relaxed">{customRequests}</p>
+                  <div className="pt-3 border-t border-[var(--rc-border-subtle)]">
+                    <p className="text-[10px] text-[var(--rc-text-muted)] uppercase tracking-wider font-medium mb-1">Ek Notlar</p>
+                    <p className="text-xs text-[var(--rc-text-secondary)] leading-relaxed">{customRequests}</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Price Breakdown */}
             {(priceLoading || priceBreakdown) && (
-              <div className="rounded-xl border border-amber-500/15 bg-gradient-to-b from-amber-950/10 to-transparent overflow-hidden">
+              <div className="rounded-xl border border-[var(--rc-gold)]/20 bg-[var(--rc-gold)]/5 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-semibold text-[var(--rc-text-muted)] uppercase tracking-wider">
                     Tahmini Fiyat
                   </span>
                   {priceLoading ? (
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
-                      <span className="text-neutral-500 text-xs">Hesaplanıyor...</span>
+                      <div className="w-3 h-3 border-2 border-[var(--rc-surface-border)] border-t-[var(--rc-gold)] rounded-full animate-spin" />
+                      <span className="text-[var(--rc-text-muted)] text-xs">Hesaplanıyor...</span>
                     </div>
                   ) : priceBreakdown ? (
-                    <span className="text-amber-400 font-bold text-lg tabular-nums">
+                    <span className="text-[var(--rc-gold)] font-bold text-lg tabular-nums">
                       {formatPriceVal(priceBreakdown.grandTotal)} ₺
                     </span>
                   ) : null}
                 </div>
                 {priceBreakdown && priceBreakdown.items.length > 0 && (
-                  <div className="px-4 pb-3 space-y-1.5 border-t border-amber-500/10 pt-2.5">
+                  <div className="px-4 pb-3 space-y-1.5 border-t border-[var(--rc-gold)]/15 pt-2.5">
                     {priceBreakdown.items.map((item, i) => (
                       <div key={i} className="flex justify-between text-xs">
-                        <span className="text-neutral-400">
-                          {item.name} <span className="text-neutral-600 tabular-nums">×{item.quantity}</span>
+                        <span className="text-[var(--rc-text-secondary)]">
+                          {item.name} <span className="text-[var(--rc-text-muted)] tabular-nums">×{item.quantity}</span>
                         </span>
-                        <span className="text-neutral-300 tabular-nums">{formatPriceVal(item.total)} ₺</span>
+                        <span className="text-[var(--rc-text-primary)] tabular-nums">
+                          {formatPriceVal(item.total)} ₺
+                        </span>
                       </div>
                     ))}
-                    <div className="flex justify-between text-xs pt-2 border-t border-amber-500/10">
-                      <span className="text-neutral-200 font-semibold">Toplam</span>
-                      <span className="text-amber-400 font-bold tabular-nums">{formatPriceVal(priceBreakdown.grandTotal)} ₺</span>
+                    <div className="flex justify-between text-xs pt-2 border-t border-[var(--rc-gold)]/15">
+                      <span className="text-[var(--rc-text-primary)] font-semibold">Toplam</span>
+                      <span className="text-[var(--rc-gold)] font-bold tabular-nums">
+                        {formatPriceVal(priceBreakdown.grandTotal)} ₺
+                      </span>
                     </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Notes */}
             <div className="space-y-2">
-              <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Notlar</label>
+              <label className="text-[11px] font-semibold text-[var(--rc-text-muted)] uppercase tracking-wider">
+                Notlar
+              </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -1170,55 +1520,34 @@ export default function ReservationRequestForm({
                 className={`${inputBase} resize-none`}
               />
             </div>
-
-            {/* Privacy Toggle */}
-            <label className="flex items-center gap-3 cursor-pointer group p-3.5 rounded-xl border border-neutral-700/20 bg-neutral-800/10 hover:bg-neutral-800/30 transition-all">
-              <div className="relative flex-shrink-0">
-                <input
-                  type="checkbox"
-                  checked={isGuestPrivate}
-                  onChange={(e) => setIsGuestPrivate(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-neutral-700 rounded-full peer-checked:bg-amber-500/80 transition-colors" />
-                <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-neutral-300 rounded-full peer-checked:translate-x-4 peer-checked:bg-white transition-all shadow-sm" />
-              </div>
-              <div>
-                <span className="text-xs text-neutral-300 font-medium">Misafir bilgileri gizli</span>
-                <p className="text-[10px] text-neutral-600 mt-0.5 leading-relaxed">
-                  Yalnızca Casino kullanıcıları görüntüleyebilir
-                </p>
-              </div>
-            </label>
           </div>
         )}
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="mx-5 mb-2 px-3.5 py-2.5 rounded-xl bg-red-500/8 border border-red-500/15 flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
-          <p className="text-xs text-red-400">{error}</p>
+        <div className="mx-5 mb-2 px-3.5 py-2.5 rounded-xl bg-[var(--rc-danger)]/10 border border-[var(--rc-danger)]/20 flex items-center gap-2">
+          <div className="w-1 h-1 rounded-full bg-[var(--rc-danger)] flex-shrink-0" />
+          <p className="text-xs text-[var(--rc-danger)]">{error}</p>
         </div>
       )}
 
-      {/* Footer Navigation */}
-      <div className="h-px bg-gradient-to-r from-transparent via-neutral-700/50 to-transparent flex-shrink-0" />
-      <div className="flex items-center justify-between px-5 py-4 flex-shrink-0">
+      <div className="h-px bg-[var(--rc-border-subtle)] flex-shrink-0" />
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-4 flex-shrink-0">
         <button
           type="button"
           onClick={step === 0 ? onCancel : prevStep}
-          className="px-4 py-2.5 text-xs font-medium text-neutral-400 hover:text-neutral-200 bg-neutral-800/40 hover:bg-neutral-800/70 border border-neutral-700/40 rounded-xl transition-all"
+          className="min-h-[48px] px-4 py-3 text-sm font-medium text-[var(--rc-text-muted)] hover:text-[var(--rc-text-primary)] bg-[var(--rc-card-hover)] hover:bg-[var(--rc-card-hover)] border border-[var(--rc-border-subtle)] rounded-xl transition-all touch-manipulation"
         >
           {step === 0 ? "İptal" : "← Geri"}
         </button>
 
-        {step < 2 ? (
+        {step < 3 ? (
           <button
             type="button"
             onClick={nextStep}
             disabled={step === 0 && !canGoStep2}
-            className="px-6 py-2.5 text-xs font-semibold text-neutral-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 rounded-xl shadow-lg shadow-amber-500/15 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+            className="min-h-[48px] px-6 py-3 text-sm font-semibold text-[var(--rc-btn-primary-text)] bg-[var(--rc-gold)] hover:bg-[var(--rc-gold-hover)] active:bg-[var(--rc-gold-active)] rounded-xl shadow-[0_0_12px_color-mix(in_srgb,var(--rc-gold)_20%,transparent)] transition-all disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation"
           >
             İleri →
           </button>
@@ -1227,10 +1556,10 @@ export default function ReservationRequestForm({
             type="button"
             onClick={handleSubmit}
             disabled={loading || !canSubmit}
-            className="px-6 py-2.5 text-xs font-semibold text-neutral-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 rounded-xl shadow-lg shadow-amber-500/15 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-2"
+            className="min-h-[48px] px-6 py-3 text-sm font-semibold text-[var(--rc-btn-primary-text)] bg-[var(--rc-gold)] hover:bg-[var(--rc-gold-hover)] active:bg-[var(--rc-gold-active)] rounded-xl shadow-[0_0_12px_color-mix(in_srgb,var(--rc-gold)_20%,transparent)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation"
           >
             {loading && (
-              <div className="w-3.5 h-3.5 border-2 border-neutral-900/30 border-t-neutral-900 rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-[var(--rc-btn-primary-text)]/20 border-t-[var(--rc-btn-primary-text)] rounded-full animate-spin" />
             )}
             {loading ? "Gönderiliyor..." : "Talep Oluştur"}
           </button>

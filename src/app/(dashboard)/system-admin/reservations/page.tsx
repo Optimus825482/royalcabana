@@ -271,7 +271,7 @@ function DetailPanel({
         <button
           onClick={onClose}
           aria-label="Detayı kapat"
-          className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-neutral-200"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 transition-colors text-neutral-400 hover:text-neutral-200 touch-manipulation"
         >
           <X className="w-5 h-5" />
         </button>
@@ -753,7 +753,7 @@ export default function SystemAdminReservationsPage() {
           )}
           <button
             onClick={fetchReservations}
-            className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-neutral-200"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 transition-colors text-neutral-400 hover:text-neutral-200 touch-manipulation"
             title="Yenile"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -772,7 +772,7 @@ export default function SystemAdminReservationsPage() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Misafir adı veya Cabana ara..."
-              className="w-full pl-10 pr-4 py-2 bg-neutral-800/60 border border-neutral-700 rounded-lg text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50"
+              className="w-full min-h-[44px] pl-10 pr-4 py-2.5 bg-neutral-800/60 border border-neutral-700 rounded-xl text-base sm:text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50 touch-manipulation"
             />
           </div>
           <button
@@ -781,9 +781,9 @@ export default function SystemAdminReservationsPage() {
                 f === "createdAt" ? "startDate" : "createdAt",
               )
             }
-            className="flex items-center gap-1.5 px-3 py-2 bg-neutral-800/60 border border-neutral-700 rounded-lg text-sm text-neutral-400 hover:text-neutral-200 transition-colors"
+            className="min-h-[44px] flex items-center gap-2 px-4 py-2.5 bg-neutral-800/60 border border-neutral-700 rounded-xl text-sm text-neutral-400 hover:text-neutral-200 transition-colors touch-manipulation"
           >
-            <ArrowUpDown className="w-3.5 h-3.5" />
+            <ArrowUpDown className="w-4 h-4 shrink-0" />
             {sortField === "createdAt"
               ? "Oluşturma Tarihi"
               : "Başlangıç Tarihi"}
@@ -801,7 +801,7 @@ export default function SystemAdminReservationsPage() {
                 setSelected(null);
                 setDetailLoading(false);
               }}
-              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors ${
+              className={`min-h-[44px] px-4 py-2.5 text-sm rounded-xl font-medium transition-colors touch-manipulation active:scale-[0.98] ${
                 statusFilter === tab.value
                   ? "bg-amber-500 text-neutral-950"
                   : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"

@@ -766,7 +766,6 @@ nav{
         <p style="margin-bottom:8px">• VIP seviyeleri (Standard → Silver → Gold → Platinum) ile misafir segmentasyonu</p>
         <p style="margin-bottom:8px">• Toplam ziyaret sayısı ve son ziyaret tarihi otomatik güncellenir</p>
         <p style="margin-bottom:8px">• Kara liste özelliği ile sorunlu misafirlerin takibi</p>
-        <p>• Gizli misafir seçeneği (isGuestPrivate) ile VIP gizlilik desteği</p>
       </div>
     </div>
     <div style="padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px">

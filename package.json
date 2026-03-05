@@ -7,10 +7,12 @@
     "dev:next": "next dev -p 3006",
     "dev:socket": "tsx socket-server/index.ts",
     "build": "next build",
+    "prestart": "prisma migrate deploy",
     "start": "next start -p 3006",
     "start:socket": "node --import tsx socket-server/index.ts",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset"
   },

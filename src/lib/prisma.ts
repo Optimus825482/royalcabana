@@ -21,6 +21,7 @@ const SOFT_DELETE_MODELS = [
   "Review",
   "BlackoutDate",
   "Notification",
+  "MinibarType",
 ];
 
 function isSoftDeleteModel(model?: string): boolean {

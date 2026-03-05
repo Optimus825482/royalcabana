@@ -21,6 +21,7 @@ import {
   CloudSun,
   Satellite,
 } from "lucide-react";
+import { SkeletonCard, SkeletonBlock } from "@/components/atoms/Skeleton";
 
 // ── Types ──
 
@@ -549,28 +550,20 @@ function SatelliteView() {
   );
 }
 
-// ── Loading Skeleton ──
+// ── Loading Skeleton (design system token-based) ──
 
 function ForecastSkeleton() {
   return (
-    <div className="space-y-5 animate-pulse">
-      {/* Current conditions skeleton */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-lg h-48" />
-
-      {/* Tabs skeleton */}
+    <div className="space-y-5">
+      <SkeletonCard className="h-48" />
       <div className="flex gap-2">
-        <div className="h-9 w-24 rounded-lg bg-neutral-800" />
-        <div className="h-9 w-24 rounded-lg bg-neutral-800" />
-        <div className="h-9 w-28 rounded-lg bg-neutral-800" />
+        <SkeletonBlock className="h-9 w-24" />
+        <SkeletonBlock className="h-9 w-24" />
+        <SkeletonBlock className="h-9 w-28" />
       </div>
-
-      {/* Cards skeleton */}
       <div className="flex gap-2 overflow-hidden">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="w-[100px] h-44 rounded-lg bg-neutral-900 border border-neutral-800 shrink-0"
-          />
+          <SkeletonCard key={i} className="w-[100px] h-44 shrink-0 min-h-0" />
         ))}
       </div>
     </div>
@@ -605,31 +598,31 @@ export default function WeatherPage() {
   }, [data?.current.dt]);
 
   return (
-    <div className="text-neutral-100 p-4 sm:p-6">
+    <div className="text-[var(--rc-text-primary)] p-4 sm:p-6">
       <div className="max-w-5xl mx-auto space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => router.back()}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800 transition-colors"
+              className="shrink-0 w-9 h-9 min-h-[44px] flex items-center justify-center rounded-lg bg-[var(--rc-card)] border border-[var(--rc-surface-border)] hover:bg-[var(--rc-card-hover)] transition-colors"
               aria-label="Geri dön"
             >
-              <ArrowLeft className="w-4 h-4 text-neutral-400" />
+              <ArrowLeft className="w-4 h-4 text-[var(--rc-text-secondary)]" />
             </button>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-semibold text-yellow-400 truncate">
+                <h1 className="text-xl sm:text-2xl font-semibold text-[var(--rc-gold)] truncate">
                   Hava Durumu{data ? ` — ${data.city}` : ""}
                 </h1>
                 {data?.mock && (
-                  <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                  <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--rc-warning)]/15 text-[var(--rc-warning)] border border-[var(--rc-warning)]/25">
                     demo
                   </span>
                 )}
               </div>
               {lastUpdated && (
-                <p className="text-xs text-neutral-500 mt-0.5">
+                <p className="text-xs text-[var(--rc-text-muted)] mt-0.5">
                   Son güncelleme: {lastUpdated}
                 </p>
               )}
@@ -639,11 +632,11 @@ export default function WeatherPage() {
           <button
             onClick={handleRefresh}
             disabled={isFetching}
-            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800 transition-colors disabled:opacity-50"
+            className="shrink-0 w-9 h-9 min-h-[44px] flex items-center justify-center rounded-lg bg-[var(--rc-card)] border border-[var(--rc-surface-border)] hover:bg-[var(--rc-card-hover)] transition-colors disabled:opacity-50"
             aria-label="Yenile"
           >
             <RefreshCw
-              className={`w-4 h-4 text-neutral-400 ${isFetching ? "animate-spin" : ""}`}
+              className={`w-4 h-4 text-[var(--rc-text-secondary)] ${isFetching ? "animate-spin" : ""}`}
             />
           </button>
         </div>
@@ -653,15 +646,15 @@ export default function WeatherPage() {
 
         {/* Error */}
         {isError && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
-            <p className="text-sm text-red-400">
+          <div className="bg-[var(--rc-danger)]/10 border border-[var(--rc-danger)]/30 rounded-lg p-4 text-center">
+            <p className="text-sm text-[var(--rc-danger)]">
               {error instanceof Error
                 ? error.message
                 : "Hava durumu verileri yüklenemedi."}
             </p>
             <button
               onClick={handleRefresh}
-              className="mt-3 px-4 py-2 text-xs font-medium rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 transition-colors"
+              className="mt-3 px-4 py-2 text-xs font-medium rounded-lg bg-[var(--rc-danger)]/20 hover:bg-[var(--rc-danger)]/30 text-[var(--rc-danger)] border border-[var(--rc-danger)]/30 transition-colors min-h-[44px]"
             >
               Tekrar Dene
             </button>

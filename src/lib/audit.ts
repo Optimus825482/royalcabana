@@ -51,7 +51,8 @@ export type AuditEntity =
   | "ServicePoint"
   | "ServicePointStaff"
   | "ExtraService"
-  | "ClassAttribute";
+  | "ClassAttribute"
+  | "MinibarType";
 
 interface AuditParams {
   userId: string;

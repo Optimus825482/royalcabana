@@ -2,20 +2,29 @@ import { z } from "zod";
 
 // ===== Reservation Extra Request Item =====
 
-export const extraRequestItemSchema = z.object({
-  type: z.enum(["PRODUCT", "CUSTOM"]),
-  productId: z.string().min(1).optional().nullable(),
-  customName: z.string().min(1, "Talep adı zorunludur.").optional().nullable(),
-  customDesc: z.string().optional().nullable(),
-  quantity: z.number().int().positive("Miktar pozitif olmalıdır.").default(1),
-}).refine(
-  (d) => {
-    if (d.type === "PRODUCT") return !!d.productId;
-    if (d.type === "CUSTOM") return !!d.customName;
-    return false;
-  },
-  { message: "PRODUCT tipinde productId, CUSTOM tipinde customName zorunludur." },
-);
+export const extraRequestItemSchema = z
+  .object({
+    type: z.enum(["PRODUCT", "CUSTOM"]),
+    productId: z.string().min(1).optional().nullable(),
+    customName: z
+      .string()
+      .min(1, "Talep adı zorunludur.")
+      .optional()
+      .nullable(),
+    customDesc: z.string().optional().nullable(),
+    quantity: z.number().int().positive("Miktar pozitif olmalıdır.").default(1),
+  })
+  .refine(
+    (d) => {
+      if (d.type === "PRODUCT") return !!d.productId;
+      if (d.type === "CUSTOM") return !!d.customName;
+      return false;
+    },
+    {
+      message:
+        "PRODUCT tipinde productId, CUSTOM tipinde customName zorunludur.",
+    },
+  );
 
 // ===== Reservation =====
 
@@ -26,8 +35,8 @@ export const createReservationSchema = z.object({
   startDate: z.string().min(1, "Başlangıç tarihi zorunludur."),
   endDate: z.string().min(1, "Bitiş tarihi zorunludur."),
   notes: z.string().optional().nullable(),
-  isGuestPrivate: z.boolean().optional().default(false),
   conceptId: z.string().optional().nullable(),
+  minibarTypeId: z.string().optional().nullable(),
   extraItems: z
     .array(
       z.object({
@@ -77,18 +86,21 @@ export const cancellationRequestSchema = z.object({
 
 // ===== Reservation Extra Request Price/Action =====
 
-export const extraRequestPriceSchema = z.object({
-  action: z.enum(["approve", "reject", "price"]),
-  unitPrice: z.number().nonnegative("Fiyat negatif olamaz.").optional(),
-  rejectionReason: z.string().min(1, "Red nedeni zorunludur.").optional(),
-}).refine(
-  (d) => {
-    if (d.action === "reject") return !!d.rejectionReason;
-    if (d.action === "price") return d.unitPrice !== undefined && d.unitPrice !== null;
-    return true;
-  },
-  { message: "Reject için neden, price için fiyat zorunludur." },
-);
+export const extraRequestPriceSchema = z
+  .object({
+    action: z.enum(["approve", "reject", "price"]),
+    unitPrice: z.number().nonnegative("Fiyat negatif olamaz.").optional(),
+    rejectionReason: z.string().min(1, "Red nedeni zorunludur.").optional(),
+  })
+  .refine(
+    (d) => {
+      if (d.action === "reject") return !!d.rejectionReason;
+      if (d.action === "price")
+        return d.unitPrice !== undefined && d.unitPrice !== null;
+      return true;
+    },
+    { message: "Reject için neden, price için fiyat zorunludur." },
+  );
 
 // ===== Extra Concept Request (JSON field validation) =====
 

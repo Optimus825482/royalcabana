@@ -53,6 +53,7 @@ export const GET = withAuth(
             },
           },
           concept: { select: { id: true, name: true } },
+          minibarType: { select: { id: true, name: true } },
           user: { select: { id: true, username: true, email: true } },
           guest: {
             select: {
@@ -79,24 +80,9 @@ export const GET = withAuth(
       prisma.reservation.count({ where }),
     ]);
 
-    // Misafir gizliliği: isGuestPrivate=true ise sadece CASINO_USER (sahibi) görebilir
-    // Diğer roller için misafir bilgileri maskelenir
-    const isCasino = session.user.role === Role.CASINO_USER;
-    const sanitized = reservations.map((r: Record<string, unknown>) => {
-      if ((r as { isGuestPrivate?: boolean }).isGuestPrivate && !isCasino) {
-        return {
-          ...r,
-          guestName: "Gizli Misafir",
-          guestId: null,
-          notes: null,
-        };
-      }
-      return r;
-    });
-
     return NextResponse.json({
       success: true,
-      data: { reservations: sanitized, total },
+      data: { reservations, total },
     });
   },
   { requiredPermissions: ["reservation.view"] },
@@ -123,6 +109,7 @@ export const POST = withAuth(
       endDate,
       notes,
       conceptId,
+      minibarTypeId,
       extraItems,
       customRequests,
       extraRequests,
@@ -185,6 +172,7 @@ export const POST = withAuth(
             endDate: end,
             notes: notes ?? null,
             conceptId: finalConceptId,
+            minibarTypeId: minibarTypeId ?? null,
             extraItems_json:
               extraItems && extraItems.length > 0 ? extraItems : undefined,
             customRequests: customRequests || null,
@@ -250,7 +238,14 @@ export const POST = withAuth(
         action: "CREATE",
         entity: "Reservation",
         entityId: reservation.id,
-        newValue: { cabanaId, guestName, startDate, endDate, notes },
+        newValue: {
+          cabanaId,
+          guestName,
+          startDate,
+          endDate,
+          notes,
+          minibarTypeId,
+        },
       });
 
       // SSE broadcast — non-blocking

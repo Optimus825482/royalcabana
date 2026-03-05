@@ -66,6 +66,7 @@ interface CabanaItem {
   coordY: number;
   cabanaClass: { id: string; name: string };
   concept: { id: string; name: string } | null;
+  minibarType: { id: string; name: string } | null;
   staffAssignments: StaffAssignment[];
   reservations: Reservation[];
 }
@@ -76,6 +77,11 @@ interface CabanaClass {
 }
 
 interface Concept {
+  id: string;
+  name: string;
+}
+
+interface MinibarType {
   id: string;
   name: string;
 }
@@ -100,6 +106,7 @@ export default function CabanasPage() {
     name: "",
     classId: "",
     conceptId: "",
+    minibarTypeId: "",
   });
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
@@ -109,6 +116,7 @@ export default function CabanasPage() {
   // Assign concept modal
   const [assignCabana, setAssignCabana] = useState<CabanaItem | null>(null);
   const [assignConceptId, setAssignConceptId] = useState("");
+  const [assignMinibarTypeId, setAssignMinibarTypeId] = useState("");
   const [assignLoading, setAssignLoading] = useState(false);
 
   const { data: pricingData = [] } = useQuery<CabanaPricingRow[]>({
@@ -165,6 +173,17 @@ export default function CabanasPage() {
     },
   });
 
+  const { data: minibarTypes = [] } = useQuery<MinibarType[]>({
+    queryKey: ["minibar-types"],
+    queryFn: async () => {
+      const res = await fetch("/api/minibar-types");
+      if (!res.ok) return [];
+      const d = await res.json();
+      const resolved = d.data ?? d;
+      return Array.isArray(resolved) ? resolved : [];
+    },
+  });
+
   function showSuccessMsg(msg: string) {
     setSuccess(msg);
     setTimeout(() => setSuccess(""), 3000);
@@ -188,6 +207,7 @@ export default function CabanasPage() {
           name: createForm.name,
           classId: createForm.classId,
           conceptId: createForm.conceptId || null,
+          minibarTypeId: createForm.minibarTypeId || null,
           coordX: 500,
           coordY: 500,
         }),
@@ -197,7 +217,12 @@ export default function CabanasPage() {
         throw new Error(data.error || data.message || "Cabana oluşturulamadı");
       }
       setShowCreate(false);
-      setCreateForm({ name: "", classId: "", conceptId: "" });
+      setCreateForm({
+        name: "",
+        classId: "",
+        conceptId: "",
+        minibarTypeId: "",
+      });
       showSuccessMsg(
         "Cabana başarıyla oluşturuldu. Haritadan yerleşimini doğrulayın.",
       );
@@ -216,7 +241,10 @@ export default function CabanasPage() {
       const res = await fetch(`/api/cabanas/${assignCabana.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conceptId: assignConceptId || null }),
+        body: JSON.stringify({
+          conceptId: assignConceptId || null,
+          minibarTypeId: assignMinibarTypeId || null,
+        }),
       });
       if (!res.ok) throw new Error("Konsept atanamadı");
       setAssignCabana(null);
@@ -312,6 +340,15 @@ export default function CabanasPage() {
                           </span>
                         </>
                       )}
+                      {cabana.minibarType && (
+                        <>
+                          {" "}
+                          ·{" "}
+                          <span className="text-emerald-400">
+                            🍹 {cabana.minibarType.name}
+                          </span>
+                        </>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -342,6 +379,7 @@ export default function CabanasPage() {
                       onClick={() => {
                         setAssignCabana(cabana);
                         setAssignConceptId(cabana.concept?.id || "");
+                        setAssignMinibarTypeId(cabana.minibarType?.id || "");
                       }}
                       className={editBtnCls}
                     >
@@ -380,6 +418,12 @@ export default function CabanasPage() {
                 <span className="text-neutral-500">Konsept:</span>{" "}
                 <span className="text-yellow-400">
                   {detailCabana.concept?.name || "—"}
+                </span>
+              </div>
+              <div>
+                <span className="text-neutral-500">Minibar:</span>{" "}
+                <span className="text-yellow-400">
+                  {detailCabana.minibarType?.name || "—"}
                 </span>
               </div>
               <div>
@@ -560,6 +604,25 @@ export default function CabanasPage() {
                 ))}
               </select>
             </Field>
+            <Field label="Minibar Tipi (Opsiyonel)">
+              <select
+                value={createForm.minibarTypeId}
+                onChange={(e) =>
+                  setCreateForm((f) => ({
+                    ...f,
+                    minibarTypeId: e.target.value,
+                  }))
+                }
+                className={selectCls}
+              >
+                <option value="">Minibar tipi yok</option>
+                {minibarTypes.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <p className="text-xs text-neutral-500">
               Cabana oluşturulduktan sonra haritadan yerleşimini
               doğrulayabilirsiniz.
@@ -602,6 +665,20 @@ export default function CabanasPage() {
                 {concepts.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Minibar Tipi Ata / Güncelle">
+              <select
+                value={assignMinibarTypeId}
+                onChange={(e) => setAssignMinibarTypeId(e.target.value)}
+                className={selectCls}
+              >
+                <option value="">Minibar tipi yok</option>
+                {minibarTypes.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
                   </option>
                 ))}
               </select>

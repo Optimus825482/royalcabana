@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSSE } from "@/hooks/useSSE";
 import { SSE_EVENTS } from "@/lib/sse-events";
@@ -27,6 +28,7 @@ import {
   type CurrencyCode,
   DEFAULT_CURRENCY,
 } from "@/lib/currency";
+import { SkeletonCard } from "@/components/atoms/Skeleton";
 
 // ── Types ──
 
@@ -42,7 +44,6 @@ interface TodayReservation {
   checkInAt: string | null;
   checkOutAt: string | null;
   conceptId: string | null;
-  isGuestPrivate: boolean;
   cabana: {
     id: string;
     name: string;
@@ -176,7 +177,7 @@ function ReservationCard({
 
   return (
     <div
-      className={`group relative bg-neutral-900/80 border rounded-xl overflow-hidden transition-all duration-200 hover:border-neutral-600/60 cursor-pointer ${
+      className={`group relative bg-neutral-900/80 border rounded-xl overflow-hidden transition-all duration-200 hover:border-neutral-600/60 active:bg-neutral-800/80 cursor-pointer touch-manipulation ${
         isCheckedIn ? "border-teal-500/25" : isApproved ? "border-amber-500/20" : "border-neutral-800/60"
       }`}
       onClick={onSelect}
@@ -250,15 +251,15 @@ function ReservationCard({
           </p>
         )}
 
-        {/* Quick Actions */}
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        {/* Quick Actions — thumb-zone, 48px targets */}
+        <div className="flex items-center gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
           {isApproved && (
             <button
               onClick={() => onQuickAction(reservation.id, "check-in")}
               disabled={isActioning}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white transition-colors"
+              className="flex-1 min-h-[48px] flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold rounded-xl bg-teal-600 hover:bg-teal-500 active:bg-teal-700 disabled:opacity-50 text-white transition-colors touch-manipulation"
             >
-              <LogIn className="w-3.5 h-3.5" />
+              <LogIn className="w-4 h-4 shrink-0" />
               Check-in
             </button>
           )}
@@ -266,23 +267,23 @@ function ReservationCard({
             <button
               onClick={() => onQuickAction(reservation.id, "check-out")}
               disabled={isActioning}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-slate-600 hover:bg-slate-500 disabled:opacity-50 text-white transition-colors"
+              className="flex-1 min-h-[48px] flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold rounded-xl bg-slate-600 hover:bg-slate-500 active:bg-slate-700 disabled:opacity-50 text-white transition-colors touch-manipulation"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4 shrink-0" />
               Check-out
             </button>
           )}
           {isCheckedOut && (
-            <div className="flex items-center gap-1.5 px-3 py-2 text-xs text-slate-400">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-2 px-3 py-2.5 min-h-[48px] text-sm text-slate-400 items-center">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               Tamamlandı
             </div>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); onSelect(); }}
-            className="flex items-center gap-1 px-2.5 py-2 text-xs text-neutral-500 hover:text-neutral-300 rounded-lg hover:bg-neutral-800 transition-colors"
+            className="min-h-[48px] flex items-center gap-2 px-4 py-2.5 text-sm text-neutral-500 hover:text-neutral-300 rounded-xl hover:bg-neutral-800 active:bg-neutral-700 transition-colors touch-manipulation"
           >
-            Detay <ChevronRight className="w-3 h-3" />
+            Detay <ChevronRight className="w-4 h-4 shrink-0" />
           </button>
         </div>
       </div>
@@ -290,13 +291,13 @@ function ReservationCard({
   );
 }
 
-// ── Skeleton ──
+// ── Skeleton (design system token-based) ──
 
-function Skeleton() {
+function ReservationsSkeleton() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-52 rounded-xl bg-neutral-900/60 border border-neutral-800/40 animate-pulse" />
+        <SkeletonCard key={i} className="h-52 min-h-0" />
       ))}
     </div>
   );
@@ -305,11 +306,22 @@ function Skeleton() {
 // ── Main Page ──
 
 export default function FnbReservationsPage() {
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterKey>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedReservation, setSelectedReservation] = useState<ReservationDetailData | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Bildirimden tıklanınca gelen ?reservationId= ile detayı aç
+  useEffect(() => {
+    const id = searchParams.get("reservationId");
+    if (!id) return;
+    fetch(`/api/reservations/${id}`)
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((json) => setSelectedReservation(json.data ?? json))
+      .catch(() => {});
+  }, [searchParams]);
 
   const { data: currency = DEFAULT_CURRENCY } = useQuery<CurrencyCode>({
     queryKey: ["system-currency"],
@@ -419,7 +431,7 @@ export default function FnbReservationsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Misafir veya cabana ara..."
-              className="w-full sm:w-64 pl-9 pr-3 py-2 text-xs bg-neutral-900/60 border border-neutral-800/60 rounded-xl text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-amber-500/40 transition-all"
+              className="w-full sm:w-64 min-h-[44px] pl-9 pr-3 py-2.5 text-base sm:text-sm bg-neutral-900/60 border border-neutral-800/60 rounded-xl text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-amber-500/40 transition-all touch-manipulation"
             />
           </div>
         </div>
@@ -427,9 +439,9 @@ export default function FnbReservationsPage() {
         {/* Stats */}
         {!isLoading && !isError && <ReservationStats reservations={reservations} />}
 
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-1.5 bg-neutral-900/50 border border-neutral-800/40 rounded-xl p-1.5">
-          <Filter className="w-3.5 h-3.5 text-neutral-600 ml-2 mr-1 flex-shrink-0" />
+        {/* Filter Tabs — touch-friendly */}
+        <div className="flex flex-wrap items-center gap-2 bg-neutral-900/50 border border-neutral-800/40 rounded-xl p-2">
+          <Filter className="w-4 h-4 text-neutral-600 flex-shrink-0" />
           {FILTER_TABS.map((tab) => {
             const active = filter === tab.key;
             const cfg = tab.key !== "ALL" ? STATUS_CONFIG[tab.key] : null;
@@ -437,7 +449,7 @@ export default function FnbReservationsPage() {
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                className={`flex items-center gap-2 min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-xl transition-all touch-manipulation active:scale-[0.98] ${
                   active
                     ? cfg
                       ? `${cfg.bg} ${cfg.color} ${cfg.border} border`
@@ -453,7 +465,7 @@ export default function FnbReservationsPage() {
         </div>
 
         {/* Loading */}
-        {isLoading && <Skeleton />}
+        {isLoading && <ReservationsSkeleton />}
 
         {/* Error */}
         {isError && (

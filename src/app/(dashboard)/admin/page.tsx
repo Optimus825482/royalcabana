@@ -1,9 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import { Percent, Clock, CalendarCheck, X, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 import WeatherCard from "@/components/shared/WeatherCard";
+import { Card, CardContent } from "@/components/molecules/Card";
+import { ListPageTemplate } from "@/components/templates";
+import { SkeletonCardGrid } from "@/components/atoms/Skeleton";
 
 interface AdminStats {
   totalCabanas: number;
@@ -22,16 +27,58 @@ interface ApiEnvelope<T> {
   error?: string;
 }
 
-function KpiSkeleton() {
+const accents = {
+  success: "bg-[var(--rc-success)]/20 text-[var(--rc-success)]",
+  warning: "bg-[var(--rc-warning)]/20 text-[var(--rc-warning)]",
+  danger: "bg-[var(--rc-danger)]/20 text-[var(--rc-danger)]",
+  info: "bg-[var(--rc-info)]/20 text-[var(--rc-info)]",
+  gold: "bg-[var(--rc-gold)]/20 text-[var(--rc-gold)]",
+} as const;
+
+function KpiCard({
+  href,
+  icon: Icon,
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  value: string | number;
+  sub: string;
+  accent: keyof typeof accents;
+}) {
+  const accentClass = accents[accent];
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-28 rounded-xl bg-neutral-900 border border-neutral-800 animate-pulse"
-        />
-      ))}
-    </div>
+    <Link href={href} className="block group">
+      <Card className="p-5 h-full transition-all hover:scale-[1.01]">
+        <CardContent className="p-0">
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center",
+                accentClass,
+              )}
+            >
+              <Icon className="w-5 h-5" />
+            </div>
+            <span
+              className={cn(
+                "text-xs font-medium uppercase tracking-wider",
+                accentClass as string,
+              )}
+            >
+              {label}
+            </span>
+            <ArrowRight className="w-3.5 h-3.5 ml-auto text-[var(--rc-text-muted)] group-hover:text-[var(--rc-gold)] group-hover:translate-x-0.5 transition-all" />
+          </div>
+          <p className={cn("text-3xl font-bold", accentClass)}>{value}</p>
+          <p className="text-xs text-[var(--rc-text-muted)] mt-1">{sub}</p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -46,7 +93,6 @@ export default function AdminDashboardPage() {
       const res = await fetch("/api/admin/stats");
       if (!res.ok) throw new Error("Veri alınamadı");
       const payload: ApiEnvelope<AdminStats> = await res.json();
-
       return {
         totalCabanas: payload.data?.totalCabanas ?? 0,
         availableCabanas: payload.data?.availableCabanas ?? 0,
@@ -61,164 +107,109 @@ export default function AdminDashboardPage() {
   });
 
   return (
-    <div className="text-neutral-100 p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-semibold text-yellow-400">
-            Admin Dashboard
-          </h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            Genel bakış ve istatistikler
-          </p>
-        </div>
-
+    <ListPageTemplate
+      title="Admin Paneli"
+      subtitle="Genel bakış ve istatistikler"
+    >
+      <div className="space-y-6">
         {isError && (
-          <div className="bg-red-900/30 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
+          <div className="px-4 py-3 rounded-lg bg-[var(--rc-danger)]/10 border border-[var(--rc-danger)]/30 text-[var(--rc-danger)] text-sm">
             İstatistikler yüklenirken hata oluştu.
           </div>
         )}
 
-        {/* KPI Cards */}
-        {isLoading ? (
-          <KpiSkeleton />
-        ) : stats ? (
+        {isLoading || !stats ? (
+          <SkeletonCardGrid count={8} />
+        ) : (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Doluluk Oranı */}
-                <Link
-                  href="/admin/reservations"
-                  className="group bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/30 hover:border-amber-400/60 rounded-xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-amber-500/10 cursor-pointer"
-                >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                    <Percent className="w-5 h-5 text-amber-400" />
-                  </div>
-                  <span className="text-xs text-amber-400 font-medium uppercase tracking-wider">
-                    Doluluk
-                  </span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400/0 group-hover:text-amber-400/80 ml-auto transition-all group-hover:translate-x-0.5" />
-                </div>
-                <p className="text-3xl font-bold text-amber-400">
-                  %{stats.occupancyRate.toFixed(1)}
-                </p>
-                <p className="text-xs text-neutral-500 mt-1">
-                    {stats.reservedCabanas}/{stats.totalCabanas} Cabana
-                </p>
-                </Link>
-
-              {/* Bekleyen Talepler */}
-                <Link
-                  href="/admin/requests"
-                  className="group bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-400/60 rounded-xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-orange-500/10 cursor-pointer"
-                >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-orange-400" />
-                  </div>
-                  <span className="text-xs text-orange-400 font-medium uppercase tracking-wider">
-                    Bekleyen
-                  </span>
-                    <ArrowRight className="w-3.5 h-3.5 text-orange-400/0 group-hover:text-orange-400/80 ml-auto transition-all group-hover:translate-x-0.5" />
-                </div>
-                <p className="text-3xl font-bold text-orange-400">
-                  {stats.pendingRequests}
-                </p>
-                <p className="text-xs text-neutral-500 mt-1">Onay bekliyor</p>
-                </Link>
-
-              {/* Bu Ay Onaylanan */}
-                <Link
-                  href="/admin/reservations?status=APPROVED"
-                  className="group bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 hover:border-green-400/60 rounded-xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-green-500/10 cursor-pointer"
-                >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                    <CalendarCheck className="w-5 h-5 text-green-400" />
-                  </div>
-                  <span className="text-xs text-green-400 font-medium uppercase tracking-wider">
-                    Onaylanan
-                  </span>
-                    <ArrowRight className="w-3.5 h-3.5 text-green-400/0 group-hover:text-green-400/80 ml-auto transition-all group-hover:translate-x-0.5" />
-                </div>
-                <p className="text-3xl font-bold text-green-400">
-                  {stats.approvedThisMonth}
-                </p>
-                <p className="text-xs text-neutral-500 mt-1">Bu ay</p>
-                </Link>
-
-              {/* Bu Ay Reddedilen */}
-                <Link
-                  href="/admin/reservations?status=REJECTED"
-                  className="group bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/30 hover:border-red-400/60 rounded-xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/10 cursor-pointer"
-                >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                    <X className="w-5 h-5 text-red-400" />
-                  </div>
-                  <span className="text-xs text-red-400 font-medium uppercase tracking-wider">
-                    Reddedilen
-                  </span>
-                    <ArrowRight className="w-3.5 h-3.5 text-red-400/0 group-hover:text-red-400/80 ml-auto transition-all group-hover:translate-x-0.5" />
-                </div>
-                <p className="text-3xl font-bold text-red-400">
-                  {stats.rejectedThisMonth}
-                </p>
-                <p className="text-xs text-neutral-500 mt-1">Bu ay</p>
-                </Link>
+              <KpiCard
+                href="/admin/reservations"
+                icon={Percent}
+                label="Doluluk"
+                value={`%${stats.occupancyRate.toFixed(1)}`}
+                sub={`${stats.reservedCabanas}/${stats.totalCabanas} Cabana`}
+                accent="gold"
+              />
+              <KpiCard
+                href="/admin/requests"
+                icon={Clock}
+                label="Bekleyen"
+                value={stats.pendingRequests}
+                sub="Onay bekliyor"
+                accent="warning"
+              />
+              <KpiCard
+                href="/admin/reservations?status=APPROVED"
+                icon={CalendarCheck}
+                label="Onaylanan"
+                value={stats.approvedThisMonth}
+                sub="Bu ay"
+                accent="success"
+              />
+              <KpiCard
+                href="/admin/reservations?status=REJECTED"
+                icon={X}
+                label="Reddedilen"
+                value={stats.rejectedThisMonth}
+                sub="Bu ay"
+                accent="danger"
+              />
             </div>
 
-              {/* Cabana Durum + Weather */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Cabana Durum Dağılımı */}
-              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
-                <h2 className="text-sm font-semibold text-neutral-300 mb-4">
-                    Cabana Durum Dağılımı
+              <Card className="p-5">
+                <h2 className="text-sm font-semibold text-[var(--rc-text-primary)] mb-4">
+                  Cabana Durum Dağılımı
                 </h2>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-green-500" />
-                      <span className="text-sm text-neutral-300">Müsait</span>
+                      <span className="w-3 h-3 rounded-full bg-[var(--rc-success)]" />
+                      <span className="text-sm text-[var(--rc-text-secondary)]">
+                        Müsait
+                      </span>
                     </div>
-                    <span className="text-lg font-bold text-green-400">
+                    <span className="text-lg font-bold text-[var(--rc-success)]">
                       {stats.availableCabanas}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-red-500" />
-                      <span className="text-sm text-neutral-300">Rezerve</span>
+                      <span className="w-3 h-3 rounded-full bg-[var(--rc-danger)]" />
+                      <span className="text-sm text-[var(--rc-text-secondary)]">
+                        Rezerve
+                      </span>
                     </div>
-                    <span className="text-lg font-bold text-red-400">
+                    <span className="text-lg font-bold text-[var(--rc-danger)]">
                       {stats.reservedCabanas}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-neutral-500" />
-                      <span className="text-sm text-neutral-300">Kapalı</span>
+                      <span className="w-3 h-3 rounded-full bg-[var(--rc-text-muted)]" />
+                      <span className="text-sm text-[var(--rc-text-secondary)]">
+                        Kapalı
+                      </span>
                     </div>
-                    <span className="text-lg font-bold text-neutral-400">
+                    <span className="text-lg font-bold text-[var(--rc-text-muted)]">
                       {stats.closedCabanas}
                     </span>
                   </div>
                 </div>
                 <Link
                   href="/admin/requests"
-                  className="flex items-center justify-center gap-2 w-full mt-4 py-2.5 text-sm font-medium text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg transition-colors"
+                  className="flex items-center justify-center gap-2 w-full mt-4 py-2.5 text-sm font-medium text-[var(--rc-gold)] bg-[var(--rc-gold)]/10 hover:bg-[var(--rc-gold)]/20 rounded-lg transition-colors min-h-[44px]"
                 >
                   Talepleri Görüntüle
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-              </div>
-
-              {/* Weather Card */}
+              </Card>
               <WeatherCard />
             </div>
           </>
-        ) : null}
+        )}
       </div>
-    </div>
+    </ListPageTemplate>
   );
 }

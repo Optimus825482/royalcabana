@@ -13,6 +13,7 @@ import {
   MapPin,
   Tag,
   Clock,
+  Bell,
 } from "lucide-react";
 import { ReservationStatus } from "@/types";
 import { formatPrice, type CurrencyCode } from "@/lib/currency";
@@ -36,7 +37,7 @@ export interface ReservationDetailData {
     cabanaClass?: { id: string; name: string } | null;
   };
   user?: { id: string; username: string };
-  statusHistory: Array<{
+  statusHistory?: Array<{
     toStatus: string;
     changedBy: string;
     createdAt: string;
@@ -121,6 +122,7 @@ export default function ReservationDetailModal({
   showActions = false,
 }: ReservationDetailModalProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [reminderLoading, setReminderLoading] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [manualPrice, setManualPrice] = useState("");
@@ -227,6 +229,27 @@ export default function ReservationDetailModal({
     handleAction("reject", { reason: rejectReason });
   }
 
+  async function handleSendReminder() {
+    setReminderLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/reservations/${reservation.id}/send-reminder`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Hatırlatma gönderilemedi.");
+        return;
+      }
+      setSuccessMsg("Hatırlatma gönderildi.");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch {
+      setError("Sunucuya bağlanılamadı.");
+    } finally {
+      setReminderLoading(false);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -246,10 +269,10 @@ export default function ReservationDetailModal({
         </div>
 
         {/* ── HEADER: Cabana adı büyük + renkli ──────────────────── */}
-        <div className="relative px-5 pt-5 pb-4 border-b border-neutral-800/60 shrink-0">
+        <div className="relative px-4 sm:px-5 pt-4 pb-4 border-b border-neutral-800/60 shrink-0">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-neutral-800 text-neutral-500 hover:text-neutral-200 transition-colors"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 text-neutral-500 hover:text-neutral-200 transition-colors touch-manipulation"
             aria-label="Kapat"
           >
             <X className="w-5 h-5" />
@@ -286,7 +309,7 @@ export default function ReservationDetailModal({
         </div>
 
         {/* ── CONTENT ────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 overscroll-contain">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain">
           {/* Misafir bilgileri */}
           <div className="bg-neutral-800/40 rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2 mb-1">
@@ -353,7 +376,7 @@ export default function ReservationDetailModal({
           )}
 
           {/* Durum geçmişi */}
-          {reservation.statusHistory.length > 0 && (
+          {(reservation.statusHistory?.length ?? 0) > 0 && (
             <div className="bg-neutral-800/40 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-4 h-4 text-neutral-500" />
@@ -362,7 +385,7 @@ export default function ReservationDetailModal({
                 </span>
               </div>
               <div className="space-y-2">
-                {reservation.statusHistory.map((h, i) => (
+                {(reservation.statusHistory ?? []).map((h, i) => (
                   <div
                     key={i}
                     className="flex items-center justify-between text-xs bg-neutral-900/60 rounded-lg px-3 py-2"
@@ -457,26 +480,41 @@ export default function ReservationDetailModal({
           )}
         </div>
 
+        {/* ── Casino: Hatırlatma gönder (bekleyen talep) ─────────── */}
+        {!showActions && canApprove && (
+          <div className="px-4 sm:px-5 py-4 border-t border-neutral-800 shrink-0">
+          <button
+              type="button"
+              onClick={handleSendReminder}
+              disabled={reminderLoading}
+              className="w-full bg-amber-600/20 hover:bg-amber-600/30 active:bg-amber-600/40 border border-amber-500/40 text-amber-400 font-medium px-4 py-3 min-h-[48px] rounded-xl text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation"
+            >
+              <Bell className="w-4 h-4" />
+              {reminderLoading ? "Gönderiliyor..." : "Hatırlatma gönder"}
+            </button>
+          </div>
+        )}
+
         {/* ── ACTION BUTTONS (admin/sysadmin only) ───────────────── */}
         {showActions && (canApprove || canCheckIn || canCheckOut) && (
-          <div className="px-5 py-4 border-t border-neutral-800 shrink-0">
-            <div className="flex flex-wrap gap-2">
+          <div className="px-4 sm:px-5 py-4 border-t border-neutral-800 shrink-0">
+            <div className="flex flex-wrap gap-3">
               {canApprove && !showRejectForm && (
                 <>
                   <button
                     onClick={handleApprove}
                     disabled={!!actionLoading}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium px-4 py-2.5 min-h-[44px] rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 min-w-0 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white font-medium px-4 py-3 min-h-[48px] rounded-xl text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation"
                   >
-                    <Check className="w-4 h-4" />
+                    <Check className="w-4 h-4 shrink-0" />
                     {actionLoading === "approve" ? "Onaylanıyor..." : "Onayla"}
                   </button>
                   <button
                     onClick={() => setShowRejectForm(true)}
                     disabled={!!actionLoading}
-                    className="flex-1 bg-red-600/20 hover:bg-red-600/30 border border-red-700/40 disabled:opacity-50 text-red-400 font-medium px-4 py-2.5 min-h-[44px] rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 min-w-0 bg-red-600/20 hover:bg-red-600/30 active:bg-red-600/40 border border-red-700/40 disabled:opacity-50 text-red-400 font-medium px-4 py-3 min-h-[48px] rounded-xl text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation"
                   >
-                    <Ban className="w-4 h-4" />
+                    <Ban className="w-4 h-4 shrink-0" />
                     Reddet
                   </button>
                 </>
@@ -485,9 +523,9 @@ export default function ReservationDetailModal({
                 <button
                   onClick={() => handleAction("check-in")}
                   disabled={!!actionLoading}
-                  className="flex-1 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-medium px-4 py-2.5 min-h-[44px] rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 min-w-0 bg-teal-600 hover:bg-teal-500 active:bg-teal-700 disabled:opacity-50 text-white font-medium px-4 py-3 min-h-[48px] rounded-xl text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation"
                 >
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="w-4 h-4 shrink-0" />
                   {actionLoading === "check-in" ? "İşleniyor..." : "Check-in"}
                 </button>
               )}
@@ -495,9 +533,9 @@ export default function ReservationDetailModal({
                 <button
                   onClick={() => handleAction("check-out")}
                   disabled={!!actionLoading}
-                  className="flex-1 bg-slate-600 hover:bg-slate-500 disabled:opacity-50 text-white font-medium px-4 py-2.5 min-h-[44px] rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 min-w-0 bg-slate-600 hover:bg-slate-500 active:bg-slate-700 disabled:opacity-50 text-white font-medium px-4 py-3 min-h-[48px] rounded-xl text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4 shrink-0" />
                   {actionLoading === "check-out" ? "İşleniyor..." : "Check-out"}
                 </button>
               )}

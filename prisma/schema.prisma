@@ -187,6 +187,7 @@ model Cabana {
   name                 String       @unique
   classId              String
   conceptId            String?
+  minibarTypeId        String?
   coordX               Float
   coordY               Float
   rotation             Float        @default(0)
@@ -203,6 +204,7 @@ model Cabana {
 
   cabanaClass  CabanaClass        @relation(fields: [classId], references: [id], onDelete: Restrict)
   concept      Concept?           @relation(fields: [conceptId], references: [id], onDelete: SetNull)
+  minibarType  MinibarType?       @relation(fields: [minibarTypeId], references: [id], onDelete: SetNull)
   reservations     Reservation[]
   fnbOrders        FnbOrder[]
   blackoutDates    BlackoutDate[]
@@ -211,6 +213,7 @@ model Cabana {
   staffAssignments StaffAssignment[]
 
   @@index([classId])
+  @@index([minibarTypeId])
   @@index([status])
   @@index([isDeleted])
   @@index([deletedAt])
@@ -271,10 +274,11 @@ model Product {
   stockQuantity   Int              @default(0)
   minStockAlert   Int              @default(0)
   group           ProductGroup?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  conceptProducts ConceptProduct[]
-  extraItems      ExtraItem[]
-  extraRequests   ReservationExtraRequest[]
-  fnbOrderItems   FnbOrderItem[]
+  conceptProducts      ConceptProduct[]
+  extraItems           ExtraItem[]
+  extraRequests        ReservationExtraRequest[]
+  fnbOrderItems        FnbOrderItem[]
+  minibarTypeProducts  MinibarTypeProduct[]
 
   @@index([groupId])
   @@index([isDeleted])
@@ -321,7 +325,6 @@ model Reservation {
   userId          String
   guestId         String?
   guestName       String
-  isGuestPrivate  Boolean           @default(false)
   startDate       DateTime          @db.Date
   endDate         DateTime          @db.Date
   notes           String?
@@ -329,6 +332,7 @@ model Reservation {
   totalPrice      Decimal?  @db.Decimal(10, 2)
   rejectionReason String?
   conceptId       String?
+  minibarTypeId   String?
   extraItems_json Json?             // Rez talebi ile gönderilen ekstra ürünler (liste içi)
   customRequests  String?           // Liste dışı serbest metin talep
   customRequestPriced Boolean       @default(false) // Liste dışı talep fiyatlandırıldı mı?
@@ -346,6 +350,7 @@ model Reservation {
   user          User                       @relation(fields: [userId], references: [id], onDelete: Restrict)
   guest         Guest?                     @relation(fields: [guestId], references: [id], onDelete: SetNull)
   concept       Concept?                   @relation(fields: [conceptId], references: [id], onDelete: SetNull)
+  minibarType   MinibarType?               @relation(fields: [minibarTypeId], references: [id], onDelete: SetNull)
   statusHistory ReservationStatusHistory[]
   modifications ModificationRequest[]
   cancellations CancellationRequest[]
@@ -916,6 +921,40 @@ model ExtraServicePrice {
 
   @@index([extraServiceId, effectiveFrom])
   @@map("extra_service_prices")
+}
+
+// ===== MİNİBAR TİPLERİ =====
+model MinibarType {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products MinibarTypeProduct[]
+  cabanas  Cabana[]
+  reservations Reservation[]
+
+  @@index([isActive])
+  @@index([isDeleted])
+  @@map("minibar_types")
+}
+
+model MinibarTypeProduct {
+  id            String @id @default(cuid())
+  minibarTypeId String
+  productId     String
+  quantity      Int    @default(1)
+
+  minibarType MinibarType @relation(fields: [minibarTypeId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([minibarTypeId, productId])
+  @@index([minibarTypeId])
+  @@map("minibar_type_products")
 }
 
 // ===== (Kaldırıldı: CabanaPriceHistory, ConceptPriceHistory) =====

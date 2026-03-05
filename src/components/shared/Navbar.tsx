@@ -125,6 +125,13 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         requiredPermission: "reservation.view",
       },
       {
+        href: "/system-admin/requests",
+        label: "Talepler",
+        icon: ClipboardList,
+        color: "text-orange-400",
+        requiredPermission: "reservation.view",
+      },
+      {
         href: "/system-admin/reservations",
         label: "Rezervasyonlar",
         icon: BookOpen,
@@ -173,6 +180,13 @@ export const SYSTEM_ADMIN_NAV: NavItem[] = [
         label: "Ekstra Hizmetler",
         icon: HandCoins,
         color: "text-teal-400",
+        requiredPermission: "system.config.view",
+      },
+      {
+        href: "/system-admin/minibar-types",
+        label: "Minibar Tanımları",
+        icon: Package,
+        color: "text-cyan-400",
         requiredPermission: "system.config.view",
       },
       {

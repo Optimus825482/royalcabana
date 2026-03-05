@@ -53,18 +53,18 @@ const MemoizedDigitalClock = React.memo(function DigitalClock() {
   if (!time) return null;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 bg-neutral-800/80 rounded-xl border border-neutral-700/50">
+    <div className="flex items-center gap-3 px-4 py-2 bg-[var(--rc-card)] rounded-xl border border-[var(--rc-border-subtle)]">
       {/* Calendar */}
-      <div className="flex items-center gap-1.5 text-amber-400">
+      <div className="flex items-center gap-1.5 text-[var(--rc-gold)]">
         <span className="text-lg font-semibold tabular-nums">{date.day}</span>
         <div className="flex flex-col leading-none">
           <span className="text-[10px] font-medium">{date.month}</span>
-          <span className="text-[9px] text-neutral-500">{date.weekday}</span>
+          <span className="text-[9px] text-[var(--rc-text-muted)]">{date.weekday}</span>
         </div>
       </div>
-      <div className="w-px h-6 bg-neutral-700" />
+      <div className="w-px h-6 bg-[var(--rc-border-subtle)]" />
       {/* Clock */}
-      <div className="font-mono text-xl font-semibold tracking-wider text-cyan-400 tabular-nums">
+      <div className="font-mono text-xl font-semibold tracking-wider text-[var(--rc-text-primary)] tabular-nums">
         {time}
       </div>
     </div>
@@ -81,19 +81,19 @@ export default function StickyHeader({
   const { data: session } = useSession();
 
   return (
-    <header className="sticky top-0 z-30 bg-neutral-900 border-b border-neutral-800 shrink-0">
+    <header className="sticky top-0 z-30 bg-[var(--rc-sidebar)] border-b border-[var(--rc-border-subtle)] shrink-0">
       {/* Main header bar */}
       <div className="h-14 px-4 flex items-center gap-3">
         {/* Mobile hamburger */}
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden flex items-center justify-center w-11 h-11 rounded-lg hover:bg-neutral-800 transition-colors"
+          className="lg:hidden flex items-center justify-center w-11 h-11 rounded-lg hover:bg-[var(--rc-card-hover)] transition-colors"
           aria-label={sidebarOpen ? "Menüyü kapat" : "Menüyü aç"}
         >
           {sidebarOpen ? (
-            <X className="w-5 h-5 text-neutral-300" />
+            <X className="w-5 h-5 text-[var(--rc-text-secondary)]" />
           ) : (
-            <Menu className="w-5 h-5 text-neutral-300" />
+            <Menu className="w-5 h-5 text-[var(--rc-text-secondary)]" />
           )}
         </button>
 
@@ -138,7 +138,7 @@ function ProfileDropdown({ userName }: { userName?: string | null }) {
     <div ref={ref} className="relative hidden sm:block">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 text-sm text-neutral-400 hover:text-amber-400 transition-colors rounded-md px-2 py-1.5 hover:bg-neutral-800"
+        className="flex items-center gap-1.5 text-sm text-[var(--rc-text-muted)] hover:text-[var(--rc-gold)] transition-colors rounded-md px-2 py-1.5 hover:bg-[var(--rc-card-hover)]"
       >
         <UserIcon className="w-3.5 h-3.5 shrink-0" />
         <span className="truncate max-w-[120px]">{userName}</span>
@@ -148,16 +148,16 @@ function ProfileDropdown({ userName }: { userName?: string | null }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 min-w-[160px] bg-neutral-900 border border-neutral-700 rounded-lg shadow-xl py-1 z-50">
+        <div className="absolute right-0 top-full mt-1 min-w-[160px] bg-[var(--rc-card)] border border-[var(--rc-border-subtle)] rounded-lg shadow-xl py-1 z-50">
           <Link
             href="/profile"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-300 hover:text-amber-400 hover:bg-neutral-800 transition-colors"
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--rc-text-secondary)] hover:text-[var(--rc-gold)] hover:bg-[var(--rc-card-hover)] transition-colors"
           >
             <UserIcon className="w-4 h-4" />
             Profil
           </Link>
-          <div className="border-t border-neutral-800 my-1" />
+          <div className="border-t border-[var(--rc-border-subtle)] my-1" />
           <button
             onClick={async () => {
               setOpen(false);
@@ -166,7 +166,7 @@ function ProfileDropdown({ userName }: { userName?: string | null }) {
               } catch {}
               signOut({ callbackUrl: "/login" });
             }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-500 hover:text-red-400 hover:bg-neutral-800 transition-colors"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--rc-text-muted)] hover:text-[var(--rc-danger)] hover:bg-[var(--rc-card-hover)] transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Çıkış

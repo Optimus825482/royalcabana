@@ -49,7 +49,7 @@ export default function CasinoCalendarPage() {
 
   const [classFilter, setClassFilter] = useState<string>("");
   const [viewType, setViewType] = useState<"timeline" | "calendar">(
-    requestedView === "calendar" ? "calendar" : "timeline",
+    requestedView === "timeline" ? "timeline" : "calendar",
   );
   const [requestModal, setRequestModal] = useState<{
     cabanaId: string;
@@ -193,23 +193,23 @@ export default function CasinoCalendarPage() {
               : "Bir güne tıklayarak detayları görün, sağ tıklayarak talep oluşturun"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* View toggle */}
-          <div className="flex bg-neutral-900 rounded-lg p-0.5 border border-neutral-700/40">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* View toggle — touch-friendly 44px+ */}
+          <div className="flex bg-neutral-900 rounded-xl p-1 border border-neutral-700/40">
             <button
               onClick={() => setViewType("timeline")}
-              className={`flex items-center gap-1.5 px-3 py-2 min-h-11 text-xs font-medium rounded-md transition-all
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] min-w-0 text-sm font-medium rounded-lg transition-all touch-manipulation active:scale-[0.98]
                 ${viewType === "timeline" ? "bg-amber-600 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"}`}
             >
-              <LayoutList className="w-3.5 h-3.5" />
-              Zaman Çizelgesi
+              <LayoutList className="w-4 h-4 shrink-0" />
+              <span>Zaman Çizelgesi</span>
             </button>
             <button
               onClick={() => setViewType("calendar")}
-              className={`flex items-center gap-1.5 px-3 py-2 min-h-11 text-xs font-medium rounded-md transition-all
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] min-w-0 text-sm font-medium rounded-lg transition-all touch-manipulation active:scale-[0.98]
                 ${viewType === "calendar" ? "bg-amber-600 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"}`}
             >
-              <CalendarDays className="w-3.5 h-3.5" />
+              <CalendarDays className="w-4 h-4 shrink-0" />
               Takvim
             </button>
           </div>
@@ -218,7 +218,7 @@ export default function CasinoCalendarPage() {
             onChange={(e) => setClassFilter(e.target.value)}
             title="Sınıf filtresi"
             aria-label="Sınıf filtresi"
-            className="px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-amber-500 min-h-11"
+            className="min-h-[44px] px-4 py-3 text-base sm:text-sm bg-neutral-900 border border-neutral-700 rounded-xl text-neutral-200 focus:outline-none focus:border-amber-500 touch-manipulation"
           >
             <option value="">Tüm Sınıflar</option>
             {classes.map(([id, name]) => (
@@ -327,11 +327,11 @@ export default function CasinoCalendarPage() {
           aria-label="Rezervasyon talebi"
         >
           <div
-            className="bg-neutral-950 border border-neutral-800/80 rounded-t-2xl sm:rounded-2xl shadow-2xl shadow-black/60 w-full sm:max-w-lg mx-0 sm:mx-4 max-h-[92vh] flex flex-col overflow-hidden"
+            className="bg-[var(--rc-card)] border border-[var(--rc-border-subtle)] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-xl mx-0 sm:mx-4 max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-center pt-3 sm:hidden">
-              <div className="w-10 h-1 rounded-full bg-neutral-700" />
+            <div className="flex justify-center pt-3 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-[var(--rc-drag-handle)]" />
             </div>
             <ReservationRequestForm
               cabanaId={requestModal.cabanaId}

@@ -899,6 +899,127 @@ async function main() {
     },
   });
 
+  // ===== MİNİBAR TİPLERİ =====
+  const minibarStandard = await (prisma as any).minibarType.upsert({
+    where: { name: "Standart Minibar" },
+    update: {},
+    create: {
+      id: "minibar-standard",
+      name: "Standart Minibar",
+      description: "Temel içecek ve atıştırmalık paketi",
+    },
+  });
+
+  const minibarPremium = await (prisma as any).minibarType.upsert({
+    where: { name: "Premium Minibar" },
+    update: {},
+    create: {
+      id: "minibar-premium",
+      name: "Premium Minibar",
+      description: "Üst düzey içecek, meyve ve atıştırmalık paketi",
+    },
+  });
+
+  const minibarVip = await (prisma as any).minibarType.upsert({
+    where: { name: "VIP Minibar" },
+    update: {},
+    create: {
+      id: "minibar-vip",
+      name: "VIP Minibar",
+      description:
+        "Şampanya, taze meyve, peynir tabağı ve özel atıştırmalıklar",
+    },
+  });
+
+  // Minibar ürün atamaları
+  const minibarProductAssignments = [
+    // Standart Minibar: Su paketi(2), Meşrubat(2), Atıştırmalık Sepeti(1)
+    {
+      minibarTypeId: minibarStandard.id,
+      productId: "product-water-package",
+      quantity: 2,
+    },
+    {
+      minibarTypeId: minibarStandard.id,
+      productId: "product-soft-drink",
+      quantity: 2,
+    },
+    {
+      minibarTypeId: minibarStandard.id,
+      productId: "product-snack-basket",
+      quantity: 1,
+    },
+    // Premium Minibar: Su paketi(2), Taze Meyve Suyu(2), Meyve Tabağı(1), Atıştırmalık Sepeti(1), Pasta Dilimi(1)
+    {
+      minibarTypeId: minibarPremium.id,
+      productId: "product-water-package",
+      quantity: 2,
+    },
+    {
+      minibarTypeId: minibarPremium.id,
+      productId: "product-fresh-juice",
+      quantity: 2,
+    },
+    {
+      minibarTypeId: minibarPremium.id,
+      productId: "product-fruit-platter",
+      quantity: 1,
+    },
+    {
+      minibarTypeId: minibarPremium.id,
+      productId: "product-snack-basket",
+      quantity: 1,
+    },
+    {
+      minibarTypeId: minibarPremium.id,
+      productId: "product-cake-slice",
+      quantity: 1,
+    },
+    // VIP Minibar: Şampanya(1), Taze Meyve Suyu(2), Meyve Tabağı(1), Peynir Tabağı(1), Atıştırmalık Sepeti(1), Su paketi(2)
+    {
+      minibarTypeId: minibarVip.id,
+      productId: "product-champagne",
+      quantity: 1,
+    },
+    {
+      minibarTypeId: minibarVip.id,
+      productId: "product-fresh-juice",
+      quantity: 2,
+    },
+    {
+      minibarTypeId: minibarVip.id,
+      productId: "product-fruit-platter",
+      quantity: 1,
+    },
+    {
+      minibarTypeId: minibarVip.id,
+      productId: "product-cheese-platter",
+      quantity: 1,
+    },
+    {
+      minibarTypeId: minibarVip.id,
+      productId: "product-snack-basket",
+      quantity: 1,
+    },
+    {
+      minibarTypeId: minibarVip.id,
+      productId: "product-water-package",
+      quantity: 2,
+    },
+  ];
+
+  for (const mpa of minibarProductAssignments) {
+    const existing = await (prisma as any).minibarTypeProduct.findFirst({
+      where: { minibarTypeId: mpa.minibarTypeId, productId: mpa.productId },
+    });
+    if (!existing) {
+      await (prisma as any).minibarTypeProduct.create({ data: mpa });
+    }
+  }
+
+  // Minibar tipleri dizisi — cabana'lara random atama için
+  const minibarTypes = [minibarStandard, minibarPremium, minibarVip];
+
   // ===== CABANALAR — Görseldeki yerleşim planına göre =====
   // Harita boyutu: 1040×678 piksel (sonnn.png)
   // Koordinatlar (coordX, coordY) = piksel cinsinden (0,0 sol-üst köşe)
@@ -911,6 +1032,7 @@ async function main() {
       name: "Cabana-01",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 454.05,
       coordY: 282.76,
       rotation: 150,
@@ -921,6 +1043,7 @@ async function main() {
       name: "Cabana-02",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 412.69,
       coordY: 263.75,
       rotation: 150,
@@ -932,6 +1055,7 @@ async function main() {
       name: "Cabana-07",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 376.98,
       coordY: 442.07,
       rotation: 150,
@@ -942,6 +1066,7 @@ async function main() {
       name: "Cabana-08",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 359.14,
       coordY: 473.1,
       rotation: 150,
@@ -953,6 +1078,7 @@ async function main() {
       name: "Cabana-03",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 372.5,
       coordY: 242.27,
       rotation: 150,
@@ -963,6 +1089,7 @@ async function main() {
       name: "Cabana-04",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 470.66,
       coordY: 371.33,
       rotation: 150,
@@ -974,6 +1101,7 @@ async function main() {
       name: "Cabana-05",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 455.83,
       coordY: 400.83,
       rotation: 150,
@@ -984,6 +1112,7 @@ async function main() {
       name: "Cabana-06",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 438.52,
       coordY: 430.5,
       rotation: 150,
@@ -996,6 +1125,7 @@ async function main() {
       name: "Cabana-09",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 343.4,
       coordY: 502.22,
       rotation: 150,
@@ -1006,6 +1136,7 @@ async function main() {
       name: "Cabana-10",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 510.31,
       coordY: 582.25,
       rotation: 150,
@@ -1016,6 +1147,7 @@ async function main() {
       name: "Cabana-11",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 525.7,
       coordY: 551.66,
       rotation: 150,
@@ -1026,6 +1158,7 @@ async function main() {
       name: "Cabana-12",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 541.24,
       coordY: 520.28,
       rotation: 150,
@@ -1038,6 +1171,7 @@ async function main() {
       name: "Cabana-13",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 538.98,
       coordY: 403.17,
       rotation: 150,
@@ -1048,6 +1182,7 @@ async function main() {
       name: "Cabana-14",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 523.16,
       coordY: 433.39,
       rotation: 150,
@@ -1058,6 +1193,7 @@ async function main() {
       name: "Cabana-15",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 505.28,
       coordY: 463.61,
       rotation: 150,
@@ -1071,6 +1207,7 @@ async function main() {
       name: "Cabana-16",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 846.99,
       coordY: 432.73,
       rotation: 0,
@@ -1081,6 +1218,7 @@ async function main() {
       name: "Cabana-17",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 845.93,
       coordY: 468.42,
       rotation: 0,
@@ -1091,6 +1229,7 @@ async function main() {
       name: "Cabana-18",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 846.08,
       coordY: 501.7,
       rotation: 0,
@@ -1102,6 +1241,7 @@ async function main() {
       name: "Cabana-25",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 933.57,
       coordY: 432.06,
       rotation: 0,
@@ -1112,6 +1252,7 @@ async function main() {
       name: "Cabana-24",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 935.03,
       coordY: 466.71,
       rotation: 0,
@@ -1122,6 +1263,7 @@ async function main() {
       name: "Cabana-23",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 935.36,
       coordY: 502.03,
       rotation: 0,
@@ -1133,6 +1275,7 @@ async function main() {
       name: "Cabana-19",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 787.79,
       coordY: 546.09,
       rotation: 0,
@@ -1143,6 +1286,7 @@ async function main() {
       name: "Cabana-20",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 787.72,
       coordY: 597.08,
       rotation: 0,
@@ -1154,6 +1298,7 @@ async function main() {
       name: "Cabana-22",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarPremium.id,
       coordX: 991.57,
       coordY: 600.5,
       rotation: 0,
@@ -1164,6 +1309,7 @@ async function main() {
       name: "Cabana-21",
       classId: standardClass.id,
       conceptId: basicConcept.id,
+      minibarTypeId: minibarStandard.id,
       coordX: 992.26,
       coordY: 548.04,
       rotation: 0,
@@ -1176,6 +1322,7 @@ async function main() {
       name: "VIP Cabana-26",
       classId: vipClass.id,
       conceptId: premiumConcept.id,
+      minibarTypeId: minibarVip.id,
       coordX: 539.08,
       coordY: 202.39,
       rotation: 0,
@@ -1186,6 +1333,7 @@ async function main() {
       name: "VIP Cabana-27",
       classId: vipClass.id,
       conceptId: premiumConcept.id,
+      minibarTypeId: minibarVip.id,
       coordX: 578.53,
       coordY: 204.1,
       rotation: 0,
@@ -1195,7 +1343,7 @@ async function main() {
   ];
 
   for (const cabana of cabanas) {
-    await prisma.cabana.upsert({
+    await (prisma as any).cabana.upsert({
       where: { name: cabana.name },
       update: {
         coordX: cabana.coordX,
@@ -1205,6 +1353,7 @@ async function main() {
         scaleY: cabana.scaleY ?? 1,
         classId: cabana.classId,
         conceptId: cabana.conceptId,
+        minibarTypeId: cabana.minibarTypeId,
       },
       create: cabana,
     });
@@ -2152,6 +2301,9 @@ async function main() {
   console.log(`Created 8 FnB orders`);
   console.log(`Created 5 notifications`);
   console.log(`Created 5 extra services with prices`);
+  console.log(
+    `Created 3 minibar types (Standart, Premium, VIP) with product assignments`,
+  );
 }
 
 main()

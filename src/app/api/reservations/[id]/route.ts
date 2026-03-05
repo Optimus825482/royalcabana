@@ -15,9 +15,41 @@ export const GET = withAuth(
           include: {
             cabanaClass: { select: { id: true, name: true } },
             concept: { select: { id: true, name: true } },
+            minibarType: {
+              include: {
+                products: {
+                  include: {
+                    product: {
+                      select: { id: true, name: true, salePrice: true },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
-        concept: { select: { id: true, name: true } },
+        concept: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            serviceFee: true,
+            products: {
+              include: {
+                product: { select: { id: true, name: true, salePrice: true } },
+              },
+            },
+          },
+        },
+        minibarType: {
+          include: {
+            products: {
+              include: {
+                product: { select: { id: true, name: true, salePrice: true } },
+              },
+            },
+          },
+        },
         user: { select: { id: true, username: true, email: true } },
         guest: {
           select: {
@@ -56,22 +88,6 @@ export const GET = withAuth(
         { success: false, error: "Forbidden" },
         { status: 403 },
       );
-    }
-
-    // Misafir gizliliği: isGuestPrivate ise Casino dışındaki roller göremez
-    if (
-      (reservation as unknown as { isGuestPrivate?: boolean }).isGuestPrivate &&
-      session.user.role !== Role.CASINO_USER
-    ) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...reservation,
-          guestName: "Gizli Misafir",
-          guestId: null,
-          notes: null,
-        },
-      });
     }
 
     return NextResponse.json({ success: true, data: reservation });

@@ -523,13 +523,13 @@ function AdminReservationModal({
           </div>
 
           {/* Status History */}
-          {reservation.statusHistory.length > 0 && (
+          {((reservation.statusHistory ?? []).length) > 0 && (
             <div>
               <p className="text-xs text-neutral-400 mb-2 font-medium">
                 Durum Geçmişi
               </p>
               <div className="space-y-2">
-                {reservation.statusHistory.map(
+                {(reservation.statusHistory ?? []).map(
                   (
                     h: { toStatus: string; createdAt: string; reason?: string },
                     i: number,

@@ -45,6 +45,27 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Royal Cabana design tokens — use via bg-rc-card, text-rc-gold, etc. */
+  --color-rc-background: var(--rc-background);
+  --color-rc-sidebar: var(--rc-sidebar);
+  --color-rc-card: var(--rc-card);
+  --color-rc-card-hover: var(--rc-card-hover);
+  --color-rc-border-subtle: var(--rc-border-subtle);
+  --color-rc-gold: var(--rc-gold);
+  --color-rc-gold-hover: var(--rc-gold-hover);
+  --color-rc-gold-active: var(--rc-gold-active);
+  --color-rc-surface: var(--rc-surface);
+  --color-rc-surface-elevated: var(--rc-surface-elevated);
+  --color-rc-surface-border: var(--rc-surface-border);
+  --color-rc-text-primary: var(--rc-text-primary);
+  --color-rc-text-secondary: var(--rc-text-secondary);
+  --color-rc-text-muted: var(--rc-text-muted);
+  --color-rc-success: var(--rc-success);
+  --color-rc-warning: var(--rc-warning);
+  --color-rc-info: var(--rc-info);
+  --color-rc-danger: var(--rc-danger);
+  --color-rc-purple-stat: var(--rc-purple-stat);
 }
 
 :root {
@@ -82,38 +103,39 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Royal Cabana dark default — semantic tokens map to RC luxury dark */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: var(--rc-background);
+  --foreground: var(--rc-text-primary);
+  --card: var(--rc-card);
+  --card-foreground: var(--rc-text-primary);
+  --popover: var(--rc-card);
+  --popover-foreground: var(--rc-text-primary);
+  --primary: var(--rc-gold);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: var(--rc-surface-elevated);
+  --secondary-foreground: var(--rc-text-primary);
+  --muted: var(--rc-surface-elevated);
+  --muted-foreground: var(--rc-text-muted);
+  --accent: var(--rc-card-hover);
+  --accent-foreground: var(--rc-text-primary);
+  --destructive: var(--rc-danger);
+  --border: var(--rc-border-subtle);
+  --input: var(--rc-surface-border);
+  --ring: var(--rc-gold);
+  --chart-1: var(--rc-success);
+  --chart-2: var(--rc-info);
+  --chart-3: var(--rc-gold);
+  --chart-4: var(--rc-warning);
+  --chart-5: var(--rc-purple-stat);
+  --sidebar: var(--rc-sidebar);
+  --sidebar-foreground: var(--rc-text-primary);
+  --sidebar-primary: var(--rc-gold);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: var(--rc-card-hover);
+  --sidebar-accent-foreground: var(--rc-text-primary);
+  --sidebar-border: var(--rc-border-subtle);
+  --sidebar-ring: var(--rc-gold);
 }
 
 @layer base {
@@ -155,6 +177,8 @@
   }
 }
 
+/* Reservation pipeline: mobile-first touch targets (WCAG 2.5.5 / 44px+). Use min-h-[44px] or min-h-[48px] + touch-manipulation on interactive elements. */
+
 /* Premium dark scrollbar — tema uyumlu */
 .rc-scrollbar {
   scrollbar-width: thin;
@@ -174,20 +198,35 @@
   background: oklch(0.4 0 0);
 }
 
-/* Royal Cabana Premium Theme */
+/* Royal Cabana Premium Theme — Luxury Dark (Design System v3) */
 :root {
-  --rc-gold: oklch(0.78 0.15 85);
+  /* Dark base — no pure black; subtle elevation */
+  --rc-background: #0E1117;
+  --rc-sidebar: #11151C;
+  --rc-card: #181C24;
+  --rc-card-hover: #1F2430;
+  --rc-border-subtle: rgba(255, 255, 255, 0.06);
+
+  /* Primary — Casino Gold (CTA, active indicator only) */
+  --rc-gold: #C6A85E;
+  --rc-gold-hover: #B8964F;
+  --rc-gold-active: #9F7F3D;
   --rc-gold-light: oklch(0.88 0.12 85);
-  --rc-gold-dark: oklch(0.62 0.18 75);
-  --rc-surface: oklch(0.12 0 0);
-  --rc-surface-elevated: oklch(0.16 0 0);
-  --rc-surface-border: oklch(0.22 0 0);
+  --rc-gold-dark: #9F7F3D;
+
+  --rc-surface: #181C24;
+  --rc-surface-elevated: #1F2430;
+  --rc-surface-border: rgba(255, 255, 255, 0.08);
   --rc-text-primary: oklch(0.95 0 0);
   --rc-text-secondary: oklch(0.65 0 0);
   --rc-text-muted: oklch(0.45 0 0);
-  --rc-success: oklch(0.65 0.18 145);
-  --rc-warning: oklch(0.78 0.18 65);
-  --rc-danger: oklch(0.65 0.22 25);
+
+  /* Status — badge/icon only, not full card background */
+  --rc-success: #1F7A5A;
+  --rc-warning: #B7791F;
+  --rc-info: #2563EB;
+  --rc-danger: #B91C1C;
+  --rc-purple-stat: #7C3AED;
 
   /* Form Components — inputs */
   --rc-input-bg: oklch(0.16 0 0);
@@ -328,10 +367,10 @@
 @keyframes splashBarGlow {
   0%,
   100% {
-    box-shadow: 0 0 6px rgba(234, 179, 8, 0.3);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--rc-gold) 30%, transparent);
   }
   50% {
-    box-shadow: 0 0 14px rgba(234, 179, 8, 0.6);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--rc-gold) 50%, transparent);
   }
 }
 

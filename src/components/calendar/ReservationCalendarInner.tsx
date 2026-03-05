@@ -553,27 +553,27 @@ export default function ReservationCalendarInner({
       {/* ── Context Menu (right-click / long-press) ── */}
       {contextMenu.visible && (
         <div
-          className="fixed z-50 bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl py-1.5 min-w-[200px]"
+          className="fixed z-50 bg-[var(--rc-card)] border border-[var(--rc-border-subtle)] rounded-xl shadow-2xl py-1.5 min-w-[200px]"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-3 py-2 text-xs text-neutral-300 border-b border-neutral-700/60 font-medium">
+          <div className="px-3 py-2 text-xs text-[var(--rc-text-secondary)] border-b border-[var(--rc-border-subtle)] font-medium">
             {formatDateTR(contextMenu.dateStr)}
           </div>
           {onDateClick && contextMenu.resourceId && (
             <button
-              className="w-full text-left px-3 py-3 text-sm text-neutral-100 hover:bg-neutral-800 transition-colors flex items-center gap-2.5 active:bg-neutral-700"
+              className="w-full text-left px-3 py-3 text-sm text-[var(--rc-text-primary)] hover:bg-[var(--rc-card-hover)] transition-colors flex items-center gap-2.5 min-h-[44px]"
               onClick={handleNewRequest}
             >
-              <CalendarPlus className="w-4 h-4 text-amber-400" />
+              <CalendarPlus className="w-4 h-4 text-[var(--rc-gold)]" />
               Yeni Rezervasyon Talebi
             </button>
           )}
           <button
-            className="w-full text-left px-3 py-3 text-sm text-neutral-100 hover:bg-neutral-800 transition-colors flex items-center gap-2.5 active:bg-neutral-700"
+            className="w-full text-left px-3 py-3 text-sm text-[var(--rc-text-primary)] hover:bg-[var(--rc-card-hover)] transition-colors flex items-center gap-2.5 min-h-[44px]"
             onClick={handleViewDay}
           >
-            <Eye className="w-4 h-4 text-blue-400" />
+            <Eye className="w-4 h-4 text-[var(--rc-info)]" />
             Günü Görüntüle (
             {(eventsByDate.get(contextMenu.dateStr) ?? []).length} rez.)
           </button>
