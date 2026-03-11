@@ -41,7 +41,7 @@ export const POST = withAuth(
 
     const admins = await prisma.user.findMany({
       where: {
-        role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN] },
+        role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN] },
         isActive: true,
         isDeleted: false,
       },

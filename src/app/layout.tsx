@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { WebVitalsReporter } from "@/components/WebVitalsReporter";
 import PWAInstallPrompt from "@/components/shared/PWAInstallPrompt";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -86,13 +87,21 @@ export default async function RootLayout({
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <html lang="tr" className="dark" suppressHydrationWarning>
+    <html lang="tr" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <WebVitalsReporter />
-        <PWAInstallPrompt />
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('rc-theme');document.documentElement.classList.toggle('dark',t!=='light');})();`,
+          }}
+        />
+        <ThemeProvider>
+          {children}
+          <WebVitalsReporter />
+          <PWAInstallPrompt />
+        </ThemeProvider>
         <script
           suppressHydrationWarning
           nonce={nonce}

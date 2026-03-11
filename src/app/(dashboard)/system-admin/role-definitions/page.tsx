@@ -48,6 +48,7 @@ type ApiResponse<T> = {
 const ROLE_LABELS: Record<Role, string> = {
   [Role.SYSTEM_ADMIN]: "Sistem Yöneticisi",
   [Role.ADMIN]: "Admin",
+  [Role.CASINO_ADMIN]: "Casino Admin",
   [Role.CASINO_USER]: "Casino Kullanıcısı",
   [Role.FNB_USER]: "F&B Kullanıcısı",
 };

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import React, { useState, useEffect, useRef } from "react";
-import { User as UserIcon, LogOut, Menu, X, ChevronDown } from "lucide-react";
+import { User as UserIcon, LogOut, Menu, X, ChevronDown, Sun, Moon } from "lucide-react";
 import NotificationPanel from "./NotificationPanel";
 import Breadcrumb from "./Breadcrumb";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 const TURKISH_DAYS = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 const TURKISH_MONTHS = [
@@ -79,6 +80,9 @@ export default function StickyHeader({
   sidebarOpen: boolean;
 }) {
   const { data: session } = useSession();
+  const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <header className="sticky top-0 z-30 bg-[var(--rc-sidebar)] border-b border-[var(--rc-border-subtle)] shrink-0">
@@ -104,6 +108,23 @@ export default function StickyHeader({
         <div className="hidden md:block">
           <MemoizedDigitalClock />
         </div>
+
+        {/* Tema (Açık/Koyu) — sadece client'ta render (hydration uyumu) */}
+        {mounted && (
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-[var(--rc-card-hover)] transition-colors text-[var(--rc-text-secondary)] hover:text-[var(--rc-gold)]"
+            aria-label={theme === "dark" ? "Açık tema" : "Koyu tema"}
+            title={theme === "dark" ? "Açık tema" : "Koyu tema"}
+          >
+            {theme === "dark" ? (
+              <Sun className="w-5 h-5" />
+            ) : (
+              <Moon className="w-5 h-5" />
+            )}
+          </button>
+        )}
 
         {/* Notifications */}
         <NotificationPanel />

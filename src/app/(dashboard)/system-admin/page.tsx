@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { LucideIcon } from "lucide-react";
 import {
   Percent,
   Clock,
@@ -16,6 +15,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import WeatherCard from "@/components/shared/WeatherCard";
+import { KpiCard } from "@/components/shared/KpiCard";
 import { Card, CardContent } from "@/components/molecules/Card";
 import { SkeletonCardGrid } from "@/components/atoms/Skeleton";
 import { ListPageTemplate } from "@/components/templates";
@@ -36,55 +36,6 @@ interface SystemStats {
   approvedThisMonth: number;
   checkedInToday: number;
   totalStaff: number;
-}
-
-/** Accent: icon box bg + text color (token only). */
-const accents = {
-  success: "bg-[var(--rc-success)]/20 text-[var(--rc-success)]",
-  warning: "bg-[var(--rc-warning)]/20 text-[var(--rc-warning)]",
-  info: "bg-[var(--rc-info)]/20 text-[var(--rc-info)]",
-  purple: "bg-[var(--rc-purple-stat)]/20 text-[var(--rc-purple-stat)]",
-  gold: "bg-[var(--rc-gold)]/20 text-[var(--rc-gold)]",
-} as const;
-
-/** KPI card: same base surface; accent only on icon + label, not full card. */
-function KpiCard({
-  href,
-  icon: Icon,
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  href: string;
-  icon: LucideIcon;
-  label: string;
-  value: string | number;
-  sub: string;
-  accent: keyof typeof accents;
-}) {
-  const accentClass: string = accents[accent];
-  return (
-    <Link href={href} className="block group">
-      <Card className="p-5 h-full transition-all hover:scale-[1.01]">
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-3">
-            <div
-              className={cn("w-10 h-10 rounded-lg flex items-center justify-center", accentClass)}
-            >
-              <Icon className="w-5 h-5" />
-            </div>
-            <span className={cn("text-xs font-medium uppercase tracking-wider", accentClass as string)}>
-              {label}
-            </span>
-            <ArrowRight className="w-3.5 h-3.5 ml-auto text-[var(--rc-text-muted)] group-hover:text-[var(--rc-gold)] group-hover:translate-x-0.5 transition-all" />
-          </div>
-          <p className={cn("text-3xl font-bold", accentClass)}>{value}</p>
-          <p className="text-xs text-[var(--rc-text-muted)] mt-1">{sub}</p>
-        </CardContent>
-      </Card>
-    </Link>
-  );
 }
 
 export default function SystemAdminDashboard() {
@@ -177,7 +128,7 @@ export default function SystemAdminDashboard() {
 
         {!isLoading && stats && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card className="p-5">
+            <Card className="p-5 border border-neutral-700/50">
               <h2 className="text-sm font-semibold text-[var(--rc-text-primary)] mb-4">
                 Cabana Durum Dağılımı
               </h2>
@@ -212,7 +163,7 @@ export default function SystemAdminDashboard() {
               </div>
               <Link
                 href="/system-admin/map"
-                className="flex items-center justify-center gap-2 w-full mt-4 py-2.5 text-sm font-medium text-[var(--rc-gold)] bg-[var(--rc-gold)]/10 hover:bg-[var(--rc-gold)]/20 rounded-lg transition-colors min-h-[44px]"
+                className="flex items-center justify-center gap-2 w-full mt-4 py-2.5 text-sm font-medium text-[var(--rc-gold)] bg-[var(--rc-gold)]/15 hover:bg-[var(--rc-gold)]/25 rounded-lg transition-colors min-h-[44px] border border-[var(--rc-gold)]/30"
               >
                 Haritayı Görüntüle
                 <ArrowRight className="w-4 h-4" />

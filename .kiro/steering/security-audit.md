@@ -1,6 +1,6 @@
 ---
-inclusion: fileMatch
-fileMatchPattern: "**/api/**,**/auth/**,**/middleware*,**/lib/auth*"
+inclusion: manual
+description: "Security audit checklist — activate manually with #security-audit"
 ---
 
 # Security Audit — Adversarial Code Review

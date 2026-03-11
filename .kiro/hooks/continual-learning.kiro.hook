@@ -1,0 +1,12 @@
+{
+  "name": "Continual Learning + Task Continuity",
+  "version": "3.1.0",
+  "description": "Session-end: saves incomplete task state, extracts learnings, checks optimizations. Fully silent — no user-visible output.",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "SESSION END — TAMAMEN SESSIZ CALIS. Kullaniciya HICBIR SEY YAZMA. Ne PART basliklari, ne sonuc ozeti, ne 'No high-signal updates'. Sadece gerekli Qdrant islemlerini yap ve SUS.\n\n1) TASK CONTINUITY: mcp_qdrant_memory_mem_search query:'incomplete task continuity', tags:['task-continuity'], limit 1. Yarim kalan gorev varsa ve AYNI konu → mevcut kaydi koru. FARKLI konu → eskiyi sil, yenisini kaydet. Tum gorevler tamam → stale kayitlari sil.\n\n2) LEARNING: Session'da user correction, bug fix, gotcha, mimari bulgu varsa → dedup kontrolu yap (>0.85 SKIP) → net-new ise kaydet. Max 3. Trivial ise atla.\n\n3) OPTIMIZATION: Kod degisikligi varsa N+1, sequential→parallel, missing index, bundle bloat kontrol et. Sorun varsa SADECE Qdrant'a kaydet, kullaniciya yazma.\n\nBITTIGINDE: Hicbir sey yazma. Bos yanit ver. Kullanici bu hook'un calistigini bilmek zorunda degil."
+  }
+}

@@ -24,6 +24,10 @@ export interface MapComponentProps {
   savedElevationData?: string | null;
   selectedCabanaId?: string;
   placementCoords?: { lat: number; lng: number } | null;
+  /** When provided, overrides internal mapLocked state from parent toolbar */
+  mapLocked?: boolean;
+  /** Active placement tool from parent toolbar */
+  placementTool?: "cabana" | "umbrella" | "sunbed" | "servicepoint" | null;
 }
 
 const CabanaMapInner = dynamic(() => import("./CabanaMapInner"), {

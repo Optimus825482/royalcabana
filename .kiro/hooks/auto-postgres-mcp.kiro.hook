@@ -1,15 +1,13 @@
 {
   "name": "Auto Postgres MCP Setup",
-  "version": "1.0.0",
-  "description": "Ilk prompt'ta .env.local'dan DATABASE_URL okuyarak workspace Postgres MCP config olusturur",
+  "version": "1.1.0",
+  "description": "Manuel tetiklendiginde .env.local'dan DATABASE_URL okuyarak workspace Postgres MCP config olusturur.",
   "when": {
     "type": "userTriggered"
   },
   "then": {
     "type": "askAgent",
-    "prompt": "{\n  \"name\": \"Auto Postgres MCP Setup\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Ilk prompt'ta .env.local'dan DATABASE_URL okuyarak workspace Postgres MCP config olusturur\",\n  \"when\": {\n    \"type\": \"promptSubmit\"\n  },\n  \"then\": {\n    \"type\": \"askAgent\",\n    \"prompt\": \"SESSIZCE ve HIZLICA su kontrolleri yap (kullaniciya aciklama yapma, sadece sonucu bildir):\\n\\n1. .kiro/settings/mcp.json dosyasini oku\\n2. Icinde 'postgres' MCP servisi ZATEN VARSA → hicbir sey yapma, sessizce gec\\n3. Postgres servisi YOKSA:\\n   a. .env.local dosyasini oku, DATABASE_URL satirini bul\\n   b. DATABASE_URL'in GERCEK DEGERINI al (tirnak isaretlerini kaldir)\\n   c. ONEMLI: MCP config'de env var interpolation (${...}) CALISMAZ. Gercek connection string'i dogrudan yaz\\n   d. .kiro/settings/mcp.json'a postgres MCP ekle (mevcut servisleri koru):\\n      {\\\"command\\\": \\\"postgres-mcp\\\", \\\"args\\\": [\\\"--access-mode=unrestricted\\\"], \\\"env\\\": {\\\"DATABASE_URI\\\": \\\"<gercek-connection-string>\\\"}, \\\"disabled\\\": false, \\\"autoApprove\\\": [\\\"list_schemas\\\", \\\"execute_sql\\\", \\\"list_objects\\\", \\\"get_object_details\\\", \\\"analyze_db_health\\\", \\\"get_top_queries\\\", \\\"analyze_workload_indexes\\\", \\\"explain_query\\\"]}\\n   e. .kiro/settings/ klasorunun .gitignore'da oldugundan emin ol (credential korumasi)\\n   f. Kullaniciya tek satirla bildir: 'Postgres MCP otomatik olusturuldu'\\n   g. DATABASE_URL yoksa sessizce gec\\n\\nONEMLI: Bu kontrol 2 saniyeden fazla surmemeli. Zaten varsa HICBIR cikti uretme.\"\n  }\n}\n"
+    "prompt": "Sessizce: 1) .kiro/settings/mcp.json oku. 'postgres' varsa → gec. 2) Yoksa: .env.local'dan DATABASE_URL'in GERCEK degerini al. 3) mcp.json'a ekle (mevcut servisleri koru): {\"command\": \"postgres-mcp\", \"args\": [\"--access-mode=unrestricted\"], \"env\": {\"DATABASE_URI\": \"<gercek-connection-string>\"}, \"disabled\": false, \"autoApprove\": [\"list_schemas\", \"execute_sql\", \"list_objects\", \"get_object_details\", \"analyze_db_health\", \"get_top_queries\", \"analyze_workload_indexes\", \"explain_query\"]}. 4) .kiro/settings/ .gitignore'da olsun. 5) Tek satir bildir: 'Postgres MCP olusturuldu'. DATABASE_URL yoksa sessizce gec."
   },
-  "enabled": true,
-  "workspaceFolderName": "fabana",
-  "shortName": "auto-postgres-mcp"
+  "enabled": true
 }

@@ -45,11 +45,12 @@ interface ApiResponse<T> {
 const FALLBACK_ROLE_LABELS: Record<Role, string> = {
   [Role.SYSTEM_ADMIN]: "Sistem Yöneticisi",
   [Role.ADMIN]: "Admin",
+  [Role.CASINO_ADMIN]: "Casino Admin",
   [Role.CASINO_USER]: "Casino Kullanıcısı",
   [Role.FNB_USER]: "F&B Kullanıcısı",
 };
 
-const ROLES = [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_USER, Role.FNB_USER];
+const ROLES = [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER];
 
 interface CreateForm {
   username: string;

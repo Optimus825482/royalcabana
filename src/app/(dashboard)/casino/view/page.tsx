@@ -5,10 +5,7 @@ import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import CabanaMap from "@/components/map/CabanaMap";
-import CabanaThreeView from "@/components/three/CabanaThreeView";
 import { CabanaWithStatus, CabanaStatus } from "@/types";
-
-type ViewMode = "2d" | "3d";
 
 interface SystemConfig {
   system_open_for_reservation: boolean;
@@ -69,7 +66,6 @@ const statusBadgeClass: Record<CabanaStatus, string> = {
 export default function CasinoViewPage() {
   useSession({ required: true });
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>("2d");
   const [selectedCabana, setSelectedCabana] = useState<CabanaWithStatus | null>(
     null,
   );
@@ -115,8 +111,8 @@ export default function CasinoViewPage() {
     selectedCabana.isOpenForReservation;
 
   function handleRequestClick() {
-    if (!canRequest) return;
-    router.push("/casino/calendar");
+    if (!canRequest || !selectedCabana) return;
+    router.push(`/casino/cabana/${selectedCabana.id}/calendar`);
   }
 
   return (
@@ -153,30 +149,6 @@ export default function CasinoViewPage() {
             Cabana seçerek rezervasyon talebi oluşturun
           </p>
         </div>
-
-        {/* 2D / 3D Toggle */}
-        <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg p-1">
-          <button
-            onClick={() => setViewMode("2d")}
-            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${
-              viewMode === "2d"
-                ? "bg-yellow-400 text-neutral-950"
-                : "text-neutral-400 hover:text-neutral-200"
-            }`}
-          >
-            2D
-          </button>
-          <button
-            onClick={() => setViewMode("3d")}
-            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${
-              viewMode === "3d"
-                ? "bg-yellow-400 text-neutral-950"
-                : "text-neutral-400 hover:text-neutral-200"
-            }`}
-          >
-            3D
-          </button>
-        </div>
       </div>
 
       {/* Error */}
@@ -189,9 +161,9 @@ export default function CasinoViewPage() {
       )}
 
       {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
         {/* View area */}
-        <div className="flex-1 p-4 min-h-0">
+        <div className="h-full p-4 min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
               <div className="flex flex-col items-center gap-2">
@@ -199,7 +171,7 @@ export default function CasinoViewPage() {
                 <span>Yükleniyor...</span>
               </div>
             </div>
-          ) : viewMode === "2d" ? (
+          ) : (
             <div className="h-full min-h-[500px]">
               <CabanaMap
                 cabanas={cabanas}
@@ -208,63 +180,53 @@ export default function CasinoViewPage() {
                 selectedCabanaId={selectedCabana?.id}
               />
             </div>
-          ) : (
-            <div className="h-full min-h-[500px]">
-              <CabanaThreeView
-                cabanas={cabanas}
-                onCabanaClick={handleCabanaClick}
-                selectedCabanaId={selectedCabana?.id}
-              />
-            </div>
           )}
         </div>
 
-        {/* Right detail panel */}
-        <div
-          className={`fixed inset-0 z-40 bg-neutral-900 md:static md:inset-auto md:z-auto md:w-80 shrink-0 md:border-l border-neutral-800 md:bg-neutral-900 flex flex-col overflow-y-auto rc-scrollbar ${!selectedCabana ? "hidden md:flex" : ""}`}
-        >
-          {!selectedCabana ? (
-            <div className="flex flex-col items-center justify-center flex-1 text-neutral-500 text-sm px-6 text-center gap-2">
-              <svg
-                className="w-10 h-10 text-neutral-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-                />
-              </svg>
-              <p>
-                {viewMode === "2d"
-                  ? "Haritadan bir Cabana seçin"
-                  : "3D görünümden bir Cabana seçin"}
-              </p>
-            </div>
-          ) : (
-            <div className="p-5 space-y-5">
-              {/* Cabana name + status */}
-              <div className="flex items-start justify-between gap-2">
+        {/* Floating detail overlay */}
+        {selectedCabana && (
+          <div className="absolute bottom-4 right-4 z-40 w-80 max-h-[calc(100%-2rem)] bg-neutral-900/95 backdrop-blur-md border border-neutral-700 rounded-xl shadow-2xl overflow-y-auto rc-scrollbar animate-in slide-in-from-right-4 fade-in duration-200">
+            {/* Header with close button */}
+            <div className="flex items-start justify-between gap-2 p-4 border-b border-neutral-800 sticky top-0 bg-neutral-900/95 backdrop-blur-md rounded-t-xl">
+              <div>
                 <h2 className="text-base font-semibold text-yellow-400 leading-tight">
                   {selectedCabana.name}
                 </h2>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  {selectedCabana.cabanaClass?.name ?? "—"} ·{" "}
+                  {selectedCabana.concept?.name ?? "—"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
                 <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${statusBadgeClass[selectedCabana.status]}`}
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadgeClass[selectedCabana.status]}`}
                 >
                   {statusLabel[selectedCabana.status]}
                 </span>
+                <button
+                  onClick={() => setSelectedCabana(null)}
+                  className="text-neutral-500 hover:text-neutral-200 transition-colors p-1"
+                  aria-label="Kapat"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
               </div>
+            </div>
 
-              {/* Details */}
+            {/* Details */}
+            <div className="p-4 space-y-4">
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center py-1.5 border-b border-neutral-800">
                   <span className="text-neutral-500">Sınıf</span>
@@ -345,8 +307,8 @@ export default function CasinoViewPage() {
                   )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

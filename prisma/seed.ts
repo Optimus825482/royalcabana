@@ -204,6 +204,12 @@ const PERMISSION_TEMPLATES: PermissionTemplate[] = [
     action: "update",
   },
   {
+    key: "reservation.approve",
+    name: "Rezervasyon onayla/reddet, check-in/out",
+    module: "Rezervasyonlar",
+    action: "update",
+  },
+  {
     key: "reservation.delete",
     name: "Rezervasyon iptal et",
     module: "Rezervasyonlar",
@@ -239,6 +245,24 @@ const PERMISSION_TEMPLATES: PermissionTemplate[] = [
     module: "F&B Yönetimi",
     action: "view",
   },
+  {
+    key: "map.view",
+    name: "Haritayı görüntüle",
+    module: "Harita",
+    action: "view",
+  },
+  {
+    key: "blackout.view",
+    name: "Kapalı tarihleri görüntüle",
+    module: "Kapalı Tarihler",
+    action: "view",
+  },
+  {
+    key: "guest.view",
+    name: "Misafirleri görüntüle",
+    module: "Misafirler",
+    action: "view",
+  },
 ];
 
 const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
@@ -265,11 +289,25 @@ const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "reservation.view",
     "reservation.create",
     "reservation.update",
+    "reservation.approve",
     "reservation.delete",
     "staff.view",
     "staff.create",
     "staff.update",
     "staff.delete",
+  ],
+  [Role.CASINO_ADMIN]: [
+    "reservation.view",
+    "reservation.create",
+    "reservation.update",
+    "reservation.delete",
+    "map.view",
+    "report.view",
+    "guest.view",
+    "user.view",
+    "user.create",
+    "user.update",
+    "blackout.view",
   ],
   [Role.CASINO_USER]: [
     "cabana.class.view",
@@ -289,6 +327,7 @@ const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "product.view",
     "task.definition.view",
     "reservation.view",
+    "reservation.approve",
     "system.config.view",
   ],
 };
@@ -296,6 +335,7 @@ const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
 const ROLE_DISPLAY_DEFAULTS: Record<Role, string> = {
   [Role.SYSTEM_ADMIN]: "Sistem Yöneticisi",
   [Role.ADMIN]: "Admin",
+  [Role.CASINO_ADMIN]: "Casino Admin",
   [Role.CASINO_USER]: "Casino Kullanıcısı",
   [Role.FNB_USER]: "F&B Kullanıcısı",
 };
@@ -319,12 +359,23 @@ async function main() {
     },
   });
 
-  const admin = await prisma.user.upsert({
+  // Rename existing admin to fadmin if present (FNB admin)
+  const existingAdmin = await prisma.user.findUnique({
     where: { username: "admin" },
+  });
+  if (existingAdmin) {
+    await prisma.user.update({
+      where: { id: existingAdmin.id },
+      data: { username: "fadmin", email: "fadmin@royalcabana.com" },
+    });
+  }
+
+  const admin = await prisma.user.upsert({
+    where: { username: "fadmin" },
     update: { passwordHash: adminHashedPassword },
     create: {
-      username: "admin",
-      email: "admin@royalcabana.com",
+      username: "fadmin",
+      email: "fadmin@royalcabana.com",
       passwordHash: adminHashedPassword,
       role: Role.ADMIN,
       isActive: true,
@@ -351,6 +402,18 @@ async function main() {
       email: "fnb1@royalcabana.com",
       passwordHash: defaultHashedPassword,
       role: Role.FNB_USER,
+      isActive: true,
+    },
+  });
+
+  const casinoAdmin = await prisma.user.upsert({
+    where: { username: "cadmin" },
+    update: {},
+    create: {
+      username: "cadmin",
+      email: "cadmin@royalcabana.com",
+      passwordHash: defaultHashedPassword,
+      role: Role.CASINO_ADMIN,
       isActive: true,
     },
   });
@@ -2288,7 +2351,7 @@ async function main() {
 
   console.log("Seeding completed!");
   console.log(
-    `Created users: ${systemAdmin.username}, ${admin.username}, ${casinoUser.username}, ${fnbUser.username}`,
+    `Created users: ${systemAdmin.username}, ${admin.username}, ${casinoUser.username}, ${casinoAdmin.username}, ${fnbUser.username}`,
   );
   console.log(`Created classes: Standart, Premium, VIP, Aile`);
   console.log(

@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 
 // PATCH — isActive toggle
 export const PATCH = withAuth(
-  [Role.CASINO_USER, Role.ADMIN, Role.SYSTEM_ADMIN],
+  [Role.CASINO_USER, Role.ADMIN, Role.CASINO_ADMIN, Role.SYSTEM_ADMIN],
   async (_req, { session, params }) => {
     const id = params!.id;
 
@@ -44,7 +44,7 @@ export const PATCH = withAuth(
 
 // DELETE — Tekrarlayan rezervasyonu sil
 export const DELETE = withAuth(
-  [Role.CASINO_USER, Role.ADMIN, Role.SYSTEM_ADMIN],
+  [Role.CASINO_USER, Role.ADMIN, Role.CASINO_ADMIN, Role.SYSTEM_ADMIN],
   async (_req, { session, params }) => {
     const id = params!.id;
 

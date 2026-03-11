@@ -1,6 +1,7 @@
 export enum Role {
   SYSTEM_ADMIN = "SYSTEM_ADMIN",
   ADMIN = "ADMIN",
+  CASINO_ADMIN = "CASINO_ADMIN",
   CASINO_USER = "CASINO_USER",
   FNB_USER = "FNB_USER",
 }
@@ -168,11 +169,13 @@ export interface ReportFilters {
 export const MODULE_ACCESS: Record<Role, string[]> = {
   [Role.SYSTEM_ADMIN]: ["/system-admin", "/reports"],
   [Role.ADMIN]: ["/admin"],
-  [Role.CASINO_USER]: ["/casino", "/reports"],
+  [Role.CASINO_ADMIN]: ["/casino-admin", "/casino", "/reports"],
+  [Role.CASINO_USER]: ["/casino", "/casino/cabana", "/reports"],
   [Role.FNB_USER]: [
     "/fnb/reservations",
     "/fnb",
     "/casino/map",
+    "/casino/cabana",
     "/casino/calendar",
     "/casino/view",
     "/casino/reservations",

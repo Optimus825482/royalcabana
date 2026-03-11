@@ -16,6 +16,8 @@ import {
   cancelBtnCls,
 } from "@/components/shared/FormComponents";
 
+type PlacementTool = "cabana" | "umbrella" | "sunbed" | "servicepoint" | null;
+
 interface CabanaClass {
   id: string;
   name: string;
@@ -38,6 +40,9 @@ export default function SystemAdminMapPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const placeCabanaId = searchParams.get("placeCabana");
+  const [mapLocked, setMapLocked] = useState(false);
+  const [placementTool, setPlacementTool] = useState<PlacementTool>(null);
+  const [draftSaving, setDraftSaving] = useState(false);
 
   const {
     data: mapData,
@@ -164,12 +169,64 @@ export default function SystemAdminMapPage() {
   }
 
   function handleMapClick(lat: number, lng: number) {
-    // Haritaya tıklayınca yeni cabana ekleme moduna geç
-    setPlacementCoords({ lat, lng });
-    setSelectedCabana(null);
-    setAddForm((f) => ({ ...f, coordX: lng, coordY: lat }));
-    setShowAddModal(true);
-    setAddError("");
+    if (!mapLocked) return; // Harita sabit değilse ekleme yapılamaz
+    if (!placementTool) return; // Araç seçili değilse ekleme yapılamaz
+
+    if (placementTool === "cabana") {
+      setPlacementCoords({ lat, lng });
+      setSelectedCabana(null);
+      setAddForm((f) => ({ ...f, coordX: lng, coordY: lat }));
+      setShowAddModal(true);
+      setAddError("");
+    } else {
+      // TODO: Şemsiye, Şezlong, Hizmet Noktası ekleme — ilgili API'ler hazır olunca
+      console.log(`[Placement] ${placementTool} at`, { lat, lng });
+      showSuccessMsg(
+        `${placementTool === "umbrella" ? "Şemsiye" : placementTool === "sunbed" ? "Şezlong" : "Hizmet Noktası"} konumu seçildi (${Math.round(lng)}, ${Math.round(lat)})`,
+      );
+    }
+  }
+
+  function toggleMapLock() {
+    setMapLocked((prev) => {
+      if (prev) {
+        // Kilidi açarken araç seçimini sıfırla
+        setPlacementTool(null);
+      }
+      return !prev;
+    });
+  }
+
+  async function handleDraftSave() {
+    setDraftSaving(true);
+    try {
+      // Batch save — parallel PATCH for all cabana locations
+      const updates = cabanas.map((c) =>
+        fetch(`/api/cabanas/${c.id}/location`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            coordX: c.coordX,
+            coordY: c.coordY,
+            rotation: c.rotation ?? 0,
+            scaleX: c.scaleX ?? 1,
+            scaleY: c.scaleY ?? 1,
+          }),
+        }),
+      );
+      const results = await Promise.all(updates);
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length > 0) {
+        setError(`${failed.length} cabana kaydedilemedi.`);
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ["map-admin-data"] });
+        showSuccessMsg("Tüm konumlar kaydedildi.");
+      }
+    } catch {
+      setError("Taslak kaydedilemedi.");
+    } finally {
+      setDraftSaving(false);
+    }
   }
 
   async function handleLocationUpdate(
@@ -367,7 +424,7 @@ export default function SystemAdminMapPage() {
   };
 
   return (
-    <div className="text-neutral-100 flex flex-col">
+    <div className="text-neutral-100 flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 shrink-0">
         <div>
@@ -379,7 +436,11 @@ export default function SystemAdminMapPage() {
           <p className="text-sm text-neutral-500 mt-0.5">
             {placeCabanaId
               ? "Bu cabana'yı sürükleyerek haritada konumlandırın"
-              : "Cabanaları harita üzerinde yönetin"}
+              : mapLocked && placementTool
+                ? `${placementTool === "cabana" ? "Cabana" : placementTool === "umbrella" ? "Şemsiye" : placementTool === "sunbed" ? "Şezlong" : "Hizmet Noktası"} eklemek için haritaya tıklayın`
+                : mapLocked
+                  ? "Araç seçerek haritaya nesne ekleyin"
+                  : "Cabanaları harita üzerinde yönetin"}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -388,18 +449,63 @@ export default function SystemAdminMapPage() {
               Tümünü Göster
             </a>
           )}
+
+          {/* Map Lock Toggle */}
           <button
-            onClick={() => {
-              setShowAddModal(true);
-              setAddForm(defaultAddForm);
-              setAddError("");
-              setPlacementCoords(null);
-            }}
-            className={primaryBtnCls}
-            title="Veya haritada sağ tıklayarak ekleyin"
+            onClick={toggleMapLock}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition-all ${
+              mapLocked
+                ? "bg-amber-600 text-neutral-950 shadow-lg shadow-amber-600/20"
+                : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+            }`}
           >
-            + Yeni Cabana
+            {mapLocked ? "🔒 Harita Sabit" : "🔓 Haritayı Sabitle"}
           </button>
+
+          {/* Placement Toolbar — only visible when map is locked */}
+          {mapLocked && (
+            <>
+              <div className="w-px h-6 bg-neutral-700" />
+              <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg p-1">
+                {[
+                  { key: "cabana" as const, icon: "➕", label: "Cabana" },
+                  { key: "umbrella" as const, icon: "🏖️", label: "Şemsiye" },
+                  { key: "sunbed" as const, icon: "🛋️", label: "Şezlong" },
+                  {
+                    key: "servicepoint" as const,
+                    icon: "📍",
+                    label: "Hizmet Noktası",
+                  },
+                ].map((tool) => (
+                  <button
+                    key={tool.key}
+                    onClick={() =>
+                      setPlacementTool((prev) =>
+                        prev === tool.key ? null : tool.key,
+                      )
+                    }
+                    title={tool.label}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
+                      placementTool === tool.key
+                        ? "bg-yellow-400 text-neutral-950 shadow-sm"
+                        : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+                    }`}
+                  >
+                    <span>{tool.icon}</span>
+                    <span className="hidden lg:inline">{tool.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="w-px h-6 bg-neutral-700" />
+              <button
+                onClick={handleDraftSave}
+                disabled={draftSaving}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition-all bg-green-700 hover:bg-green-600 text-white ${draftSaving ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                💾 {draftSaving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -420,9 +526,9 @@ export default function SystemAdminMapPage() {
       )}
 
       {/* Main content */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-        {/* Map area */}
-        <div className="flex-1 p-4 min-h-0">
+      <div className="flex-1 overflow-hidden relative">
+        {/* Map view area */}
+        <div className="h-full p-4 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center h-full min-h-[300px]">
               <LoadingSpinner message="Cabanalar yükleniyor..." />
@@ -448,189 +554,200 @@ export default function SystemAdminMapPage() {
                 savedElevationData={savedElevationData}
                 selectedCabanaId={selectedCabana?.id}
                 placementCoords={placementCoords}
+                mapLocked={mapLocked}
+                placementTool={placementTool}
               />
             </div>
           )}
         </div>
 
-        {/* Right panel — only visible when a cabana is selected */}
+        {/* Floating detail overlay — admin edit panel */}
         {selectedCabana && (
-          <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-neutral-800 bg-neutral-900 flex flex-col overflow-y-auto max-h-[50vh] md:max-h-none rc-scrollbar">
-            {
-              <div className="p-5 space-y-5">
-                {/* Cabana info */}
-                <div>
-                  <div className="flex items-start justify-between mb-3">
-                    <h2 className="text-base font-semibold text-yellow-400">
-                      {selectedCabana.name}
-                    </h2>
-                    <span
-                      className={`text-xs font-medium ${statusColor[selectedCabana.status]}`}
-                    >
-                      {statusLabel[selectedCabana.status]}
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 text-xs text-neutral-400">
-                    <div className="flex justify-between">
-                      <span>Sınıf</span>
-                      <span className="text-neutral-200">
-                        {selectedCabana.cabanaClass?.name ?? "—"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Konsept</span>
-                      <span className="text-neutral-200">
-                        {selectedCabana.concept?.name ?? "—"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Konum X</span>
-                      <span className="text-neutral-200">
-                        {Math.round(selectedCabana.coordX)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Konum Y</span>
-                      <span className="text-neutral-200">
-                        {Math.round(selectedCabana.coordY)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Döndürme</span>
-                      <span className="text-neutral-200">
-                        {Math.round(selectedCabana.rotation ?? 0)}°
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>En</span>
-                      <span className="text-neutral-200">
-                        {(selectedCabana.scaleX ?? 1).toFixed(1)}x
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Boy</span>
-                      <span className="text-neutral-200">
-                        {(selectedCabana.scaleY ?? 1).toFixed(1)}x
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Durum</span>
-                      <span className="text-neutral-200">
-                        {selectedCabana.isLocked ? "🔒 Sabit" : "Serbest"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-neutral-800" />
-
-                {/* Edit form */}
-                <div className="space-y-3">
-                  <p className="text-xs font-medium text-neutral-400">
-                    Düzenle
-                  </p>
-
-                  {/* Transform Controls — Rotation, ScaleX, ScaleY, Color, Lock, Save */}
-                  <TransformControls
-                    cabana={selectedCabana}
-                    onSave={(updates) => {
-                      handleLocationUpdate(
-                        selectedCabana.id,
-                        selectedCabana.coordX,
-                        selectedCabana.coordY,
-                        updates.rotation,
-                        updates.scaleX,
-                        updates.scaleY,
-                        updates.color,
-                        updates.isLocked,
-                      );
-                    }}
-                  />
-
-                  <div className="border-t border-neutral-800" />
-
-                  <div>
-                    <label className="block text-xs text-neutral-500 mb-1">
-                      Sınıf Değiştir
-                    </label>
-                    <select
-                      value={editClassId}
-                      onChange={(e) => setEditClassId(e.target.value)}
-                      className={selectCls}
-                    >
-                      <option value="">Sınıf seçin</option>
-                      {classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-neutral-500 mb-1">
-                      Konsept Değiştir
-                    </label>
-                    <select
-                      value={editConceptId}
-                      onChange={(e) => setEditConceptId(e.target.value)}
-                      className={selectCls}
-                    >
-                      <option value="">Konsept yok</option>
-                      {concepts.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={handleUpdateCabana}
-                    disabled={editLoading || !editClassId}
-                    className={"w-full " + primaryBtnCls}
-                  >
-                    {editLoading ? "Kaydediliyor..." : "Kaydet"}
-                  </button>
-                </div>
-
-                <div className="border-t border-neutral-800" />
-
-                {/* Delete */}
-                {!showDeleteConfirm ? (
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className={"w-full " + dangerSoftBtnCls}
-                  >
-                    Cabana Sil
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs text-neutral-400">
-                      <span className="text-yellow-400">
-                        {selectedCabana.name}
-                      </span>{" "}
-                      silinecek. Emin misiniz?
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowDeleteConfirm(false)}
-                        className={"flex-1 " + cancelBtnCls}
-                      >
-                        İptal
-                      </button>
-                      <button
-                        onClick={handleDelete}
-                        disabled={deleteLoading}
-                        className={"flex-1 " + dangerBtnCls}
-                      >
-                        {deleteLoading ? "Siliniyor..." : "Sil"}
-                      </button>
-                    </div>
-                  </div>
-                )}
+          <div className="absolute bottom-4 right-4 z-40 w-80 max-h-[calc(100%-2rem)] bg-neutral-900/95 backdrop-blur-md border border-neutral-700 rounded-xl shadow-2xl overflow-y-auto rc-scrollbar animate-in slide-in-from-right-4 fade-in duration-200">
+            {/* Header with close */}
+            <div className="flex items-start justify-between gap-2 p-4 border-b border-neutral-800 sticky top-0 bg-neutral-900/95 backdrop-blur-md rounded-t-xl">
+              <div>
+                <h2 className="text-base font-semibold text-yellow-400 leading-tight">
+                  {selectedCabana.name}
+                </h2>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  {selectedCabana.cabanaClass?.name ?? "—"} ·{" "}
+                  {selectedCabana.concept?.name ?? "—"}
+                </p>
               </div>
-            }
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    statusColor[selectedCabana.status] === "text-green-400"
+                      ? "bg-green-950/60 border border-green-700/40 text-green-400"
+                      : statusColor[selectedCabana.status] === "text-red-400"
+                        ? "bg-red-950/50 border border-red-800/40 text-red-400"
+                        : statusColor[selectedCabana.status] ===
+                            "text-amber-400"
+                          ? "bg-amber-950/50 border border-amber-700/40 text-amber-400"
+                          : "bg-neutral-800 border border-neutral-700 text-neutral-500"
+                  }`}
+                >
+                  {statusLabel[selectedCabana.status]}
+                </span>
+                <button
+                  onClick={() => {
+                    setSelectedCabana(null);
+                    setShowDeleteConfirm(false);
+                  }}
+                  className="text-neutral-500 hover:text-neutral-200 transition-colors p-1"
+                  aria-label="Kapat"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Cabana details */}
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between items-center py-1 border-b border-neutral-800">
+                  <span className="text-neutral-500">Konum</span>
+                  <span className="text-neutral-200 font-medium">
+                    {Math.round(selectedCabana.coordX)},{" "}
+                    {Math.round(selectedCabana.coordY)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-neutral-800">
+                  <span className="text-neutral-500">Döndürme</span>
+                  <span className="text-neutral-200 font-medium">
+                    {Math.round(selectedCabana.rotation ?? 0)}°
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-neutral-800">
+                  <span className="text-neutral-500">Ölçek</span>
+                  <span className="text-neutral-200 font-medium">
+                    {(selectedCabana.scaleX ?? 1).toFixed(1)}x ×{" "}
+                    {(selectedCabana.scaleY ?? 1).toFixed(1)}x
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-neutral-500">Kilit</span>
+                  <span className="text-neutral-200 font-medium">
+                    {selectedCabana.isLocked ? "🔒 Sabit" : "Serbest"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t border-neutral-800" />
+
+              {/* Transform Controls */}
+              <TransformControls
+                cabana={selectedCabana}
+                onSave={(updates) => {
+                  handleLocationUpdate(
+                    selectedCabana.id,
+                    selectedCabana.coordX,
+                    selectedCabana.coordY,
+                    updates.rotation,
+                    updates.scaleX,
+                    updates.scaleY,
+                    updates.color,
+                    updates.isLocked,
+                  );
+                }}
+              />
+
+              <div className="border-t border-neutral-800" />
+
+              {/* Class / Concept edit */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-neutral-500 mb-1">
+                    Sınıf
+                  </label>
+                  <select
+                    value={editClassId}
+                    onChange={(e) => setEditClassId(e.target.value)}
+                    className={selectCls}
+                  >
+                    <option value="">Sınıf seçin</option>
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-neutral-500 mb-1">
+                    Konsept
+                  </label>
+                  <select
+                    value={editConceptId}
+                    onChange={(e) => setEditConceptId(e.target.value)}
+                    className={selectCls}
+                  >
+                    <option value="">Konsept yok</option>
+                    {concepts.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleUpdateCabana}
+                  disabled={editLoading || !editClassId}
+                  className={"w-full " + primaryBtnCls}
+                >
+                  {editLoading ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              </div>
+
+              <div className="border-t border-neutral-800" />
+
+              {/* Delete */}
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className={"w-full " + dangerSoftBtnCls}
+                >
+                  Cabana Sil
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-neutral-400">
+                    <span className="text-yellow-400">
+                      {selectedCabana.name}
+                    </span>{" "}
+                    silinecek. Emin misiniz?
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className={"flex-1 " + cancelBtnCls}
+                    >
+                      İptal
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleteLoading}
+                      className={"flex-1 " + dangerBtnCls}
+                    >
+                      {deleteLoading ? "Siliniyor..." : "Sil"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

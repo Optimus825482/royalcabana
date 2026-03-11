@@ -40,6 +40,12 @@ import {
   dangerSoftBtnCls,
   infoBtnCls,
 } from "@/components/shared/FormComponents";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useSSE } from "@/hooks/useSSE";
 import { SSE_EVENTS } from "@/lib/sse-events";
 
@@ -487,7 +493,7 @@ function DetailPanel({
 
         {/* Actions */}
         {reservation.status === "PENDING" && (
-          <PermissionGate permission="reservation.update">
+          <PermissionGate permission="reservation.approve">
             <div className="px-5 py-4 border-b border-neutral-800 space-y-3">
               <p className="text-[10px] text-neutral-500 uppercase tracking-wide">
                 İşlemler
@@ -568,7 +574,7 @@ function DetailPanel({
         )}
 
         {reservation.status === "APPROVED" && (
-          <PermissionGate permission="reservation.update">
+          <PermissionGate permission="reservation.approve">
             <div className="px-5 py-4 border-b border-neutral-800">
               <p className="text-[10px] text-neutral-500 uppercase tracking-wide mb-2">
                 İşlemler
@@ -588,7 +594,7 @@ function DetailPanel({
         )}
 
         {reservation.status === "CHECKED_IN" && (
-          <PermissionGate permission="reservation.update">
+          <PermissionGate permission="reservation.approve">
             <div className="px-5 py-4 border-b border-neutral-800">
               <p className="text-[10px] text-neutral-500 uppercase tracking-wide mb-2">
                 İşlemler
@@ -920,26 +926,20 @@ export default function AdminReservationsPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Table / List */}
-        <div
-          className={`flex-1 flex flex-col overflow-hidden ${
-            selectedDetail || detailLoading ? "hidden lg:flex" : "flex"
-          }`}
-        >
-          {/* Table Header (desktop) */}
-          <div className="hidden md:grid grid-cols-[2fr_1.5fr_2fr_1fr_1.2fr_80px] gap-3 px-5 py-2.5 border-b border-neutral-800 text-[10px] text-neutral-500 uppercase tracking-wider">
-            <span>Misafir</span>
-            <span>Cabana</span>
-            <span>Tarih</span>
-            <span>Fiyat</span>
-            <span>Durum</span>
-            <span className="text-center">Detay</span>
-          </div>
+      {/* Content — tam genişlik liste */}
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        {/* Table Header (desktop) */}
+        <div className="hidden md:grid grid-cols-[2fr_1.5fr_2fr_1fr_1.2fr_80px] gap-3 px-4 sm:px-6 py-3 border-b border-neutral-800 text-[10px] text-neutral-500 uppercase tracking-wider bg-neutral-900/40 shrink-0">
+          <span>Misafir</span>
+          <span>Cabana</span>
+          <span>Tarih</span>
+          <span>Fiyat</span>
+          <span>Durum</span>
+          <span className="text-center">Detay</span>
+        </div>
 
-          {/* Table Body */}
-          <div className="flex-1 overflow-y-auto rc-scrollbar">
+        {/* Table Body */}
+        <div className="flex-1 overflow-y-auto rc-scrollbar min-h-0">
             {loading ? (
               <div className="flex items-center justify-center h-32">
                 <RefreshCw className="w-5 h-5 text-neutral-500 animate-spin" />
@@ -956,8 +956,8 @@ export default function AdminReservationsPage() {
                   <button
                     key={r.id}
                     onClick={() => setSelectedId(r.id)}
-                    className={`w-full text-left min-h-[48px] px-4 sm:px-5 py-3.5 border-b border-neutral-800/60 hover:bg-neutral-800/40 active:bg-neutral-800/60 transition-colors touch-manipulation ${
-                      selectedId === r.id ? "bg-neutral-800/60" : ""
+                    className={`w-full text-left min-h-[52px] px-4 sm:px-6 py-3.5 border-b border-neutral-800/50 hover:bg-neutral-800/50 active:bg-neutral-800/70 transition-colors touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 ${
+                      selectedId === r.id ? "bg-amber-500/10 border-l-2 border-l-amber-500 sm:border-l-0 sm:ring-2 sm:ring-inset sm:ring-amber-500/40" : ""
                     }`}
                   >
                     {/* Mobile layout */}
@@ -1021,61 +1021,61 @@ export default function AdminReservationsPage() {
             )}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-5 py-3 border-t border-neutral-800 flex items-center justify-between">
-              <p className="text-xs text-neutral-500">
-                Sayfa {page}/{totalPages}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  aria-label="Önceki sayfa"
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400 touch-manipulation"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  aria-label="Sonraki sayfa"
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400 touch-manipulation"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-4 sm:px-6 py-3 border-t border-neutral-800 flex items-center justify-between shrink-0 bg-neutral-900/30">
+            <p className="text-xs text-neutral-500">
+              Sayfa {page} / {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                aria-label="Önceki sayfa"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400 touch-manipulation"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                aria-label="Sonraki sayfa"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-neutral-400 touch-manipulation"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        {/* Detail Sidebar */}
-        <div
-          className={`absolute inset-0 lg:relative lg:inset-auto lg:w-[480px] lg:border-l border-neutral-800 bg-neutral-950 lg:bg-transparent overflow-hidden ${
-            selectedDetail || detailLoading
-              ? "flex flex-col"
-              : "hidden lg:flex lg:flex-col"
-          }`}
+      {/* Detay modal */}
+      <Dialog open={!!selectedId} onOpenChange={(open) => !open && setSelectedId(null)}>
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 border-neutral-800 bg-neutral-950 text-neutral-100"
+          showCloseButton={true}
         >
+          <DialogTitle className="sr-only">Rezervasyon detayı</DialogTitle>
+          <DialogDescription className="sr-only">
+            Rezervasyon bilgileri, durum geçmişi ve onay/red, check-in/check-out işlemleri.
+          </DialogDescription>
           {detailLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <RefreshCw className="w-5 h-5 text-neutral-500 animate-spin" />
+            <div className="flex items-center justify-center min-h-[280px]">
+              <RefreshCw className="w-6 h-6 text-amber-500/70 animate-spin" />
             </div>
           ) : selectedDetail ? (
-            <DetailPanel
-              reservation={selectedDetail}
-              onClose={() => setSelectedId(null)}
-              onAction={handleAction}
-              actionLoading={actionMutation.isPending}
-              currency={currency}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-neutral-600 text-sm">
-              Detay görmek için bir rezervasyon seçin.
+            <div className="overflow-y-auto rc-scrollbar max-h-[90vh]">
+              <DetailPanel
+                reservation={selectedDetail}
+                onClose={() => setSelectedId(null)}
+                onAction={handleAction}
+                actionLoading={actionMutation.isPending}
+                currency={currency}
+              />
             </div>
-          )}
-        </div>
-      </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

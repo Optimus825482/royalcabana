@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit";
 const db = prisma as any;
 
 export const PATCH = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN],
   async (req, { session, params }) => {
     const reservationId = params!.id;
     const requestId = params!.requestId;

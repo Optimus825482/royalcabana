@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-type Role = "SYSTEM_ADMIN" | "ADMIN" | "CASINO_USER" | "FNB_USER";
+type Role = "SYSTEM_ADMIN" | "ADMIN" | "CASINO_ADMIN" | "CASINO_USER" | "FNB_USER";
 
 const ROLE_ALLOWED_PATHS: Record<Role, string[]> = {
   SYSTEM_ADMIN: ["/system-admin", "/reports"],
   ADMIN: ["/admin"],
+  CASINO_ADMIN: ["/casino-admin", "/casino", "/reports"],
   CASINO_USER: ["/casino", "/reports"],
   FNB_USER: [
     "/fnb",
     "/casino/map",
+    "/casino/cabana",
     "/casino/calendar",
     "/casino/view",
     "/casino/reservations",
@@ -24,6 +26,7 @@ const COMMON_PATHS = ["/profile", "/weather"];
 const PROTECTED_PREFIXES = [
   "/admin",
   "/casino",
+  "/casino-admin",
   "/fnb",
   "/system-admin",
   "/reports",

@@ -22,16 +22,25 @@ const createUserSchema = z.object({
 });
 
 const ADMIN_ALLOWED_ROLES = [Role.CASINO_USER, Role.FNB_USER];
+const CASINO_ADMIN_ALLOWED_ROLES = [Role.CASINO_USER];
 
 export const GET = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN],
   async (req, { session }) => {
     const isAdmin = session.user.role === Role.ADMIN;
+    const isCasinoAdmin = session.user.role === Role.CASINO_ADMIN;
     const { searchParams } = new URL(req.url);
     const roleFilter = searchParams.get("role") as Role | null;
 
     let whereClause: { role?: Role | { in: Role[] } } = {};
-    if (isAdmin) {
+    if (isCasinoAdmin) {
+      whereClause = {
+        role:
+          roleFilter === Role.CASINO_USER
+            ? Role.CASINO_USER
+            : { in: CASINO_ADMIN_ALLOWED_ROLES },
+      };
+    } else if (isAdmin) {
       whereClause = {
         role:
           roleFilter && ADMIN_ALLOWED_ROLES.includes(roleFilter)
@@ -62,9 +71,10 @@ export const GET = withAuth(
 );
 
 export const POST = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN],
   async (req, { session }) => {
     const isAdmin = session.user.role === Role.ADMIN;
+    const isCasinoAdmin = session.user.role === Role.CASINO_ADMIN;
 
     const body = await req.json();
     const parsed = createUserSchema.safeParse(body);
@@ -81,6 +91,16 @@ export const POST = withAuth(
 
     const { username, email, password, role } = parsed.data;
 
+    // CASINO_ADMIN can only create CASINO_USER
+    if (isCasinoAdmin && role !== Role.CASINO_USER) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Casino Admin yalnızca Casino kullanıcısı oluşturabilir.",
+        },
+        { status: 403 },
+      );
+    }
     // ADMIN can only create CASINO_USER and FNB_USER
     if (isAdmin && !ADMIN_ALLOWED_ROLES.includes(role)) {
       return NextResponse.json(

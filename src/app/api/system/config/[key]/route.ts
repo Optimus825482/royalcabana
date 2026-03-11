@@ -7,6 +7,7 @@ import { Role } from "@/types";
 const allRoles = [
   Role.ADMIN,
   Role.SYSTEM_ADMIN,
+  Role.CASINO_ADMIN,
   Role.CASINO_USER,
   Role.FNB_USER,
 ];

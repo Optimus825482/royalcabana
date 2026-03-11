@@ -7,7 +7,7 @@ import { parseBody, createWaitlistSchema } from "@/lib/validators";
 
 // GET — Bekleme listesi
 export const GET = withAuth(
-  [Role.CASINO_USER, Role.ADMIN, Role.SYSTEM_ADMIN],
+  [Role.CASINO_USER, Role.ADMIN, Role.CASINO_ADMIN, Role.SYSTEM_ADMIN],
   async (req) => {
     const { searchParams } = req.nextUrl;
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -44,7 +44,7 @@ export const GET = withAuth(
 
 // POST — Bekleme listesine ekle
 export const POST = withAuth(
-  [Role.CASINO_USER, Role.ADMIN],
+  [Role.CASINO_USER, Role.ADMIN, Role.CASINO_ADMIN],
   async (req, { session }) => {
     const body = await req.json();
     const parsed = parseBody(createWaitlistSchema, body);

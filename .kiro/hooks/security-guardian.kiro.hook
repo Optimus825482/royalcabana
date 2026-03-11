@@ -1,14 +1,14 @@
 {
   "enabled": true,
   "name": "Security Guardian",
-  "version": "1",
-  "description": "Dosya yazildiginda API route, auth, middleware dosyalarinda guvenlik kontrolu yapar.",
+  "version": "1.1.0",
+  "description": "Write sonrasi API/auth/middleware dosyalarinda guvenlik kontrolu.",
   "when": {
     "type": "postToolUse",
     "toolTypes": ["write"]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Az once bir dosya yazildi/duzenlendi. Eger bu dosya bir API route, middleware, auth dosyasi veya guvenlik acisindan hassas bir dosya ise, su kontrolleri sessizce yap:\n\n1. Hardcoded secret/credential var mi?\n2. Input validation eksik mi?\n3. Auth/authorization check atlanmis mi?\n4. SQL injection, XSS, IDOR riski var mi?\n5. Rate limiting gerekli mi ama yok mu?\n\nSorun YOKSA sessizce gec.\nSorun VARSA kisa bildir: dosya adi, risk seviyesi, ne yapilmasi gerektigi.\n\nNOT: UI component veya style dosyalarinda sessizce gec."
+    "prompt": "Yazilan dosya API route, middleware veya auth dosyasiysa sessizce kontrol et: 1) Hardcoded secret? 2) Missing input validation? 3) Auth bypass? 4) Injection riski? 5) Missing rate limit? Sorun yoksa sessizce gec. Varsa kisa bildir: dosya, risk, fix. UI/style dosyalarinda gec."
   }
 }

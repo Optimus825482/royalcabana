@@ -110,4 +110,5 @@ export const POST = withAuth(
 
     return NextResponse.json({ success: true, data: updated });
   },
+  { requiredPermissions: ["reservation.approve"] },
 );

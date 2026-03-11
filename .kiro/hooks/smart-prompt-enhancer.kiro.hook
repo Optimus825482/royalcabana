@@ -1,13 +1,13 @@
 {
   "enabled": true,
-  "name": "Smart Prompt Enhancer",
-  "version": "1",
-  "description": "Kullanicinin mesajini analiz edip yapilandirir. Belirsiz mesajlari formatlar, kisa/net mesajlari oldugu gibi birakir.",
+  "name": "Smart Prompt Enhancer v4 — Autonomous Tooling",
+  "version": "4.0.0",
+  "description": "Otonom gorev analizi + arac secimi + hafiza + evrim korumasi. Hangi steering/power/skill gerektigine kendisi karar verir.",
   "when": {
     "type": "promptSubmit"
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Kullanicinin mesajini analiz et. Eger mesaj belirsiz, uzun veya yapilandirilmamissa, asagidaki formata cevir ve bu formati kullanarak gorevi yap. Eger mesaj zaten kisa ve net ise (ornegin \"evet\", \"hayir\", \"devam et\", tek satirlik net talimat), oldugu gibi isle, format degistirme.\n\nFormat:\n- Dosya(lar): [etkilenen dosya yollari veya \"belirsiz\"]\n- Aksiyon: [ne yapilacak - tek cumle]\n- Kapsam: [tek dosya | coklu dosya | arastirma | soru]\n- Kisitlama: [varsa ozel kisitlamalar]\n\nBu formati kullanarak gorevi coz. Formati kullaniciya gosterme, direkt uygulamaya gec."
+    "prompt": "Kullanicinin mesajini analiz et. Adimlari sessizce uygula, sonucu gosterme — direkt goreve gec.\n\nADIM 0 — GOREV SUREKLILIGI:\nSession basindaki ILK mesajda: mcp_qdrant_memory_mem_search query: 'incomplete task continuity', tags: ['task-continuity'], limit 1.\nSonuc varsa: kullaniciya 1-2 cumleyle bildir. Sonuc yoksa veya sonraki mesajlarda: atla.\n\nADIM 1 — INTENT + YAPILANDIRMA:\nNiyeti cikar (kod/hata/tasarim/arastirma/soru). Kisa mesajlarda atla.\nBelirsiz mesajlarda sessizce yapilandir: Dosya, Aksiyon, Kapsam.\n\nADIM 2 — OTONOM ARAC SECIMI (context-efficient):\nGorevin icerigi ve etkiledigi dosyalara gore, asagidaki araclari SESSIZCE aktive et. Birden fazla olabilir.\n\n| Gorev Sinyali | Aksiyon |\n|---|---|\n| API route, auth, middleware, input validation, guvenlik | readFile('.kiro/steering/security-audit.md') |\n| DB query, N+1, index, cache, API latency, performans | readFile('.kiro/steering/performance-patterns.md') |\n| 3D, Three.js, R3F, shader, WebGL, canvas | kiroPowers action=activate powerName=3d-web-god-mode |\n| UI component, shadcn, form, table, modal | Zaten fileMatch ile yuklenir — ek islem yok |\n| Prisma schema, migration, service layer | Zaten fileMatch ile yuklenir — ek islem yok |\n| Yeni sayfa/modul scaffold | kiroPowers action=activate powerName=fullstack-scaffold |\n| Typescript generics, utility types, type-level | discloseContext name=typescript-pro |\n| Karmasik mimari karar, system design | discloseContext name=architect-review |\n| Coklu dosya, taninmayan codebase | invokeSubAgent name=context-gatherer |\n\nKURALLAR:\n- Sadece GERCEKTEN gereken araci yukle — her seyi yukleme (context rot)\n- Zaten fileMatch ile yuklenen steering icin ek islem yapma\n- Power/skill ayni session'da zaten aktive edildiyse tekrar etme\n- Basit gorevlerde (tek dosya fix, kucuk degisiklik) hicbir ek arac yukleme\n\nADIM 3 — HAFIZA:\nmcp_qdrant_memory_mem_search (limit 3, tags: continual-learning). Referans olarak kullan, sablon degil.\n\nADIM 4 — EVRIM KORUMASI:\nYaratici gorev → gecmisi tekrarlama, guncel arastir. Rutin → gecmisi referans al.\n\nADIM 5 — STRATEJI:\nBasit → direkt. Karmasik → plan + sub-agent. Arastirma → web_search.\n\nDirekt goreve basla."
   }
 }

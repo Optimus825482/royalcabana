@@ -7,7 +7,7 @@ import { parseBody, createBlackoutDateSchema } from "@/lib/validators";
 
 // GET — Blackout tarihlerini listele
 export const GET = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_USER],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER],
   async (req) => {
     const { searchParams } = req.nextUrl;
     const page = Math.max(1, Number(searchParams.get("page")) || 1);

@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "**/_components/**,**/components/shared/**,**/components/ui/**,**/*.tsx"
+fileMatchPattern: "**/components/ui/**,**/components/shared/**,**/_components/**"
 ---
 
 # shadcn/ui Pro — Quick Reference (March 2026)

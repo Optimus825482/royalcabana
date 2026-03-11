@@ -451,6 +451,64 @@ export const CASINO_NAV: NavItem[] = [
   },
 ];
 
+export const CASINO_ADMIN_NAV: NavItem[] = [
+  {
+    href: "/casino-admin",
+    label: "Panel",
+    icon: LayoutDashboard,
+    color: "text-sky-400",
+  },
+  {
+    href: "/casino/map",
+    label: "Harita",
+    icon: Map,
+    color: "text-teal-400",
+    requiredPermission: "map.view",
+  },
+  {
+    label: "Operasyon",
+    icon: ClipboardList,
+    color: "text-orange-400",
+    children: [
+      {
+        href: "/casino-admin/calendar",
+        label: "Takvim",
+        icon: CalendarDays,
+        color: "text-amber-400",
+        requiredPermission: "reservation.view",
+      },
+      {
+        href: "/casino-admin/requests",
+        label: "Talepler",
+        icon: ClipboardList,
+        color: "text-orange-400",
+        requiredPermission: "reservation.view",
+      },
+      {
+        href: "/casino-admin/reservations",
+        label: "Rezervasyonlar",
+        icon: BookOpen,
+        color: "text-amber-400",
+        requiredPermission: "reservation.view",
+      },
+    ],
+  },
+  {
+    href: "/casino-admin/users",
+    label: "Casino Kullanıcıları",
+    icon: Users,
+    color: "text-blue-400",
+    requiredPermission: "user.view",
+  },
+  {
+    href: "/reports",
+    label: "Raporlar",
+    icon: BarChart3,
+    color: "text-purple-400",
+    requiredPermission: "report.view",
+  },
+];
+
 export const FNB_NAV: NavItem[] = [
   {
     href: "/fnb/reservations",
@@ -518,6 +576,7 @@ export const FNB_NAV: NavItem[] = [
 export const NAV_CONFIG: Record<string, NavItem[]> = {
   SYSTEM_ADMIN: SYSTEM_ADMIN_NAV,
   ADMIN: ADMIN_NAV,
+  CASINO_ADMIN: CASINO_ADMIN_NAV,
   CASINO_USER: CASINO_NAV,
   FNB_USER: FNB_NAV,
 };
@@ -525,6 +584,7 @@ export const NAV_CONFIG: Record<string, NavItem[]> = {
 export const ROLE_HOME: Record<string, string> = {
   SYSTEM_ADMIN: "/system-admin",
   ADMIN: "/admin",
+  CASINO_ADMIN: "/casino-admin",
   CASINO_USER: "/casino",
   FNB_USER: "/fnb/reservations",
 };

@@ -1,6 +1,6 @@
 ---
-inclusion: fileMatch
-fileMatchPattern: "**/services/**,**/app/api/**,**/lib/prisma*,**/prisma/**,**/middleware*,**/proxy*,**/*.config.ts,**/*.config.js,**/next.config.*,**/docker-compose*,**/Dockerfile*,**/nginx*"
+inclusion: manual
+description: "Performance optimization patterns — activate manually with #performance-patterns"
 ---
 
 # Performance Optimizer — Quick Reference (March 2026)

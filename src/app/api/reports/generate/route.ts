@@ -28,7 +28,7 @@ const postSchema = z.object({
 });
 
 export const GET = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN],
   async (req: NextRequest) => {
     const params = Object.fromEntries(req.nextUrl.searchParams.entries());
     const parsed = querySchema.safeParse(params);
@@ -59,7 +59,7 @@ export const GET = withAuth(
 );
 
 export const POST = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN],
   async (req) => {
     const body = await req.json();
     const parsed = postSchema.safeParse(body);

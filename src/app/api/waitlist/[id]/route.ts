@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 
 // DELETE — Bekleme listesinden çıkar (kendi kaydı veya ADMIN)
 export const DELETE = withAuth(
-  [Role.CASINO_USER, Role.ADMIN, Role.SYSTEM_ADMIN],
+  [Role.CASINO_USER, Role.ADMIN, Role.CASINO_ADMIN, Role.SYSTEM_ADMIN],
   async (_req, { session, params }) => {
     const id = params!.id;
 
@@ -21,10 +21,11 @@ export const DELETE = withAuth(
       );
     }
 
-    // Kendi kaydı değilse ve ADMIN/SYSTEM_ADMIN değilse reddet
+    // Kendi kaydı değilse ve ADMIN/CASINO_ADMIN/SYSTEM_ADMIN değilse reddet
     const isOwner = entry.userId === session.user.id;
     const isAdmin =
       session.user.role === Role.ADMIN ||
+      session.user.role === Role.CASINO_ADMIN ||
       session.user.role === Role.SYSTEM_ADMIN;
 
     if (!isOwner && !isAdmin) {

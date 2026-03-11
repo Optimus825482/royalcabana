@@ -7,7 +7,7 @@ import { parseBody, createRecurringBookingSchema } from "@/lib/validators";
 
 // GET — Tekrarlayan rezervasyonları listele
 export const GET = withAuth(
-  [Role.CASINO_USER, Role.ADMIN, Role.SYSTEM_ADMIN],
+  [Role.CASINO_USER, Role.ADMIN, Role.CASINO_ADMIN, Role.SYSTEM_ADMIN],
   async (req) => {
     const { searchParams } = req.nextUrl;
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -45,7 +45,7 @@ export const GET = withAuth(
 
 // POST — Tekrarlayan rezervasyon oluştur
 export const POST = withAuth(
-  [Role.CASINO_USER, Role.ADMIN],
+  [Role.CASINO_USER, Role.ADMIN, Role.CASINO_ADMIN],
   async (req, { session }) => {
     const body = await req.json();
     const parsed = parseBody(createRecurringBookingSchema, body);

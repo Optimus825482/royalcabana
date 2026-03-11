@@ -11,6 +11,7 @@ datasource db {
 enum Role {
   SYSTEM_ADMIN
   ADMIN
+  CASINO_ADMIN
   CASINO_USER
   FNB_USER
 }

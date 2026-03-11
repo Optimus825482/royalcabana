@@ -108,14 +108,7 @@ export default function CasinoMapPage() {
 
   function handleReservationStatusClick() {
     if (!selectedCabana) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const params = new URLSearchParams({
-      view: "timeline",
-      range: "day",
-      cabanaId: selectedCabana.id,
-      date: today,
-    });
-    router.push(`/casino/calendar?${params.toString()}`);
+    router.push(`/casino/cabana/${selectedCabana.id}/calendar`);
   }
 
   return (
@@ -171,7 +164,7 @@ export default function CasinoMapPage() {
               <LoadingSpinner message="Cabanalar yükleniyor..." />
             </div>
           ) : (
-              <div className="h-full min-h-75 md:min-h-125">
+            <div className="h-full min-h-75 md:min-h-125">
               <CabanaMap
                 cabanas={cabanas}
                 editable={false}

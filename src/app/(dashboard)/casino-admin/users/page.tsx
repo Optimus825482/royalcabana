@@ -1,0 +1,656 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Role } from "@/types";
+import {
+  Modal,
+  Field,
+  ErrorMsg,
+  inputCls,
+  cancelBtnCls,
+  submitBtnCls,
+} from "@/components/shared/FormComponents";
+import PermissionGate from "@/components/shared/PermissionGate";
+
+interface UserRow {
+  id: string;
+  username: string;
+  email: string;
+  role: Role.CASINO_USER;
+  isActive: boolean;
+  createdAt: string;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  [Role.CASINO_USER]: "Casino Kullanıcısı",
+};
+
+const ALLOWED_ROLES = [Role.CASINO_USER] as const;
+
+interface CreateForm {
+  username: string;
+  email: string;
+  password: string;
+  role: Role.CASINO_USER;
+}
+
+interface EditForm {
+  username: string;
+  email: string;
+  role: Role.CASINO_USER;
+  isActive: boolean;
+  newPassword: string;
+}
+
+const defaultCreateForm: CreateForm = {
+  username: "",
+  email: "",
+  password: "",
+  role: Role.CASINO_USER,
+};
+
+async function fetchUsers(roleFilter?: string): Promise<UserRow[]> {
+  const url = roleFilter ? `/api/users?role=${roleFilter}` : "/api/users";
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Kullanıcılar yüklenemedi.");
+  const json = await res.json();
+  const resolved = json.data ?? json;
+  return Array.isArray(resolved) ? resolved : [];
+}
+
+async function createUser(data: CreateForm): Promise<UserRow> {
+  const res = await fetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    const fieldErrors = err.errors?.fieldErrors;
+    if (fieldErrors) {
+      const msgs = Object.values(fieldErrors).flat().filter(Boolean);
+      if (msgs.length > 0) throw new Error(msgs.join(" "));
+    }
+    throw new Error(err.message || err.error || "Kullanıcı oluşturulamadı.");
+  }
+  const json = await res.json();
+  return json.data ?? json;
+}
+
+async function updateUser(
+  id: string,
+  data: Partial<EditForm>,
+): Promise<UserRow> {
+  const { newPassword, ...rest } = data as EditForm;
+  const body: Record<string, unknown> = { ...rest };
+  if (newPassword) body.password = newPassword;
+  const res = await fetch(`/api/users/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    const fieldErrors = err.errors?.fieldErrors;
+    if (fieldErrors) {
+      const msgs = Object.values(fieldErrors).flat().filter(Boolean);
+      if (msgs.length > 0) throw new Error(msgs.join(" "));
+    }
+    throw new Error(err.message || err.error || "Kullanıcı güncellenemedi.");
+  }
+  const json = await res.json();
+  return json.data ?? json;
+}
+
+async function deactivateUser(id: string): Promise<void> {
+  const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Kullanıcı devre dışı bırakılamadı.");
+  }
+}
+
+export default function CasinoAdminUsersPage() {
+  useSession({ required: true });
+  const queryClient = useQueryClient();
+
+  const [roleFilter, setRoleFilter] = useState<string>(Role.CASINO_USER);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState<CreateForm>(defaultCreateForm);
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<UserRow | null>(
+    null,
+  );
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    msg: string;
+  } | null>(null);
+
+  const showToast = useCallback((type: "success" | "error", msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  const queryKey = ["casino-admin-users", roleFilter];
+
+  const { data: rawUsers, isLoading } = useQuery({
+    queryKey,
+    queryFn: () => fetchUsers(Role.CASINO_USER),
+  });
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+
+  const createMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casino-admin-users"] });
+      setShowCreate(false);
+      setCreateForm(defaultCreateForm);
+      showToast("success", "Kullanıcı başarıyla oluşturuldu.");
+    },
+    onError: (e: Error) => showToast("error", e.message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<EditForm> }) =>
+      updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casino-admin-users"] });
+      setEditUser(null);
+      setEditForm(null);
+      showToast("success", "Kullanıcı başarıyla güncellendi.");
+    },
+    onError: (e: Error) => showToast("error", e.message),
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: deactivateUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casino-admin-users"] });
+      setDeactivateTarget(null);
+      showToast("success", "Kullanıcı devre dışı bırakıldı.");
+    },
+    onError: (e: Error) => showToast("error", e.message),
+  });
+
+  function openEdit(user: UserRow) {
+    setEditUser(user);
+    setEditForm({
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      newPassword: "",
+    });
+  }
+
+  return (
+    <div className="text-neutral-100 p-4 sm:p-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-yellow-400">
+            Casino Kullanıcıları
+          </h1>
+          <p className="text-sm text-neutral-500 mt-0.5">
+            Casino ve F&B kullanıcılarını yönetin
+          </p>
+        </div>
+        <PermissionGate permission="user.create">
+          <button
+            onClick={() => {
+              setShowCreate(true);
+            }}
+            className="bg-yellow-600 hover:bg-yellow-500 text-neutral-950 font-semibold text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors"
+          >
+            + Yeni Kullanıcı
+          </button>
+        </PermissionGate>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`mb-4 px-4 py-2.5 text-sm rounded-lg border ${
+            toast.type === "success"
+              ? "bg-green-950/50 border-green-700/40 text-green-400"
+              : "bg-red-950/40 border-red-800/40 text-red-400"
+          }`}
+        >
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Role filter — Casino Admin only manages Casino users */}
+      <div className="flex gap-2 mb-4 overflow-x-auto">
+        {[{ value: Role.CASINO_USER, label: "Casino Kullanıcıları" }].map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setRoleFilter(tab.value)}
+            className={`text-sm px-4 py-1.5 min-h-[44px] rounded-lg transition-colors whitespace-nowrap ${
+              roleFilter === tab.value
+                ? "bg-yellow-600 text-neutral-950 font-semibold"
+                : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Table — Desktop */}
+      <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
+            Yükleniyor...
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
+            Kullanıcı bulunamadı.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-neutral-800 text-neutral-400 text-left">
+                <th className="px-4 py-3 font-medium">Kullanıcı Adı</th>
+                <th className="px-4 py-3 font-medium">E-posta</th>
+                <th className="px-4 py-3 font-medium">Rol</th>
+                <th className="px-4 py-3 font-medium">Durum</th>
+                <th className="px-4 py-3 font-medium text-right">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr
+                  key={user.id}
+                  className="border-b border-neutral-800/60 hover:bg-neutral-800/30 transition-colors"
+                >
+                  <td className="px-4 py-3 font-medium text-neutral-100">
+                    {user.username}
+                  </td>
+                  <td className="px-4 py-3 text-neutral-400">{user.email}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                        user.role === Role.CASINO_USER
+                          ? "bg-blue-950/50 text-blue-400 border-blue-800/40"
+                          : "bg-purple-950/50 text-purple-400 border-purple-800/40"
+                      }`}
+                    >
+                      {ROLE_LABELS[user.role]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {user.isActive ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-950/60 text-green-400 border border-green-800/40">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                        Aktif
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-500 border border-neutral-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+                        Pasif
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <PermissionGate permission="user.update">
+                        <button
+                          onClick={() => openEdit(user)}
+                          className="text-xs px-3 py-1.5 min-h-[44px] rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                        >
+                          Düzenle
+                        </button>
+                      </PermissionGate>
+                      {user.isActive && (
+                        <PermissionGate permission="user.delete">
+                          <button
+                            onClick={() => setDeactivateTarget(user)}
+                            className="text-xs px-3 py-1.5 min-h-[44px] rounded-md bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                          >
+                            Devre Dışı
+                          </button>
+                        </PermissionGate>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Mobile Card Layout */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
+            Yükleniyor...
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
+            Kullanıcı bulunamadı.
+          </div>
+        ) : (
+          users.map((user) => (
+            <div
+              key={user.id}
+              className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-neutral-100">
+                    {user.username}
+                  </p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {user.email}
+                  </p>
+                </div>
+                {user.isActive ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-950/60 text-green-400 border border-green-800/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    Aktif
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-500 border border-neutral-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+                    Pasif
+                  </span>
+                )}
+              </div>
+              <div>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                    user.role === Role.CASINO_USER
+                      ? "bg-blue-950/50 text-blue-400 border-blue-800/40"
+                      : "bg-purple-950/50 text-purple-400 border-purple-800/40"
+                  }`}
+                >
+                  {ROLE_LABELS[user.role]}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <PermissionGate permission="user.update">
+                  <button
+                    onClick={() => openEdit(user)}
+                    className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                  >
+                    Düzenle
+                  </button>
+                </PermissionGate>
+                {user.isActive && (
+                  <PermissionGate permission="user.delete">
+                    <button
+                      onClick={() => setDeactivateTarget(user)}
+                      className="flex-1 text-xs px-3 py-2 min-h-[44px] rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800/30 transition-colors"
+                    >
+                      Devre Dışı
+                    </button>
+                  </PermissionGate>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Create Modal */}
+      {showCreate && (
+        <Modal title="Yeni Kullanıcı" onClose={() => setShowCreate(false)}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              createMutation.mutate(createForm);
+            }}
+            className="space-y-4"
+          >
+            <Field label="Kullanıcı Adı">
+              <input
+                type="text"
+                required
+                minLength={3}
+                value={createForm.username}
+                onChange={(e) =>
+                  setCreateForm((f) => ({ ...f, username: e.target.value }))
+                }
+                className={inputCls}
+                placeholder="kullanici_adi"
+              />
+            </Field>
+            <Field label="E-posta">
+              <input
+                type="email"
+                required
+                value={createForm.email}
+                onChange={(e) =>
+                  setCreateForm((f) => ({ ...f, email: e.target.value }))
+                }
+                className={inputCls}
+                placeholder="ornek@email.com"
+              />
+            </Field>
+            <Field label="Şifre">
+              <input
+                type="password"
+                required
+                minLength={8}
+                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
+                title="En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam"
+                autoComplete="new-password"
+                value={createForm.password}
+                onChange={(e) =>
+                  setCreateForm((f) => ({ ...f, password: e.target.value }))
+                }
+                className={inputCls}
+                placeholder="En az 8 karakter, büyük/küçük harf ve rakam"
+              />
+              <p className="text-xs text-neutral-500 mt-1">
+                En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam
+                içermelidir.
+              </p>
+            </Field>
+            <Field label="Rol">
+              <select
+                value={createForm.role}
+                onChange={(e) =>
+                  setCreateForm((f) => ({
+                    ...f,
+                    role: e.target.value as Role.CASINO_USER,
+                  }))
+                }
+                className={inputCls}
+              >
+                {ALLOWED_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {createMutation.isError && (
+              <ErrorMsg msg={(createMutation.error as Error).message} />
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className={cancelBtnCls}
+              >
+                İptal
+              </button>
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className={submitBtnCls}
+              >
+                {createMutation.isPending ? "Oluşturuluyor..." : "Oluştur"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Edit Modal */}
+      {editUser && editForm && (
+        <Modal
+          title="Kullanıcı Düzenle"
+          onClose={() => {
+            setEditUser(null);
+            setEditForm(null);
+          }}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!editUser || !editForm) return;
+              updateMutation.mutate({ id: editUser.id, data: editForm });
+            }}
+            className="space-y-4"
+          >
+            <Field label="Kullanıcı Adı">
+              <input
+                type="text"
+                required
+                minLength={3}
+                value={editForm.username}
+                onChange={(e) =>
+                  setEditForm((f) =>
+                    f ? { ...f, username: e.target.value } : f,
+                  )
+                }
+                className={inputCls}
+              />
+            </Field>
+            <Field label="E-posta">
+              <input
+                type="email"
+                required
+                value={editForm.email}
+                onChange={(e) =>
+                  setEditForm((f) => (f ? { ...f, email: e.target.value } : f))
+                }
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Rol">
+              <select
+                value={editForm.role}
+                onChange={(e) =>
+                  setEditForm((f) =>
+                    f
+                      ? {
+                          ...f,
+                          role: e.target.value as Role.CASINO_USER,
+                        }
+                      : f,
+                  )
+                }
+                className={inputCls}
+              >
+                {ALLOWED_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Durum">
+              <select
+                value={editForm.isActive ? "true" : "false"}
+                onChange={(e) =>
+                  setEditForm((f) =>
+                    f ? { ...f, isActive: e.target.value === "true" } : f,
+                  )
+                }
+                className={inputCls}
+              >
+                <option value="true">Aktif</option>
+                <option value="false">Pasif</option>
+              </select>
+            </Field>
+            <Field label="Yeni Şifre">
+              <input
+                type="password"
+                minLength={8}
+                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
+                title="En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam"
+                autoComplete="new-password"
+                value={editForm.newPassword}
+                onChange={(e) =>
+                  setEditForm((f) =>
+                    f ? { ...f, newPassword: e.target.value } : f,
+                  )
+                }
+                className={inputCls}
+                placeholder="Boş bırakılırsa değişmez"
+              />
+              <p className="text-xs text-neutral-500 mt-1">
+                En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam
+                içermelidir.
+              </p>
+            </Field>
+            {updateMutation.isError && (
+              <ErrorMsg msg={(updateMutation.error as Error).message} />
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditUser(null);
+                  setEditForm(null);
+                }}
+                className={cancelBtnCls}
+              >
+                İptal
+              </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className={submitBtnCls}
+              >
+                {updateMutation.isPending ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Deactivate Confirm */}
+      {deactivateTarget && (
+        <Modal
+          title="Kullanıcıyı Devre Dışı Bırak"
+          onClose={() => setDeactivateTarget(null)}
+        >
+          <p className="text-neutral-300 text-sm mb-6">
+            <span className="text-yellow-400 font-medium">
+              {deactivateTarget.username}
+            </span>{" "}
+            kullanıcısını devre dışı bırakmak istediğinizden emin misiniz?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setDeactivateTarget(null)}
+              className={cancelBtnCls}
+            >
+              İptal
+            </button>
+            <button
+              onClick={() => deactivateMutation.mutate(deactivateTarget.id)}
+              disabled={deactivateMutation.isPending}
+              className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white transition-colors"
+            >
+              {deactivateMutation.isPending
+                ? "İşleniyor..."
+                : "Devre Dışı Bırak"}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// --- Shared sub-components imported from @/components/shared/FormComponents ---

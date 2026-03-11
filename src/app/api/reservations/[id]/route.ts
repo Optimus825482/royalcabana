@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
 
 export const GET = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (_req, { session, params }) => {
     const id = params!.id;
 
@@ -79,7 +79,7 @@ export const GET = withAuth(
       );
     }
 
-    // IDOR: CASINO_USER sadece kendi rezervasyonunu görebilir
+    // IDOR: CASINO_USER sadece kendi rezervasyonunu görebilir; CASINO_ADMIN/ADMIN tümünü görebilir
     if (
       session.user.role === Role.CASINO_USER &&
       reservation.userId !== session.user.id

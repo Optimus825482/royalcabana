@@ -11,7 +11,7 @@ import { NotificationType } from "@/types";
 import { emailService } from "@/lib/email";
 
 export const GET = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (req, { session }) => {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
@@ -36,7 +36,7 @@ export const GET = withAuth(
       ];
     }
 
-    // CASINO_USER sadece kendi rezervasyonlarını görebilir
+    // CASINO_USER sadece kendi rezervasyonlarını görebilir; ADMIN/CASINO_ADMIN tümünü görür
     if (session.user.role === Role.CASINO_USER) {
       where.userId = session.user.id;
     }
@@ -262,7 +262,7 @@ export const POST = withAuth(
           where: {
             isActive: true,
             deletedAt: null,
-            role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN] },
+            role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN] },
           },
           select: { id: true, email: true, username: true },
         });

@@ -9,7 +9,7 @@ import { getPermissionsForRole } from "@/lib/permission-cache";
  * Frontend usePermissions hook'u bu endpoint'i kullanır.
  */
 export const GET = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (_req, { session }) => {
     const role = session.user.role;
     const permissions = await getPermissionsForRole(role);

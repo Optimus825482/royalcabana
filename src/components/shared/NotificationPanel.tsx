@@ -102,6 +102,8 @@ function getNotificationTargetUrl(
     case "ADMIN":
     case "SYSTEM_ADMIN":
       return `/admin/reservations?reservationId=${encodeURIComponent(reservationId)}`;
+    case "CASINO_ADMIN":
+      return `/casino-admin/reservations?reservationId=${encodeURIComponent(reservationId)}`;
     case "CASINO_USER":
       return `/casino/reservations?reservationId=${encodeURIComponent(reservationId)}`;
     case "FNB_USER":

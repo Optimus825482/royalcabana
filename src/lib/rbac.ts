@@ -176,7 +176,13 @@ export const PERMISSION_TEMPLATES: PermissionTemplate[] = [
   },
   {
     key: "reservation.update",
-    name: "Rezervasyon güncelle (onayla/reddet)",
+    name: "Rezervasyon güncelle",
+    module: "Rezervasyonlar",
+    action: "update",
+  },
+  {
+    key: "reservation.approve",
+    name: "Rezervasyon onayla/reddet, check-in/out",
     module: "Rezervasyonlar",
     action: "update",
   },
@@ -363,6 +369,7 @@ export const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "reservation.view",
     "reservation.create",
     "reservation.update",
+    "reservation.approve",
     "pricing.view",
     "pricing.create",
     "pricing.update",
@@ -377,6 +384,19 @@ export const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "fnb.order.view",
     "blackout.view",
     "blackout.create",
+  ],
+  [Role.CASINO_ADMIN]: [
+    "reservation.view",
+    "reservation.create",
+    "reservation.update",
+    "reservation.delete",
+    "map.view",
+    "report.view",
+    "guest.view",
+    "user.view",
+    "user.create",
+    "user.update",
+    "blackout.view",
   ],
   [Role.CASINO_USER]: [
     "cabana.class.view",
@@ -398,6 +418,7 @@ export const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "fnb.order.create",
     "fnb.order.update",
     "reservation.view",
+    "reservation.approve",
     "map.view",
   ],
 };
@@ -405,6 +426,7 @@ export const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
 export const ROLE_DISPLAY_DEFAULTS: Record<Role, string> = {
   [Role.SYSTEM_ADMIN]: "Sistem Yöneticisi",
   [Role.ADMIN]: "Admin",
+  [Role.CASINO_ADMIN]: "Casino Admin",
   [Role.CASINO_USER]: "Casino Kullanıcısı",
   [Role.FNB_USER]: "F&B Kullanıcısı",
 };

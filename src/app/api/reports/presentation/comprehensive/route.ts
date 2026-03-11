@@ -4,7 +4,7 @@ import { Role } from "@/types";
 import { comprehensivePresentationEngine } from "@/services/comprehensive-presentation.service";
 
 export const GET = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN],
   async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const format = searchParams.get("format") ?? "html";

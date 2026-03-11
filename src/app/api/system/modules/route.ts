@@ -38,7 +38,7 @@ async function getModuleConfig(): Promise<ModuleConfig> {
 
 // GET — all authenticated users can read module config
 export const GET = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async () => {
     const config = await getModuleConfig();
     return NextResponse.json({ success: true, data: config });

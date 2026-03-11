@@ -5,16 +5,18 @@ import { Role } from "@/types";
 const ROLE_LABELS: Record<string, string> = {
   [Role.SYSTEM_ADMIN]: "Sistem Yöneticisi",
   [Role.ADMIN]: "Admin",
+  [Role.CASINO_ADMIN]: "Casino Admin",
   [Role.CASINO_USER]: "Casino Kullanıcısı",
   [Role.FNB_USER]: "F&B Kullanıcısı",
 };
 
-const DEMO_USERNAMES = ["sysadmin", "admin", "casino1", "fnb1"];
+const DEMO_USERNAMES = ["sysadmin", "fadmin", "casino1", "cadmin", "fnb1"];
 
 const DEMO_PASSWORDS: Record<string, string> = {
   sysadmin: "admin123",
-  admin: "123456",
+  fadmin: "123456",
   casino1: "admin123",
+  cadmin: "admin123",
   fnb1: "admin123",
 };
 

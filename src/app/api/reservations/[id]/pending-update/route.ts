@@ -184,7 +184,7 @@ export const PATCH = withAuth(
       const admins = await prisma.user.findMany({
         where: {
           isActive: true,
-          role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN] },
+          role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN] },
         },
         select: { id: true },
       });

@@ -7,7 +7,7 @@ const CONFIG_KEY = "map_elevation_data";
 
 // GET — Kaydedilmiş elevation displacement verisini getir
 export const GET = withAuth(
-  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [Role.SYSTEM_ADMIN, Role.ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async () => {
     const config = await prisma.systemConfig.findUnique({
       where: { key: CONFIG_KEY },

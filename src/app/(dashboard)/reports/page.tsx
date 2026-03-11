@@ -334,7 +334,8 @@ export default function ReportsPage() {
   if (
     !session?.user ||
     (session.user.role !== Role.SYSTEM_ADMIN &&
-      session.user.role !== Role.ADMIN)
+      session.user.role !== Role.ADMIN &&
+      session.user.role !== Role.CASINO_ADMIN)
   ) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">

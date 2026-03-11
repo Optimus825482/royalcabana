@@ -760,7 +760,7 @@ function DetailPanel({
 
       {/* Fiyat belirle ve onayla / reddet */}
       {isPending && (
-        <PermissionGate permission="reservation.update">
+        <PermissionGate permission="reservation.approve">
           <Card className="rounded-none border-x-0 border-t-0">
             <CardHeader className="pb-2">
               <CardTitle>Fiyat belirle ve onayla</CardTitle>

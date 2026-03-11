@@ -2336,6 +2336,10 @@ export interface MapComponentProps {
   savedElevationData?: string | null;
   selectedCabanaId?: string;
   placementCoords?: { lat: number; lng: number } | null;
+  /** When provided, overrides internal mapLocked state from parent toolbar */
+  mapLocked?: boolean;
+  /** Active placement tool from parent toolbar */
+  placementTool?: "cabana" | "umbrella" | "sunbed" | "servicepoint" | null;
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -2352,6 +2356,8 @@ export default function CabanaMapInner({
   savedElevationData,
   selectedCabanaId,
   placementCoords,
+  mapLocked: mapLockedProp,
+  placementTool: placementToolProp,
 }: MapComponentProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -2609,7 +2615,12 @@ export default function CabanaMapInner({
   const dispHistoryRef = useRef<Uint8ClampedArray[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   // Map lock state — disables MapControls for cabana placement/drag
-  const [mapLocked, setMapLocked] = useState(false);
+  const [mapLocked, setMapLocked] = useState(mapLockedProp ?? false);
+
+  // Sync mapLocked from parent toolbar when prop changes
+  useEffect(() => {
+    if (mapLockedProp !== undefined) setMapLocked(mapLockedProp);
+  }, [mapLockedProp]);
 
   // Lights ref for effects sync
   const lightsRef = useRef<{
@@ -2651,6 +2662,7 @@ export default function CabanaMapInner({
   const savedElevationDataRef = useRef(savedElevationData);
   const servicePointsRef = useRef(servicePoints);
   const commonParasolTransformRef = useRef(commonParasolTransform);
+  const placementToolRef = useRef(placementToolProp);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are intentionally synced every render for imperative three.js handlers
   useEffect(() => {
@@ -2666,6 +2678,7 @@ export default function CabanaMapInner({
     savedElevationDataRef.current = savedElevationData;
     servicePointsRef.current = servicePoints;
     commonParasolTransformRef.current = commonParasolTransform;
+    placementToolRef.current = placementToolProp;
   });
 
   // ─── Three.js scene setup (EXACT GiroCanvas engine) ─────────────────────────
@@ -3438,6 +3451,13 @@ export default function CabanaMapInner({
           }
         }
       }
+
+      // Placement click — mapLocked + placementTool aktifse ve hiçbir nesneye tıklanmadıysa
+      if (mapLockedRef.current && placementToolRef.current && !hit) {
+        const wp = getWorldFromEvent(e);
+        const { coordX, coordY } = worldToPixel(wp.x, wp.y);
+        onMapClickRef.current?.(coordY, coordX);
+      }
     };
 
     const onDblClick = (e: MouseEvent) => {
@@ -3624,12 +3644,6 @@ export default function CabanaMapInner({
     setMapLocked((prev) => !prev);
     setContextMenu(null);
   }, []);
-
-  const handleAddCabana = useCallback(() => {
-    if (!contextMenu) return;
-    onMapClick?.(contextMenu.worldY, contextMenu.worldX);
-    setContextMenu(null);
-  }, [contextMenu, onMapClick]);
 
   const handleToggleLock = useCallback(() => {
     if (!contextMenu?.cabana) return;
@@ -4178,7 +4192,11 @@ export default function CabanaMapInner({
         className="flex-1 rounded-lg overflow-hidden border border-neutral-700 min-h-70 md:min-h-100 relative"
         style={{
           background: "#0a0a0a",
-          cursor: rectActive ? "crosshair" : "auto",
+          cursor: rectActive
+            ? "crosshair"
+            : placementToolProp && mapLocked
+              ? "crosshair"
+              : "auto",
         }}
       >
         {/* Rectangle selection SVG overlay */}
@@ -4352,12 +4370,6 @@ export default function CabanaMapInner({
                 {mapLocked
                   ? "🔓 Harita Sabitini Kaldır"
                   : "🔒 Haritayı Sabitle"}
-              </button>
-              <button
-                onClick={handleAddCabana}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 hover:bg-yellow-600/20 hover:text-yellow-400 transition-colors text-left"
-              >
-                ➕ Cabana Ekle
               </button>
               <div className="border-t border-neutral-800 my-1" />
               <div className="px-3 py-1.5 text-[10px] text-neutral-600">

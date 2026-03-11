@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { parseBody, createGuestSchema } from "@/lib/validators";
 
 export const GET = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (req) => {
     const { searchParams } = req.nextUrl;
     const search = searchParams.get("search")?.trim() || undefined;
@@ -60,7 +60,7 @@ export const GET = withAuth(
 );
 
 export const POST = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (req, { session }) => {
     const body = await req.json();
     const parsed = parseBody(createGuestSchema, body);

@@ -179,10 +179,10 @@
 
 /* Reservation pipeline: mobile-first touch targets (WCAG 2.5.5 / 44px+). Use min-h-[44px] or min-h-[48px] + touch-manipulation on interactive elements. */
 
-/* Premium dark scrollbar — tema uyumlu */
+/* Scrollbar — tema uyumlu (light: koyu thumb, dark: açık thumb) */
 .rc-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.3 0 0) transparent;
+  scrollbar-color: var(--rc-text-muted) transparent;
 }
 .rc-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -191,52 +191,135 @@
   background: transparent;
 }
 .rc-scrollbar::-webkit-scrollbar-thumb {
-  background: oklch(0.3 0 0);
+  background: var(--rc-text-muted);
   border-radius: 3px;
 }
 .rc-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.4 0 0);
+  background: var(--rc-text-secondary);
 }
 
-/* Royal Cabana Premium Theme — Luxury Dark (Design System v3) */
+/* Royal Cabana Premium Theme — Light (varsayılan, yüksek kontrast) */
 :root {
-  /* Dark base — no pure black; subtle elevation */
+  /* Açık arka plan — koyu yazı için yeterli kontrast (WCAG AA+) */
+  --rc-background: #f5f5f4;
+  --rc-sidebar: #e7e5e4;
+  --rc-card: #ffffff;
+  --rc-card-hover: #fafaf9;
+  --rc-border-subtle: rgba(0, 0, 0, 0.08);
+
+  /* Primary — Casino Gold */
+  --rc-gold: #a67c3d;
+  --rc-gold-hover: #8b6914;
+  --rc-gold-active: #6b4d0a;
+  --rc-gold-light: oklch(0.75 0.1 75);
+  --rc-gold-dark: #6b4d0a;
+
+  --rc-surface: #ffffff;
+  --rc-surface-elevated: #fafaf9;
+  --rc-surface-border: rgba(0, 0, 0, 0.12);
+  --rc-text-primary: #1c1917;
+  --rc-text-secondary: #44403c;
+  --rc-text-muted: #78716c;
+
+  /* Status — aynı tonlar, açık arka planda okunaklı */
+  --rc-success: #166534;
+  --rc-warning: #b45309;
+  --rc-info: #1d4ed8;
+  --rc-danger: #b91c1c;
+  --rc-purple-stat: #6d28d9;
+
+  /* Form — light */
+  --rc-input-bg: #ffffff;
+  --rc-input-border: #d6d3d1;
+  --rc-input-focus: var(--rc-gold-dark);
+  --rc-input-hover: #e7e5e4;
+  --rc-placeholder: #a8a29e;
+  --rc-drag-handle: #a8a29e;
+
+  /* Buttons — light uyumlu */
+  --rc-btn-primary-bg: oklch(0.55 0.14 65);
+  --rc-btn-primary-hover: oklch(0.5 0.14 65);
+  --rc-btn-primary-text: #ffffff;
+  --rc-btn-danger-bg: oklch(0.55 0.2 25);
+  --rc-btn-danger-hover: oklch(0.5 0.2 25);
+  --rc-btn-success-bg: oklch(0.5 0.15 160);
+  --rc-btn-success-hover: oklch(0.45 0.15 160);
+  --rc-btn-info-bg: oklch(0.5 0.18 240);
+  --rc-btn-info-hover: oklch(0.45 0.18 240);
+
+  --rc-danger-soft-bg: oklch(0.97 0.02 25);
+  --rc-danger-soft-hover: oklch(0.94 0.03 25);
+  --rc-danger-soft-border: oklch(0.7 0.1 25 / 40%);
+  --rc-info-accent: oklch(0.5 0.18 240);
+  --rc-info-soft-bg: oklch(0.96 0.02 240);
+  --rc-info-soft-hover: oklch(0.93 0.03 240);
+  --rc-info-soft-border: oklch(0.6 0.12 240 / 40%);
+
+  --rc-error-bg: oklch(0.97 0.02 25);
+  --rc-error-border: oklch(0.65 0.15 25 / 50%);
+
+  /* KPI Cards — light tema (açık zemin, koyu yazı) */
+  --rc-kpi-success-bg: color-mix(in srgb, var(--rc-success) 42%, var(--rc-card));
+  --rc-kpi-success-border: color-mix(in srgb, var(--rc-success) 70%, transparent);
+  --rc-kpi-success-icon-bg: color-mix(in srgb, var(--rc-success) 50%, var(--rc-card));
+  --rc-kpi-success-text: color-mix(in srgb, var(--rc-success) 45%, #1c1917);
+  --rc-kpi-success-sub: color-mix(in srgb, var(--rc-success) 35%, #44403c);
+  --rc-kpi-warning-bg: color-mix(in srgb, var(--rc-warning) 42%, var(--rc-card));
+  --rc-kpi-warning-border: color-mix(in srgb, var(--rc-warning) 70%, transparent);
+  --rc-kpi-warning-icon-bg: color-mix(in srgb, var(--rc-warning) 50%, var(--rc-card));
+  --rc-kpi-warning-text: color-mix(in srgb, var(--rc-warning) 45%, #1c1917);
+  --rc-kpi-warning-sub: color-mix(in srgb, var(--rc-warning) 35%, #44403c);
+  --rc-kpi-danger-bg: color-mix(in srgb, var(--rc-danger) 42%, var(--rc-card));
+  --rc-kpi-danger-border: color-mix(in srgb, var(--rc-danger) 70%, transparent);
+  --rc-kpi-danger-icon-bg: color-mix(in srgb, var(--rc-danger) 50%, var(--rc-card));
+  --rc-kpi-danger-text: color-mix(in srgb, var(--rc-danger) 50%, #1c1917);
+  --rc-kpi-danger-sub: color-mix(in srgb, var(--rc-danger) 35%, #44403c);
+  --rc-kpi-info-bg: color-mix(in srgb, var(--rc-info) 42%, var(--rc-card));
+  --rc-kpi-info-border: color-mix(in srgb, var(--rc-info) 70%, transparent);
+  --rc-kpi-info-icon-bg: color-mix(in srgb, var(--rc-info) 50%, var(--rc-card));
+  --rc-kpi-info-text: color-mix(in srgb, var(--rc-info) 50%, #1c1917);
+  --rc-kpi-info-sub: color-mix(in srgb, var(--rc-info) 35%, #44403c);
+  --rc-kpi-gold-bg: color-mix(in srgb, var(--rc-gold) 38%, var(--rc-card));
+  --rc-kpi-gold-border: color-mix(in srgb, var(--rc-gold) 65%, transparent);
+  --rc-kpi-gold-icon-bg: color-mix(in srgb, var(--rc-gold) 48%, var(--rc-card));
+  --rc-kpi-gold-text: color-mix(in srgb, var(--rc-gold) 40%, #1c1917);
+  --rc-kpi-gold-sub: color-mix(in srgb, var(--rc-gold) 35%, #44403c);
+  --rc-kpi-purple-bg: color-mix(in srgb, var(--rc-purple-stat) 42%, var(--rc-card));
+  --rc-kpi-purple-border: color-mix(in srgb, var(--rc-purple-stat) 70%, transparent);
+  --rc-kpi-purple-icon-bg: color-mix(in srgb, var(--rc-purple-stat) 50%, var(--rc-card));
+  --rc-kpi-purple-text: color-mix(in srgb, var(--rc-purple-stat) 45%, #1c1917);
+  --rc-kpi-purple-sub: color-mix(in srgb, var(--rc-purple-stat) 35%, #44403c);
+}
+
+/* Royal Cabana Dark Theme */
+.dark {
   --rc-background: #0E1117;
   --rc-sidebar: #11151C;
   --rc-card: #181C24;
   --rc-card-hover: #1F2430;
   --rc-border-subtle: rgba(255, 255, 255, 0.06);
-
-  /* Primary — Casino Gold (CTA, active indicator only) */
   --rc-gold: #C6A85E;
   --rc-gold-hover: #B8964F;
   --rc-gold-active: #9F7F3D;
   --rc-gold-light: oklch(0.88 0.12 85);
   --rc-gold-dark: #9F7F3D;
-
   --rc-surface: #181C24;
   --rc-surface-elevated: #1F2430;
   --rc-surface-border: rgba(255, 255, 255, 0.08);
   --rc-text-primary: oklch(0.95 0 0);
   --rc-text-secondary: oklch(0.65 0 0);
   --rc-text-muted: oklch(0.45 0 0);
-
-  /* Status — badge/icon only, not full card background */
   --rc-success: #1F7A5A;
   --rc-warning: #B7791F;
   --rc-info: #2563EB;
   --rc-danger: #B91C1C;
   --rc-purple-stat: #7C3AED;
-
-  /* Form Components — inputs */
   --rc-input-bg: oklch(0.16 0 0);
   --rc-input-border: oklch(0.22 0 0);
   --rc-input-focus: var(--rc-gold-dark);
   --rc-input-hover: oklch(0.25 0 0);
   --rc-placeholder: oklch(0.44 0 0);
   --rc-drag-handle: oklch(0.37 0 0);
-
-  /* Form Components — buttons */
   --rc-btn-primary-bg: oklch(0.62 0.15 65);
   --rc-btn-primary-hover: oklch(0.68 0.15 65);
   --rc-btn-primary-text: oklch(0.1 0 0);
@@ -246,8 +329,6 @@
   --rc-btn-success-hover: oklch(0.6 0.18 160);
   --rc-btn-info-bg: oklch(0.55 0.18 240);
   --rc-btn-info-hover: oklch(0.6 0.18 240);
-
-  /* Form Components — soft/ghost variants */
   --rc-danger-soft-bg: oklch(0.2 0.05 25 / 50%);
   --rc-danger-soft-hover: oklch(0.25 0.06 25 / 50%);
   --rc-danger-soft-border: oklch(0.4 0.1 25 / 30%);
@@ -255,11 +336,112 @@
   --rc-info-soft-bg: oklch(0.2 0.05 240 / 50%);
   --rc-info-soft-hover: oklch(0.25 0.06 240 / 50%);
   --rc-info-soft-border: oklch(0.4 0.1 240 / 30%);
-
-  /* Form Components — error message */
   --rc-error-bg: oklch(0.2 0.05 25 / 40%);
   --rc-error-border: oklch(0.4 0.1 25 / 40%);
+  --rc-kpi-success-text: color-mix(in srgb, var(--rc-success) 55%, white);
+  --rc-kpi-success-sub: color-mix(in srgb, var(--rc-success) 35%, rgba(255,255,255,0.85));
+  --rc-kpi-warning-text: color-mix(in srgb, var(--rc-warning) 55%, white);
+  --rc-kpi-warning-sub: color-mix(in srgb, var(--rc-warning) 35%, rgba(255,255,255,0.85));
+  --rc-kpi-danger-text: color-mix(in srgb, var(--rc-danger) 50%, white);
+  --rc-kpi-danger-sub: color-mix(in srgb, var(--rc-danger) 30%, rgba(255,255,255,0.8));
+  --rc-kpi-info-text: color-mix(in srgb, var(--rc-info) 55%, white);
+  --rc-kpi-info-sub: color-mix(in srgb, var(--rc-info) 35%, rgba(255,255,255,0.85));
+  --rc-kpi-gold-text: color-mix(in srgb, var(--rc-gold) 58%, white);
+  --rc-kpi-gold-sub: color-mix(in srgb, var(--rc-gold) 38%, rgba(255,255,255,0.85));
+  --rc-kpi-purple-text: color-mix(in srgb, var(--rc-purple-stat) 55%, white);
+  --rc-kpi-purple-sub: color-mix(in srgb, var(--rc-purple-stat) 35%, rgba(255,255,255,0.85));
 }
+
+/* KPI Cards — belirgin renkli kartlar (Tailwind bg override için !important) */
+.rc-kpi-card-success {
+  border-left: 4px solid var(--rc-success);
+  background: var(--rc-kpi-success-bg) !important;
+  border-color: var(--rc-kpi-success-border) !important;
+}
+.rc-kpi-card-success:hover {
+  background: color-mix(in srgb, var(--rc-success) 52%, var(--rc-card)) !important;
+  border-color: var(--rc-success);
+  box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--rc-success) 25%, transparent);
+}
+.rc-kpi-card-success .rc-kpi-icon-box { background: var(--rc-kpi-success-icon-bg); color: var(--rc-kpi-success-text); }
+.rc-kpi-card-success .rc-kpi-label { color: var(--rc-kpi-success-text); }
+.rc-kpi-card-success .rc-kpi-value { color: var(--rc-kpi-success-text); }
+.rc-kpi-card-success .rc-kpi-sub { color: var(--rc-kpi-success-sub); }
+
+.rc-kpi-card-warning {
+  border-left: 4px solid var(--rc-warning);
+  background: var(--rc-kpi-warning-bg) !important;
+  border-color: var(--rc-kpi-warning-border) !important;
+}
+.rc-kpi-card-warning:hover {
+  background: color-mix(in srgb, var(--rc-warning) 52%, var(--rc-card)) !important;
+  border-color: var(--rc-warning);
+  box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--rc-warning) 25%, transparent);
+}
+.rc-kpi-card-warning .rc-kpi-icon-box { background: var(--rc-kpi-warning-icon-bg); color: var(--rc-kpi-warning-text); }
+.rc-kpi-card-warning .rc-kpi-label { color: var(--rc-kpi-warning-text); }
+.rc-kpi-card-warning .rc-kpi-value { color: var(--rc-kpi-warning-text); }
+.rc-kpi-card-warning .rc-kpi-sub { color: var(--rc-kpi-warning-sub); }
+
+.rc-kpi-card-danger {
+  border-left: 4px solid var(--rc-danger);
+  background: var(--rc-kpi-danger-bg) !important;
+  border-color: var(--rc-kpi-danger-border) !important;
+}
+.rc-kpi-card-danger:hover {
+  background: color-mix(in srgb, var(--rc-danger) 52%, var(--rc-card)) !important;
+  border-color: var(--rc-danger);
+  box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--rc-danger) 25%, transparent);
+}
+.rc-kpi-card-danger .rc-kpi-icon-box { background: var(--rc-kpi-danger-icon-bg); color: var(--rc-kpi-danger-text); }
+.rc-kpi-card-danger .rc-kpi-label { color: var(--rc-kpi-danger-text); }
+.rc-kpi-card-danger .rc-kpi-value { color: var(--rc-kpi-danger-text); }
+.rc-kpi-card-danger .rc-kpi-sub { color: var(--rc-kpi-danger-sub); }
+
+.rc-kpi-card-info {
+  border-left: 4px solid var(--rc-info);
+  background: var(--rc-kpi-info-bg) !important;
+  border-color: var(--rc-kpi-info-border) !important;
+}
+.rc-kpi-card-info:hover {
+  background: color-mix(in srgb, var(--rc-info) 52%, var(--rc-card)) !important;
+  border-color: var(--rc-info);
+  box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--rc-info) 25%, transparent);
+}
+.rc-kpi-card-info .rc-kpi-icon-box { background: var(--rc-kpi-info-icon-bg); color: var(--rc-kpi-info-text); }
+.rc-kpi-card-info .rc-kpi-label { color: var(--rc-kpi-info-text); }
+.rc-kpi-card-info .rc-kpi-value { color: var(--rc-kpi-info-text); }
+.rc-kpi-card-info .rc-kpi-sub { color: var(--rc-kpi-info-sub); }
+
+.rc-kpi-card-gold {
+  border-left: 4px solid var(--rc-gold);
+  background: var(--rc-kpi-gold-bg) !important;
+  border-color: var(--rc-kpi-gold-border) !important;
+}
+.rc-kpi-card-gold:hover {
+  background: color-mix(in srgb, var(--rc-gold) 48%, var(--rc-card)) !important;
+  border-color: var(--rc-gold);
+  box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--rc-gold) 25%, transparent);
+}
+.rc-kpi-card-gold .rc-kpi-icon-box { background: var(--rc-kpi-gold-icon-bg); color: var(--rc-kpi-gold-text); }
+.rc-kpi-card-gold .rc-kpi-label { color: var(--rc-kpi-gold-text); }
+.rc-kpi-card-gold .rc-kpi-value { color: var(--rc-kpi-gold-text); }
+.rc-kpi-card-gold .rc-kpi-sub { color: var(--rc-kpi-gold-sub); }
+
+.rc-kpi-card-purple {
+  border-left: 4px solid var(--rc-purple-stat);
+  background: var(--rc-kpi-purple-bg) !important;
+  border-color: var(--rc-kpi-purple-border) !important;
+}
+.rc-kpi-card-purple:hover {
+  background: color-mix(in srgb, var(--rc-purple-stat) 52%, var(--rc-card)) !important;
+  border-color: var(--rc-purple-stat);
+  box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--rc-purple-stat) 25%, transparent);
+}
+.rc-kpi-card-purple .rc-kpi-icon-box { background: var(--rc-kpi-purple-icon-bg); color: var(--rc-kpi-purple-text); }
+.rc-kpi-card-purple .rc-kpi-label { color: var(--rc-kpi-purple-text); }
+.rc-kpi-card-purple .rc-kpi-value { color: var(--rc-kpi-purple-text); }
+.rc-kpi-card-purple .rc-kpi-sub { color: var(--rc-kpi-purple-sub); }
 
 /* Login splash animation */
 @keyframes fadeScaleIn {
@@ -434,4 +616,24 @@
 
 .login-text-3 {
   animation: fadeScaleIn 1.2s ease-out 2s both;
+}
+
+/* Tıklanabilir alanlarda el imleci */
+a,
+button,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+select,
+summary,
+[tabindex="0"]:not([disabled]),
+label[for],
+.cursor-pointer {
+  cursor: pointer;
+}
+button:disabled,
+[aria-disabled="true"],
+select:disabled {
+  cursor: not-allowed;
 }
