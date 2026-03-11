@@ -58,16 +58,7 @@ function createPrismaClient() {
           return query(args);
         },
         async findUnique({ model, args, query }: any) {
-          if (isSoftDeleteModel(model)) {
-            // Delegate to the extended client's findFirst (not base) so nested relations also get soft-delete filtering
-            const delegate = (extended as any)[
-              model!.charAt(0).toLowerCase() + model!.slice(1)
-            ];
-            return delegate.findFirst({
-              ...args,
-              where: { ...args.where, deletedAt: null },
-            });
-          }
+          addSoftDeleteFilter(model, args);
           return query(args);
         },
         async count({ model, args, query }: any) {
