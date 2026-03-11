@@ -28,7 +28,13 @@ export class PricingEngine {
     customRequestPrice?: number;
     reservationId?: string;
   }): Promise<PriceBreakdown> {
-    const { conceptId, startDate, endDate, extraItems = [], reservationId } = params;
+    const {
+      conceptId,
+      startDate,
+      endDate,
+      extraItems = [],
+      reservationId,
+    } = params;
 
     const items: PriceLineItem[] = [];
     const days = this.daysBetween(startDate, endDate);
@@ -134,7 +140,9 @@ export class PricingEngine {
 
     if (reservationId) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const approvedExtras = await (this.prisma as any).reservationExtraRequest.findMany({
+      const approvedExtras = await (
+        this.prisma as any
+      ).reservationExtraRequest.findMany({
         where: {
           reservationId,
           status: "APPROVED",
@@ -149,7 +157,10 @@ export class PricingEngine {
         extraRequestsTotal += total;
 
         items.push({
-          name: er.type === "PRODUCT" ? (er.product?.name ?? "Ekstra Ürün") : (er.customName ?? "Özel Talep"),
+          name:
+            er.type === "PRODUCT"
+              ? (er.product?.name ?? "Ekstra Ürün")
+              : (er.customName ?? "Özel Talep"),
           quantity: er.quantity,
           unitPrice: price,
           total,
@@ -225,7 +236,7 @@ export class PricingEngine {
           reservationId: res.id,
         });
 
-        const newTotal = calculated.grandTotal + customRequestAmount;
+        const newTotal = calculated.grandTotal;
 
         await this.prisma.reservation.update({
           where: { id: res.id },

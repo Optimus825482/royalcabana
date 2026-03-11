@@ -6,7 +6,13 @@ import { logAudit } from "@/lib/audit";
 import { parseBody, createGuestSchema } from "@/lib/validators";
 
 export const GET = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [
+    Role.ADMIN,
+    Role.SYSTEM_ADMIN,
+    Role.CASINO_ADMIN,
+    Role.CASINO_USER,
+    Role.FNB_USER,
+  ],
   async (req) => {
     const { searchParams } = req.nextUrl;
     const search = searchParams.get("search")?.trim() || undefined;
@@ -40,10 +46,8 @@ export const GET = withAuth(
       where.vipLevel = vipLevel;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = prisma as any;
     const [guests, total] = await Promise.all([
-      db.guest.findMany({
+      prisma.guest.findMany({
         where,
         include: {
           _count: { select: { reservations: true } },
@@ -52,15 +56,22 @@ export const GET = withAuth(
         skip,
         take: limit,
       }),
-      db.guest.count({ where }),
+      prisma.guest.count({ where }),
     ]);
 
     return NextResponse.json({ success: true, data: { guests, total } });
   },
+  { requiredPermissions: ["guest.view"] },
 );
 
 export const POST = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [
+    Role.ADMIN,
+    Role.SYSTEM_ADMIN,
+    Role.CASINO_ADMIN,
+    Role.CASINO_USER,
+    Role.FNB_USER,
+  ],
   async (req, { session }) => {
     const body = await req.json();
     const parsed = parseBody(createGuestSchema, body);
@@ -72,8 +83,7 @@ export const POST = withAuth(
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const guest = await (prisma as any).guest.create({
+    const guest = await prisma.guest.create({
       data: parsed.data,
     });
 
@@ -87,4 +97,5 @@ export const POST = withAuth(
 
     return NextResponse.json({ success: true, data: guest }, { status: 201 });
   },
+  { requiredPermissions: ["guest.create"] },
 );

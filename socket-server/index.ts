@@ -52,11 +52,22 @@ const httpServer = createServer((req, res) => {
       return;
     }
 
+    const MAX_BODY_SIZE = 1 * 1024 * 1024; // 1MB
     let body = "";
+    let oversized = false;
     req.on("data", (chunk: Buffer) => {
       body += chunk.toString();
+      if (body.length > MAX_BODY_SIZE) {
+        oversized = true;
+        req.destroy();
+      }
     });
     req.on("end", () => {
+      if (oversized) {
+        res.writeHead(413, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Payload too large" }));
+        return;
+      }
       try {
         const { userId, event, data } = JSON.parse(body);
         if (userId && event) {

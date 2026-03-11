@@ -2,7 +2,7 @@ import { NextResponse, after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema, parseBody } from "@/lib/validators";
-import { Role } from "@/types";
+import { Role, ReservationStatus } from "@/types";
 import { logAudit } from "@/lib/audit";
 import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
@@ -11,7 +11,13 @@ import { NotificationType } from "@/types";
 import { emailService } from "@/lib/email";
 
 export const GET = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [
+    Role.ADMIN,
+    Role.SYSTEM_ADMIN,
+    Role.CASINO_ADMIN,
+    Role.CASINO_USER,
+    Role.FNB_USER,
+  ],
   async (req, { session }) => {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
@@ -24,7 +30,16 @@ export const GET = withAuth(
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = { deletedAt: null };
-    if (status) where.status = status;
+    if (status) {
+      const validStatuses: string[] = Object.values(ReservationStatus);
+      if (!validStatuses.includes(status)) {
+        return NextResponse.json(
+          { success: false, error: `Geçersiz status değeri: ${status}` },
+          { status: 400 },
+        );
+      }
+      where.status = status;
+    }
     if (cabanaId) where.cabanaId = cabanaId;
 
     // Arama desteği — misafir adı veya Cabana adı ile arama

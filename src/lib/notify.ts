@@ -8,8 +8,10 @@ const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL ??
   "http://localhost:3007";
 
-const INTERNAL_SECRET =
-  process.env.INTERNAL_API_SECRET ?? process.env.NEXTAUTH_SECRET ?? "";
+if (!process.env.INTERNAL_API_SECRET && process.env.NODE_ENV === "production") {
+  throw new Error("INTERNAL_API_SECRET is required in production");
+}
+const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET ?? "";
 
 /**
  * Emit a real-time notification event to a specific user via Socket.IO.

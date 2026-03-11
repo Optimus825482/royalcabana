@@ -21,5 +21,5 @@ export async function POST(request: Request) {
   } catch {
     // ignore malformed reports
   }
-  return NextResponse.json({ success: true }, { status: 204 });
+  return new NextResponse(null, { status: 204 });
 }

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/types";
 import { logAudit } from "@/lib/audit";
+import { createProductSchema, parseBody } from "@/lib/validators";
 
 const allRoles = [
   Role.ADMIN,
@@ -11,13 +11,6 @@ const allRoles = [
   Role.CASINO_USER,
   Role.FNB_USER,
 ];
-
-const createProductSchema = z.object({
-  name: z.string().min(2),
-  purchasePrice: z.number().positive(),
-  salePrice: z.number().positive(),
-  groupId: z.string().optional().nullable(),
-});
 
 export const GET = withAuth(
   allRoles,
@@ -40,13 +33,12 @@ export const POST = withAuth(
   [Role.SYSTEM_ADMIN],
   async (req, { session }) => {
     const body = await req.json();
-    const parsed = createProductSchema.safeParse(body);
+    const parsed = parseBody(createProductSchema, body);
     if (!parsed.success)
       return NextResponse.json(
         {
           success: false,
-          error: "Validation error",
-          errors: parsed.error.flatten(),
+          error: parsed.error,
         },
         { status: 400 },
       );

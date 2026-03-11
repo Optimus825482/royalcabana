@@ -250,6 +250,14 @@ export const POST = withAuth(
       );
     }
 
+    // File size check — max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, error: "Dosya boyutu 10MB'ı aşamaz." },
+        { status: 400 },
+      );
+    }
+
     const filename = file.name.toLowerCase();
     if (
       !filename.endsWith(".xlsx") &&
@@ -381,137 +389,149 @@ export const POST = withAuth(
       return NextResponse.json({ success: true, data: { items, summary } });
     }
 
-    // Apply mode — write to DB
+    // Apply mode — write to DB using batched transactions for atomicity
     let updatedCount = 0;
     let createdCount = 0;
+
+    // Collect operations for batched transaction
+    type DbOp =
+      | {
+          type: "update";
+          id: string;
+          purchasePrice: number;
+          salePrice: number;
+          item: ImportItem;
+        }
+      | {
+          type: "create";
+          name: string;
+          purchasePrice: number;
+          salePrice: number;
+          item: ImportItem;
+        };
+
+    const ops: DbOp[] = [];
 
     for (const item of items) {
       if (item.error) continue;
 
+      if (item.status === "MATCH" && item.matchedProduct) {
+        ops.push({
+          type: "update",
+          id: item.matchedProduct.id,
+          purchasePrice: item.purchasePrice,
+          salePrice: item.salePrice,
+          item,
+        });
+      } else if (item.status === "NEW") {
+        const decision = decisionMap.get(item.row);
+        if (!decision || decision.action === "skip") continue;
+        if (decision.action === "create") {
+          ops.push({
+            type: "create",
+            name: item.name,
+            purchasePrice: item.purchasePrice,
+            salePrice: item.salePrice,
+            item,
+          });
+        }
+      } else if (item.status === "UNMATCHED") {
+        const decision = decisionMap.get(item.row);
+        if (!decision || decision.action === "skip") continue;
+        if (decision.action === "link" && decision.linkProductId) {
+          ops.push({
+            type: "update",
+            id: decision.linkProductId,
+            purchasePrice: item.purchasePrice,
+            salePrice: item.salePrice,
+            item,
+          });
+        } else if (decision.action === "create") {
+          ops.push({
+            type: "create",
+            name: item.name,
+            purchasePrice: item.purchasePrice,
+            salePrice: item.salePrice,
+            item,
+          });
+        }
+      }
+    }
+
+    // Execute in batched transaction
+    if (ops.length > 0) {
       try {
-        if (item.status === "MATCH" && item.matchedProduct) {
-          // Update existing product (confident match)
-          await prisma.product.update({
-            where: { id: item.matchedProduct.id },
-            data: {
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-            },
-          });
+        const results = await prisma.$transaction(
+          ops.map((op) => {
+            if (op.type === "update") {
+              return prisma.product.update({
+                where: { id: op.id },
+                data: {
+                  purchasePrice: op.purchasePrice,
+                  salePrice: op.salePrice,
+                },
+              });
+            } else {
+              return prisma.product.create({
+                data: {
+                  name: op.name,
+                  purchasePrice: op.purchasePrice,
+                  salePrice: op.salePrice,
+                },
+              });
+            }
+          }),
+        );
 
-          logAudit({
-            userId: session.user.id,
-            action: "PRICE_UPDATE",
-            entity: "Product",
-            entityId: item.matchedProduct.id,
-            oldValue: {
-              purchasePrice: item.matchedProduct.purchasePrice,
-              salePrice: item.matchedProduct.salePrice,
-            },
-            newValue: {
-              purchasePrice: item.purchasePrice,
-              salePrice: item.salePrice,
-              source: "IMPORT",
-            },
-          });
-
-          updatedCount++;
-        } else if (item.status === "NEW") {
-          // Check user decision for NEW items
-          const decision = decisionMap.get(item.row);
-          if (!decision || decision.action === "skip") continue;
-
-          if (decision.action === "create") {
-            const newProduct = await prisma.product.create({
-              data: {
-                name: item.name,
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
-              },
-            });
-
-            logAudit({
-              userId: session.user.id,
-              action: "CREATE",
-              entity: "Product",
-              entityId: newProduct.id,
-              newValue: {
-                name: item.name,
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
-                source: "IMPORT",
-              },
-            });
-
-            createdCount++;
-          }
-        } else if (item.status === "UNMATCHED") {
-          // Check user decision for UNMATCHED items
-          const decision = decisionMap.get(item.row);
-          if (!decision || decision.action === "skip") continue;
-
-          if (decision.action === "link" && decision.linkProductId) {
-            // Link to existing product — update its prices
-            const linkedProduct = dbProducts.find(
-              (p) => p.id === decision.linkProductId,
-            );
-
-            await prisma.product.update({
-              where: { id: decision.linkProductId },
-              data: {
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
-              },
-            });
-
+        // Post-transaction: audit logs and counts
+        for (let i = 0; i < ops.length; i++) {
+          const op = ops[i];
+          const result = results[i];
+          if (op.type === "update") {
+            const oldProduct =
+              op.item.matchedProduct ?? dbProducts.find((p) => p.id === op.id);
             logAudit({
               userId: session.user.id,
               action: "PRICE_UPDATE",
               entity: "Product",
-              entityId: decision.linkProductId,
-              oldValue: linkedProduct
+              entityId: op.id,
+              oldValue: oldProduct
                 ? {
-                    purchasePrice: linkedProduct.purchasePrice,
-                    salePrice: linkedProduct.salePrice,
+                    purchasePrice: oldProduct.purchasePrice,
+                    salePrice: oldProduct.salePrice,
                   }
                 : undefined,
               newValue: {
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
+                purchasePrice: op.purchasePrice,
+                salePrice: op.salePrice,
                 source: "IMPORT",
               },
             });
-
             updatedCount++;
-          } else if (decision.action === "create") {
-            // Create new product for unmatched item
-            const newProduct = await prisma.product.create({
-              data: {
-                name: item.name,
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
-              },
-            });
-
+          } else {
             logAudit({
               userId: session.user.id,
               action: "CREATE",
               entity: "Product",
-              entityId: newProduct.id,
+              entityId: result.id,
               newValue: {
-                name: item.name,
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
+                name: op.name,
+                purchasePrice: op.purchasePrice,
+                salePrice: op.salePrice,
                 source: "IMPORT",
               },
             });
-
             createdCount++;
           }
         }
-        // NO_CHANGE items are skipped automatically
       } catch (err) {
-        item.error = `DB hatası: ${err instanceof Error ? err.message : "Bilinmeyen"}`;
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Toplu işlem hatası: ${err instanceof Error ? err.message : "Bilinmeyen"}`,
+          },
+          { status: 500 },
+        );
       }
     }
 

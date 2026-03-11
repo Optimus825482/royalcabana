@@ -43,5 +43,5 @@ export const GET = withAuth([Role.SYSTEM_ADMIN], async (req: NextRequest) => {
     db.loginSession.count({ where }),
   ]);
 
-  return NextResponse.json({ sessions, total });
+  return NextResponse.json({ success: true, data: { sessions, total } });
 });

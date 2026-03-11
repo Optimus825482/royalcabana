@@ -10,7 +10,7 @@ import { notificationService } from "@/services/notification.service";
 import { emailService } from "@/lib/email";
 
 export const POST = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.FNB_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN],
   async (req, { session, params }) => {
     const id = params!.id;
     const body = await req.json();
@@ -44,7 +44,10 @@ export const POST = withAuth(
 
     if (reservation.status !== "PENDING") {
       return NextResponse.json(
-        { success: false, error: "Yalnızca bekleyen rezervasyonlar onaylanabilir." },
+        {
+          success: false,
+          error: "Yalnızca bekleyen rezervasyonlar onaylanabilir.",
+        },
         { status: 400 },
       );
     }
@@ -79,9 +82,14 @@ export const POST = withAuth(
     // Approved extra request fiyatlarını topla
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dbAny = prisma as any;
-    const approvedExtrasFromRequests = await dbAny.reservationExtraRequest.findMany({
-      where: { reservationId: id, status: "APPROVED", unitPrice: { not: null } },
-    });
+    const approvedExtrasFromRequests =
+      await dbAny.reservationExtraRequest.findMany({
+        where: {
+          reservationId: id,
+          status: "APPROVED",
+          unitPrice: { not: null },
+        },
+      });
 
     let extraRequestsTotal = 0;
     for (const er of approvedExtrasFromRequests) {
@@ -96,10 +104,16 @@ export const POST = withAuth(
     });
 
     const unpricedCustomExtras = await dbAny.reservationExtraRequest.findMany({
-      where: { reservationId: id, status: "APPROVED", type: "CUSTOM", unitPrice: null },
+      where: {
+        reservationId: id,
+        status: "APPROVED",
+        type: "CUSTOM",
+        unitPrice: null,
+      },
     });
 
-    const autoPrice = calculated.grandTotal + customRequestAmount + extraRequestsTotal;
+    const autoPrice =
+      calculated.grandTotal + customRequestAmount + extraRequestsTotal;
 
     // Admin manuel fiyat verdiyse onu kullan, yoksa hesaplanan fiyatı kullan
     const finalPrice =

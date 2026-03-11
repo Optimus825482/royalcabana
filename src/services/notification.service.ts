@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { DatabaseError } from "@/lib/errors";
 import { NotificationType } from "@/types";
 import { Prisma } from "@prisma/client";
-import { sendPushToUser, sendPushToUsers } from "@/lib/push-server";
+import { sendPushToUser } from "@/lib/push-server";
 
 interface SendParams {
   userId: string;
@@ -56,10 +56,24 @@ export class NotificationService {
         })),
       });
 
-      const userIds = [...new Set(notifications.map((n) => n.userId))];
-      const title = notifications[0]?.title ?? "Bildirim";
-      const body = notifications[0]?.message ?? "";
-      sendPushToUsers(userIds, { title, body }).catch(() => {});
+      // Send personalized push notifications per user
+      const byUser = new Map<string, SendParams[]>();
+      for (const n of notifications) {
+        const arr = byUser.get(n.userId) ?? [];
+        arr.push(n);
+        byUser.set(n.userId, arr);
+      }
+
+      await Promise.all(
+        Array.from(byUser.entries()).map(([userId, userNotifs]) => {
+          // Send each user's first notification as their push (most relevant)
+          const n = userNotifs[0];
+          return sendPushToUser(userId, {
+            title: n.title,
+            body: n.message,
+          }).catch(() => {});
+        }),
+      );
 
       return result;
     } catch (error) {

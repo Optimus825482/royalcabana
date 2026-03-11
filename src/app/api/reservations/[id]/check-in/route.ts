@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { CabanaStatus, NotificationType, Role } from "@/types";
+import {
+  CabanaStatus,
+  NotificationType,
+  ReservationStatus,
+  Role,
+} from "@/types";
 import { logAudit } from "@/lib/audit";
 import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
@@ -13,7 +18,7 @@ export const POST = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const reservation = await (prisma.reservation.findUnique as any)({
+    const reservation = await prisma.reservation.findUnique({
       where: { id },
       include: { cabana: { select: { name: true } } },
     });
@@ -25,7 +30,7 @@ export const POST = withAuth(
       );
     }
 
-    if (reservation.status !== "APPROVED") {
+    if (reservation.status !== ReservationStatus.APPROVED) {
       return NextResponse.json(
         {
           success: false,
@@ -42,17 +47,17 @@ export const POST = withAuth(
       prisma.reservation.update({
         where: { id },
         data: {
-          status: "CHECKED_IN" as any,
+          status: ReservationStatus.CHECKED_IN,
           checkInAt: now,
           checkedInBy: session.user.id,
-        } as any,
+        },
         include: { cabana: { select: { name: true } } },
       }),
       prisma.reservationStatusHistory.create({
         data: {
           reservationId: id,
           fromStatus: reservation.status,
-          toStatus: "CHECKED_IN" as any,
+          toStatus: ReservationStatus.CHECKED_IN,
           changedBy: session.user.id,
         },
       }),
@@ -68,14 +73,14 @@ export const POST = withAuth(
       entity: "Reservation",
       entityId: id,
       newValue: {
-        status: "CHECKED_IN",
+        status: ReservationStatus.CHECKED_IN,
         checkInAt: now.toISOString(),
         checkedInBy: session.user.id,
       },
     });
 
     after(async () => {
-      const cabanaName = (updated as any).cabana?.name ?? "";
+      const cabanaName = updated.cabana?.name ?? "";
       const guestName = updated.guestName;
 
       sseManager.broadcast(SSE_EVENTS.RESERVATION_CHECKED_IN, {

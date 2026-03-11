@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-type Role = "SYSTEM_ADMIN" | "ADMIN" | "CASINO_ADMIN" | "CASINO_USER" | "FNB_USER";
+type Role =
+  | "SYSTEM_ADMIN"
+  | "ADMIN"
+  | "CASINO_ADMIN"
+  | "CASINO_USER"
+  | "FNB_USER";
 
 const ROLE_ALLOWED_PATHS: Record<Role, string[]> = {
   SYSTEM_ADMIN: ["/system-admin", "/reports"],
@@ -111,7 +116,7 @@ export async function middleware(request: NextRequest) {
 
   if (needsRbac && !COMMON_PATHS.some((p) => pathname.startsWith(p))) {
     if (!isPathAllowedForRole(pathname, role)) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
   }
 

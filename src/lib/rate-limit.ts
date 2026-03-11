@@ -136,6 +136,7 @@ export async function checkRateLimit(
 interface LockoutEntry {
   attempts: number;
   lockedUntil: number | null;
+  createdAt: number;
 }
 
 const lockoutStore = new Map<string, LockoutEntry>();
@@ -148,7 +149,7 @@ function cleanupLockoutStore() {
     const expired =
       entry.lockedUntil !== null
         ? now > entry.lockedUntil
-        : now > (entry as LockoutEntry & { _createdAt?: number })._createdAt! + LOCKOUT_WINDOW_MS;
+        : now > entry.createdAt + LOCKOUT_WINDOW_MS;
     if (expired) lockoutStore.delete(key);
   }
 }
@@ -163,7 +164,10 @@ async function getRedisLockout(key: string): Promise<LockoutEntry | null> {
   }
 }
 
-async function setRedisLockout(key: string, entry: LockoutEntry): Promise<boolean> {
+async function setRedisLockout(
+  key: string,
+  entry: LockoutEntry,
+): Promise<boolean> {
   if (!redis) return false;
   try {
     await redis.set(`lockout:${key}`, JSON.stringify(entry), "EX", 900);
@@ -186,8 +190,11 @@ async function deleteRedisLockout(key: string): Promise<void> {
  * Check account lockout status for a given username.
  * @returns null if not locked, or the lockedUntil timestamp if locked
  */
-export async function checkAccountLockout(username: string): Promise<number | null> {
-  const entry = (await getRedisLockout(username)) ?? lockoutStore.get(username) ?? null;
+export async function checkAccountLockout(
+  username: string,
+): Promise<number | null> {
+  const entry =
+    (await getRedisLockout(username)) ?? lockoutStore.get(username) ?? null;
   if (!entry) return null;
 
   if (entry.lockedUntil && Date.now() < entry.lockedUntil) {
@@ -209,20 +216,31 @@ export async function checkAccountLockout(username: string): Promise<number | nu
 export async function recordFailedLogin(username: string): Promise<boolean> {
   cleanupLockoutStore();
 
-  let entry = (await getRedisLockout(username)) ?? lockoutStore.get(username) ?? null;
+  // Redis is single source of truth; fall back to in-memory only if Redis unavailable
+  const redisEntry = await getRedisLockout(username);
+  let entry: LockoutEntry | null =
+    redisEntry ?? lockoutStore.get(username) ?? null;
+  const useRedis =
+    redisEntry !== null || (redis !== null && redis !== undefined);
 
   if (!entry) {
-    entry = { attempts: 1, lockedUntil: null };
+    entry = { attempts: 1, lockedUntil: null, createdAt: Date.now() };
   } else {
     entry.attempts += 1;
+    if (!entry.createdAt) entry.createdAt = Date.now();
   }
 
   if (entry.attempts >= LOCKOUT_MAX_ATTEMPTS) {
     entry.lockedUntil = Date.now() + LOCKOUT_WINDOW_MS;
   }
 
-  lockoutStore.set(username, entry);
-  await setRedisLockout(username, entry);
+  // Write to only one store per request to prevent count divergence
+  const wroteToRedis = useRedis
+    ? await setRedisLockout(username, entry)
+    : false;
+  if (!wroteToRedis) {
+    lockoutStore.set(username, entry);
+  }
 
   return entry.attempts >= LOCKOUT_MAX_ATTEMPTS;
 }

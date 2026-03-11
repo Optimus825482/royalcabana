@@ -15,7 +15,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rl = await checkRateLimit(`login-track:${session.user.id}`, 5, 60_000);
+    const rl = await checkRateLimit(
+      `login-track:${session.user.id}`,
+      5,
+      60_000,
+    );
     if (!rl.allowed) {
       return NextResponse.json(
         { success: false, error: "Rate limit aşıldı." },
@@ -45,7 +49,7 @@ export async function POST(req: NextRequest) {
     if (!lat && ip !== "unknown" && ip !== "127.0.0.1" && ip !== "::1") {
       try {
         const geoRes = await fetch(
-          `http://ip-api.com/json/${ip}?fields=city,country,lat,lon`,
+          `https://ip-api.com/json/${ip}?fields=city,country,lat,lon`,
           {
             signal: AbortSignal.timeout(3000),
           },

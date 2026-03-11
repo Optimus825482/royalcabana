@@ -1,10 +1,10 @@
-import { NextResponse, after } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
-import { Prisma } from "@prisma/client";
+import { logAudit } from "@/lib/audit";
 
 const passwordSchema = z
   .string()
@@ -138,21 +138,16 @@ export const POST = withAuth(
       },
     });
 
-    after(async () => {
-      await prisma.auditLog.create({
-        data: {
-          userId: session.user.id,
-          action: "CREATE",
-          entity: "User",
-          entityId: user.id,
-          oldValue: Prisma.JsonNull,
-          newValue: {
-            username: user.username,
-            email: user.email,
-            role: user.role,
-          } as Prisma.InputJsonValue,
-        },
-      });
+    logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "User",
+      entityId: user.id,
+      newValue: {
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
     });
 
     return NextResponse.json({ success: true, data: user }, { status: 201 });

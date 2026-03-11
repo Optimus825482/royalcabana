@@ -38,19 +38,27 @@ export async function cached<T>(
 ): Promise<T> {
   const cacheKey = `cache:${key}`;
 
-  // Try Redis first
+  // L1: Check memory cache first (always)
+  const memHit = memCache.get(cacheKey);
+  if (memHit && Date.now() < memHit.expiresAt) {
+    return JSON.parse(memHit.data) as T;
+  }
+
+  // L2: Check Redis
   if (redis) {
     try {
       const hit = await redis.get(cacheKey);
-      if (hit) return JSON.parse(hit) as T;
+      if (hit) {
+        // Populate L1 from L2
+        memCleanup();
+        memCache.set(cacheKey, {
+          data: hit,
+          expiresAt: Date.now() + ttlSeconds * 1000,
+        });
+        return JSON.parse(hit) as T;
+      }
     } catch {
       // Redis read failed, continue to fetcher
-    }
-  } else {
-    // Try memory cache
-    const memHit = memCache.get(cacheKey);
-    if (memHit && Date.now() < memHit.expiresAt) {
-      return JSON.parse(memHit.data) as T;
     }
   }
 
@@ -58,7 +66,7 @@ export async function cached<T>(
   const data = await fetcher();
   const serialized = JSON.stringify(data);
 
-  // Store in Redis
+  // Store in Redis (L2)
   if (redis) {
     try {
       await redis.setex(cacheKey, ttlSeconds, serialized);
@@ -67,7 +75,7 @@ export async function cached<T>(
     }
   }
 
-  // Always store in memory as fallback
+  // Always store in memory (L1)
   memCleanup();
   memCache.set(cacheKey, {
     data: serialized,
@@ -126,8 +134,11 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
 }
 
 function matchGlob(pattern: string, str: string): boolean {
-  const regex = new RegExp(
-    "^" + pattern.replace(/\*/g, ".*").replace(/\?/g, ".") + "$",
-  );
+  // Escape regex special chars before replacing glob wildcards
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*")
+    .replace(/\?/g, ".");
+  const regex = new RegExp("^" + escaped + "$");
   return regex.test(str);
 }
