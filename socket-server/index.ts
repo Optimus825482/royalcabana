@@ -116,7 +116,7 @@ io.on("connection", (socket: Socket) => {
   const { userId } = socket as Socket & { userId: string };
 
   // Rate limit connections per user
-  if (!checkSocketRateLimitSync(userId, "connection", 10, 60_000)) {
+  if (!checkSocketRateLimitSync(`${userId}:connection`, 10, 60_000)) {
     console.warn(`[socket] rate limited connection userId=${userId}`);
     socket.disconnect(true);
     return;
@@ -131,7 +131,7 @@ io.on("connection", (socket: Socket) => {
 
   // Wrap all incoming events with rate limiting
   socket.use(([event], next) => {
-    if (!checkSocketRateLimitSync(userId, event)) {
+    if (!checkSocketRateLimitSync(`${userId}:${event}`)) {
       return next(new Error("Rate limit exceeded"));
     }
     next();
