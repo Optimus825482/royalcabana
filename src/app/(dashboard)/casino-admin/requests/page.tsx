@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ReservationStatus } from "@/types";
+import { ReservationStatus, Role } from "@/types";
 import {
   formatPrice,
   currencySymbol,
@@ -760,7 +760,7 @@ function DetailPanel({
 
       {/* Fiyat belirle ve onayla / reddet */}
       {isPending && (
-        <PermissionGate permission="reservation.approve">
+        <PermissionGate allowedRoles={[Role.FNB_ADMIN, Role.FNB_USER]}>
           <Card className="rounded-none border-x-0 border-t-0">
             <CardHeader className="pb-2">
               <CardTitle>Fiyat belirle ve onayla</CardTitle>
@@ -892,22 +892,24 @@ function DetailPanel({
                   {mod.newGuestName && <div className="col-span-2"><DataRow label="Yeni misafir adı" value={mod.newGuestName} /></div>}
                   {mod.newCabanaId && <div className="col-span-2"><DataRow label="Yeni cabana" value={mod.newCabanaId} /></div>}
                 </div>
-                <div className="flex gap-2 pt-2 flex-wrap">
-                  <button
-                    onClick={() => handleSubAction("modifications", mod.id, "approve")}
-                    disabled={subActionLoading === mod.id}
-                    className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-success)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-                  >
-                    {subActionLoading === mod.id ? "İşleniyor..." : "Onayla"}
-                  </button>
-                  <button
-                    onClick={() => setSubRejectTarget({ type: "modification", id: mod.id })}
-                    disabled={subActionLoading === mod.id}
-                    className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-danger)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-                  >
-                    Reddet
-                  </button>
-                </div>
+                <PermissionGate allowedRoles={[Role.FNB_ADMIN, Role.FNB_USER]}>
+                  <div className="flex gap-2 pt-2 flex-wrap">
+                    <button
+                      onClick={() => handleSubAction("modifications", mod.id, "approve")}
+                      disabled={subActionLoading === mod.id}
+                      className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-success)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                    >
+                      {subActionLoading === mod.id ? "İşleniyor..." : "Onayla"}
+                    </button>
+                    <button
+                      onClick={() => setSubRejectTarget({ type: "modification", id: mod.id })}
+                      disabled={subActionLoading === mod.id}
+                      className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-danger)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Reddet
+                    </button>
+                  </div>
+                </PermissionGate>
               </div>
             ))}
             {otherModifications.map((mod) => (
@@ -943,22 +945,24 @@ function DetailPanel({
                   <p className="text-[var(--rc-text-muted)] mb-0.5">İptal nedeni</p>
                   <p className="text-[var(--rc-text-primary)]">{canc.reason}</p>
                 </div>
-                <div className="flex gap-2 pt-2 flex-wrap">
-                  <button
-                    onClick={() => handleSubAction("cancellations", canc.id, "approve")}
-                    disabled={subActionLoading === canc.id}
-                    className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-success)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-                  >
-                    {subActionLoading === canc.id ? "İşleniyor..." : "Onayla"}
-                  </button>
-                  <button
-                    onClick={() => setSubRejectTarget({ type: "cancellation", id: canc.id })}
-                    disabled={subActionLoading === canc.id}
-                    className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-danger)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-                  >
-                    Reddet
-                  </button>
-                </div>
+                <PermissionGate allowedRoles={[Role.FNB_ADMIN, Role.FNB_USER]}>
+                  <div className="flex gap-2 pt-2 flex-wrap">
+                    <button
+                      onClick={() => handleSubAction("cancellations", canc.id, "approve")}
+                      disabled={subActionLoading === canc.id}
+                      className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-success)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                    >
+                      {subActionLoading === canc.id ? "İşleniyor..." : "Onayla"}
+                    </button>
+                    <button
+                      onClick={() => setSubRejectTarget({ type: "cancellation", id: canc.id })}
+                      disabled={subActionLoading === canc.id}
+                      className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-danger)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Reddet
+                    </button>
+                  </div>
+                </PermissionGate>
               </div>
             ))}
             {otherCancellations.map((canc) => (
@@ -1000,22 +1004,24 @@ function DetailPanel({
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-2 pt-2 flex-wrap">
-                    <button
-                      onClick={() => handleSubAction("extra-concepts", ec.id, "approve")}
-                      disabled={subActionLoading === ec.id}
-                      className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-success)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-                    >
-                      {subActionLoading === ec.id ? "İşleniyor..." : "Onayla"}
-                    </button>
-                    <button
-                      onClick={() => setSubRejectTarget({ type: "extraConcept", id: ec.id })}
-                      disabled={subActionLoading === ec.id}
-                      className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-danger)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Reddet
-                    </button>
-                  </div>
+                  <PermissionGate allowedRoles={[Role.FNB_ADMIN, Role.FNB_USER]}>
+                    <div className="flex gap-2 pt-2 flex-wrap">
+                      <button
+                        onClick={() => handleSubAction("extra-concepts", ec.id, "approve")}
+                        disabled={subActionLoading === ec.id}
+                        className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-success)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                      >
+                        {subActionLoading === ec.id ? "İşleniyor..." : "Onayla"}
+                      </button>
+                      <button
+                        onClick={() => setSubRejectTarget({ type: "extraConcept", id: ec.id })}
+                        disabled={subActionLoading === ec.id}
+                        className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-danger)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Reddet
+                      </button>
+                    </div>
+                  </PermissionGate>
                 </div>
               );
             })}
@@ -1108,77 +1114,81 @@ function DetailPanel({
                   )}
 
                   {isPendingExtra && (
-                    <div className="flex flex-wrap items-end gap-2 pt-2">
-                      {isCustom && !hasPrice && (
-                        <>
-                          <div className="flex-1 min-w-[100px]">
-                            <label className="text-[10px] text-[var(--rc-text-muted)] mb-1 block">Birim fiyat ({currencySymbol(currency)})</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={extraRequestPriceInputs[er.id] ?? ""}
-                              onChange={(e) => setExtraRequestPriceInputs((prev) => ({ ...prev, [er.id]: e.target.value }))}
-                              placeholder="0.00"
-                              className="w-full bg-[var(--rc-input-bg)] border border-[var(--rc-input-border)] rounded-lg px-3 py-2 text-sm text-[var(--rc-text-primary)] focus:outline-none focus:border-[var(--rc-gold)] min-h-[44px]"
-                            />
-                          </div>
-                          <button
-                            onClick={() => {
-                              const price = parseFloat(extraRequestPriceInputs[er.id] ?? "0");
-                              if (isNaN(price) || price < 0) return;
-                              handleExtraRequestAction(er.id, "price", { unitPrice: price });
-                            }}
-                            disabled={subActionLoading === er.id}
-                            className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-warning)] hover:opacity-90 disabled:opacity-50 text-[var(--rc-card)] rounded-lg font-medium transition-colors whitespace-nowrap"
-                          >
-                            Fiyatlandır
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => handleExtraRequestAction(er.id, "approve")}
-                        disabled={subActionLoading === er.id}
-                        className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-success)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-                      >
-                        {subActionLoading === er.id ? "İşleniyor..." : "Onayla"}
-                      </button>
-                      <button
-                        onClick={() => setSubRejectTarget({ type: "extraRequest", id: er.id })}
-                        disabled={subActionLoading === er.id}
-                        className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-danger)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Reddet
-                      </button>
-                    </div>
+                    <PermissionGate allowedRoles={[Role.FNB_ADMIN, Role.FNB_USER]}>
+                      <div className="flex flex-wrap items-end gap-2 pt-2">
+                        {isCustom && !hasPrice && (
+                          <>
+                            <div className="flex-1 min-w-[100px]">
+                              <label className="text-[10px] text-[var(--rc-text-muted)] mb-1 block">Birim fiyat ({currencySymbol(currency)})</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={extraRequestPriceInputs[er.id] ?? ""}
+                                onChange={(e) => setExtraRequestPriceInputs((prev) => ({ ...prev, [er.id]: e.target.value }))}
+                                placeholder="0.00"
+                                className="w-full bg-[var(--rc-input-bg)] border border-[var(--rc-input-border)] rounded-lg px-3 py-2 text-sm text-[var(--rc-text-primary)] focus:outline-none focus:border-[var(--rc-gold)] min-h-[44px]"
+                              />
+                            </div>
+                            <button
+                              onClick={() => {
+                                const price = parseFloat(extraRequestPriceInputs[er.id] ?? "0");
+                                if (isNaN(price) || price < 0) return;
+                                handleExtraRequestAction(er.id, "price", { unitPrice: price });
+                              }}
+                              disabled={subActionLoading === er.id}
+                              className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-warning)] hover:opacity-90 disabled:opacity-50 text-[var(--rc-card)] rounded-lg font-medium transition-colors whitespace-nowrap"
+                            >
+                              Fiyatlandır
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleExtraRequestAction(er.id, "approve")}
+                          disabled={subActionLoading === er.id}
+                          className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-success)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                        >
+                          {subActionLoading === er.id ? "İşleniyor..." : "Onayla"}
+                        </button>
+                        <button
+                          onClick={() => setSubRejectTarget({ type: "extraRequest", id: er.id })}
+                          disabled={subActionLoading === er.id}
+                          className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-danger)] hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Reddet
+                        </button>
+                      </div>
+                    </PermissionGate>
                   )}
 
                   {isApprovedExtra && isCustom && !hasPrice && (
-                    <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-[var(--rc-surface-border)]">
-                      <div className="flex-1 min-w-[100px]">
-                        <label className="text-[10px] text-[var(--rc-warning)] mb-1 block">Fiyatlandırma bekleniyor</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={extraRequestPriceInputs[er.id] ?? ""}
-                          onChange={(e) => setExtraRequestPriceInputs((prev) => ({ ...prev, [er.id]: e.target.value }))}
-                          placeholder="0.00"
-                          className="w-full bg-[var(--rc-input-bg)] border border-[var(--rc-input-border)] rounded-lg px-3 py-2 text-sm text-[var(--rc-text-primary)] focus:outline-none focus:border-[var(--rc-gold)] min-h-[44px]"
-                        />
+                    <PermissionGate allowedRoles={[Role.FNB_ADMIN, Role.FNB_USER]}>
+                      <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-[var(--rc-surface-border)]">
+                        <div className="flex-1 min-w-[100px]">
+                          <label className="text-[10px] text-[var(--rc-warning)] mb-1 block">Fiyatlandırma bekleniyor</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={extraRequestPriceInputs[er.id] ?? ""}
+                            onChange={(e) => setExtraRequestPriceInputs((prev) => ({ ...prev, [er.id]: e.target.value }))}
+                            placeholder="0.00"
+                            className="w-full bg-[var(--rc-input-bg)] border border-[var(--rc-input-border)] rounded-lg px-3 py-2 text-sm text-[var(--rc-text-primary)] focus:outline-none focus:border-[var(--rc-gold)] min-h-[44px]"
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            const price = parseFloat(extraRequestPriceInputs[er.id] ?? "0");
+                            if (isNaN(price) || price < 0) return;
+                            handleExtraRequestAction(er.id, "price", { unitPrice: price });
+                          }}
+                          disabled={subActionLoading === er.id}
+                          className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-warning)] hover:opacity-90 disabled:opacity-50 text-[var(--rc-card)] rounded-lg font-medium transition-colors"
+                        >
+                          Fiyatlandır
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          const price = parseFloat(extraRequestPriceInputs[er.id] ?? "0");
-                          if (isNaN(price) || price < 0) return;
-                          handleExtraRequestAction(er.id, "price", { unitPrice: price });
-                        }}
-                        disabled={subActionLoading === er.id}
-                        className="px-3 py-2 min-h-[44px] text-xs bg-[var(--rc-warning)] hover:opacity-90 disabled:opacity-50 text-[var(--rc-card)] rounded-lg font-medium transition-colors"
-                      >
-                        Fiyatlandır
-                      </button>
-                    </div>
+                    </PermissionGate>
                   )}
                 </div>
               );

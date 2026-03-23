@@ -7,13 +7,25 @@ type Role =
   | "ADMIN"
   | "CASINO_ADMIN"
   | "CASINO_USER"
+  | "FNB_ADMIN"
   | "FNB_USER";
 
 const ROLE_ALLOWED_PATHS: Record<Role, string[]> = {
   SYSTEM_ADMIN: ["/system-admin", "/reports"],
   ADMIN: ["/admin"],
-  CASINO_ADMIN: ["/casino-admin", "/casino", "/reports"],
+  CASINO_ADMIN: ["/casino", "/casino-admin", "/reports"],
   CASINO_USER: ["/casino", "/reports"],
+  FNB_ADMIN: [
+    "/fnb",
+    "/casino/map",
+    "/casino/cabana",
+    "/casino/calendar",
+    "/casino/view",
+    "/casino/reservations",
+    "/casino/waitlist",
+    "/casino/recurring",
+    "/casino-admin",
+  ],
   FNB_USER: [
     "/fnb",
     "/casino/map",
@@ -23,6 +35,7 @@ const ROLE_ALLOWED_PATHS: Record<Role, string[]> = {
     "/casino/reservations",
     "/casino/waitlist",
     "/casino/recurring",
+    "/casino-admin",
   ],
 };
 
@@ -50,9 +63,14 @@ const STATIC_PREFIXES = [
 ];
 
 function buildCspHeader(nonce: string, isDev: boolean): string {
+  // Development mode'da CSP tamamen devre dışı - nonce uyumsuzluğu sorunları
+  if (isDev) {
+    return "default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval';";
+  }
+
   const directives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
     // nonce in style-src would cause 'unsafe-inline' to be ignored (CSP spec); use only 'unsafe-inline' so inline style attributes work
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' blob: data:",
@@ -92,7 +110,12 @@ export async function middleware(request: NextRequest) {
       request: { headers: requestHeaders },
     });
     response.headers.set("Content-Security-Policy", cspHeader);
-    response.headers.set("x-nonce", nonce);
+    response.cookies.set("x-nonce", nonce, {
+      httpOnly: false,
+      secure: !isDev,
+      sameSite: "lax",
+      path: "/",
+    });
     return response;
   }
 
@@ -124,7 +147,12 @@ export async function middleware(request: NextRequest) {
     request: { headers: requestHeaders },
   });
   response.headers.set("Content-Security-Policy", cspHeader);
-  response.headers.set("x-nonce", nonce);
+  response.cookies.set("x-nonce", nonce, {
+    httpOnly: false,
+    secure: !isDev,
+    sameSite: "lax",
+    path: "/",
+  });
 
   return response;
 }

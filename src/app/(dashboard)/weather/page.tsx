@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
@@ -316,7 +316,7 @@ function CurrentConditions({ current }: { current: CurrentWeather }) {
 function HourlyForecastView({ hourly }: { hourly: HourlyForecast[] }) {
   return (
     <div className="overflow-x-auto pb-2 -mx-1 px-1">
-      <div className="flex gap-2" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-2 min-w-max">
         {hourly.map((h, i) => {
           const isNow = i === 0;
           return (
@@ -592,10 +592,7 @@ export default function WeatherPage() {
     refetch();
   }, [refetch]);
 
-  const lastUpdated = useMemo(() => {
-    if (!data?.current.dt) return null;
-    return formatTime(data.current.dt);
-  }, [data?.current.dt]);
+  const lastUpdated = data?.current?.dt ? formatTime(data.current.dt) : null;
 
   return (
     <div className="text-[var(--rc-text-primary)] p-4 sm:p-6">

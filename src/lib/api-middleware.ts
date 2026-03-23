@@ -70,14 +70,18 @@ export function withAuth(
     // Auth
     const session = await getAuthSession();
     if (!session?.user) {
+      console.log(`[DEBUG Auth] No session for ${req.method} ${req.nextUrl.pathname}`);
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
       );
     }
 
+    console.log(`[DEBUG Auth] User: ${session.user.id}, Role: ${session.user.role}, Path: ${req.method} ${req.nextUrl.pathname}`);
+
     // RBAC
     if (!allowedRoles.includes(session.user.role as Role)) {
+      console.log(`[DEBUG RBAC] Role ${session.user.role} not in [${allowedRoles.join(", ")}]`);
       return NextResponse.json(
         { success: false, error: "Forbidden" },
         { status: 403 },
@@ -90,6 +94,7 @@ export function withAuth(
         session.user.role as Role,
         options.requiredPermissions,
       );
+      console.log(`[DEBUG Perms] Role ${session.user.role}, Required: [${options.requiredPermissions.join(", ")}], Has: ${hasPerms}`);
       if (!hasPerms) {
         return NextResponse.json(
           { success: false, error: "Bu işlem için yetkiniz yok." },

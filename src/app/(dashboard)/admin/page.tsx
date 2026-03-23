@@ -31,11 +31,17 @@ export default function AdminDashboardPage() {
     data: stats,
     isLoading,
     isError,
-  } = useQuery<AdminStats>({
+    error,
+  } = useQuery<AdminStats, Error>({
     queryKey: ["admin-stats"],
     queryFn: async () => {
       const res = await fetch("/api/admin/stats");
-      if (!res.ok) throw new Error("Veri alınamadı");
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error("PERMISSION_DENIED");
+        }
+        throw new Error("Veri alınamadı");
+      }
       const payload: ApiEnvelope<AdminStats> = await res.json();
       return {
         totalCabanas: payload.data?.totalCabanas ?? 0,
@@ -50,19 +56,21 @@ export default function AdminDashboardPage() {
     },
   });
 
+  const isPermissionDenied = error?.message === "PERMISSION_DENIED";
+
   return (
     <ListPageTemplate
       title="Admin Paneli"
       subtitle="Genel bakış ve istatistikler"
     >
       <div className="space-y-6">
-        {isError && (
+        {isError && !isPermissionDenied && (
           <div className="px-4 py-3 rounded-lg bg-[var(--rc-danger)]/10 border border-[var(--rc-danger)]/30 text-[var(--rc-danger)] text-sm">
             İstatistikler yüklenirken hata oluştu.
           </div>
         )}
 
-        {isLoading || !stats ? (
+        {isPermissionDenied ? null : isLoading || !stats ? (
           <SkeletonCardGrid count={8} />
         ) : (
           <>

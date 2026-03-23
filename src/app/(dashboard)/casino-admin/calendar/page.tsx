@@ -4,13 +4,11 @@ import { useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ReservationCalendar from "@/components/calendar/ReservationCalendar";
-import ReservationTimeline from "@/components/calendar/ReservationTimeline";
 import { ReservationStatus } from "@/types";
-import { AlertTriangle, LayoutList, CalendarDays } from "lucide-react";
+import { AlertTriangle, CalendarDays } from "lucide-react";
 import ReservationDetailModal, {
   type ReservationDetailData,
 } from "@/components/calendar/ReservationDetailModal";
-import type { TimelineReservation } from "@/hooks/useReservationCalendar";
 import type {
   ReservationEvent,
   CabanaResource,
@@ -45,7 +43,6 @@ export default function CasinoAdminCalendarPage() {
   });
 
   const [classFilter, setClassFilter] = useState<string>("");
-  const [viewType, setViewType] = useState<"timeline" | "calendar">("timeline");
   const [selectedReservation, setSelectedReservation] =
     useState<ReservationDetailData | null>(null);
 
@@ -171,9 +168,7 @@ export default function CasinoAdminCalendarPage() {
               Rezervasyon Takvimi
             </h1>
             <p className="text-sm text-neutral-400 mt-0.5">
-              {viewType === "timeline"
-                ? "Gerçek zamanlı Cabana zaman çizelgesi – onay ve check-in yönetimi"
-                : "Rezervasyonları görüntüleyin, onaylayın veya reddedin"}
+              Rezervasyonları görüntüleyin, onaylayın veya reddedin
             </p>
           </div>
           {pendingCount > 0 && (
@@ -183,24 +178,6 @@ export default function CasinoAdminCalendarPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex bg-neutral-900 rounded-lg p-0.5 border border-neutral-700/40">
-            <button
-              onClick={() => setViewType("timeline")}
-              className={`flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-xs font-medium rounded-md transition-all
-                                ${viewType === "timeline" ? "bg-amber-600 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"}`}
-            >
-              <LayoutList className="w-3.5 h-3.5" />
-              Zaman Çizelgesi
-            </button>
-            <button
-              onClick={() => setViewType("calendar")}
-              className={`flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-xs font-medium rounded-md transition-all
-                                ${viewType === "calendar" ? "bg-amber-600 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"}`}
-            >
-              <CalendarDays className="w-3.5 h-3.5" />
-              Takvim
-            </button>
-          </div>
           <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
@@ -226,26 +203,7 @@ export default function CasinoAdminCalendarPage() {
       )}
 
       <div className="flex-1 p-4 sm:p-6">
-        {viewType === "timeline" ? (
-          isLoading ? (
-            <div className="flex items-center justify-center h-64 text-neutral-400 text-sm">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                <span>Zaman çizelgesi yükleniyor...</span>
-              </div>
-            </div>
-          ) : (
-            <ReservationTimeline
-              classFilter={classFilter || undefined}
-              onReservationClick={(r: TimelineReservation) => {
-                const detail = reservationData?.reservations.find(
-                  (res) => res.id === r.id,
-                );
-                if (detail) setSelectedReservation(detail);
-              }}
-            />
-          )
-        ) : isLoading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center h-64 text-neutral-400 text-sm">
             <div className="flex flex-col items-center gap-2">
               <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />

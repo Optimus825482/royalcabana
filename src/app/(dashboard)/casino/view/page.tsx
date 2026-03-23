@@ -19,8 +19,12 @@ async function fetchCabanas(): Promise<CabanaWithStatus[]> {
   return Array.isArray(resolved) ? resolved : [];
 }
 
-async function fetchSystemConfig(): Promise<SystemConfig> {
+async function fetchSystemConfig(): Promise<SystemConfig | null> {
   const res = await fetch("/api/system/config");
+  if (res.status === 403 || res.status === 404) {
+    // Yetki yok veya bulunamadı - konfigürasyonu gizle
+    return null;
+  }
   if (!res.ok) throw new Error("Sistem konfigürasyonu yüklenemedi.");
   const raw = await res.json();
   const data = raw.data ?? raw;

@@ -104,7 +104,7 @@ export const GET = withAuth(
 );
 
 export const POST = withAuth(
-  [Role.CASINO_USER],
+  [Role.CASINO_ADMIN, Role.CASINO_USER],
   async (req, { session }) => {
     const body = await req.json();
     const parsed = parseBody(createReservationSchema, body);
@@ -277,7 +277,7 @@ export const POST = withAuth(
           where: {
             isActive: true,
             deletedAt: null,
-            role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN] },
+            role: { in: [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.FNB_ADMIN, Role.FNB_USER] },
           },
           select: { id: true, email: true, username: true },
         });

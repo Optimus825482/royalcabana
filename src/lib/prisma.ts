@@ -6,6 +6,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Soft delete uygulanacak modeller
+// Not: deletedAt: null sorgulaması ile aktif kayıtları filtrele
 const SOFT_DELETE_MODELS = [
   "User",
   "Cabana",
@@ -22,6 +23,10 @@ const SOFT_DELETE_MODELS = [
   "BlackoutDate",
   "Notification",
   "MinibarType",
+  "RoleDefinition",
+  "Permission",
+  "RolePermission",
+  "TaskDefinition",
 ];
 
 function isSoftDeleteModel(model?: string): boolean {
@@ -72,7 +77,7 @@ function createPrismaClient() {
             ];
             return delegate.update({
               where: args.where,
-              data: { deletedAt: new Date() },
+              data: { deletedAt: new Date(), isDeleted: true },
             });
           }
           return query(args);
@@ -84,7 +89,7 @@ function createPrismaClient() {
             ];
             return delegate.updateMany({
               where: { ...args.where, deletedAt: null },
-              data: { deletedAt: new Date() },
+              data: { deletedAt: new Date(), isDeleted: true },
             });
           }
           return query(args);

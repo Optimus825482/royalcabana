@@ -27,7 +27,7 @@ export const GET = withAuth(
     }
 
     const baseUrl =
-      process.env.NEXTAUTH_URL || "https://royalcabana.erkanerdem.net";
+      process.env.NEXTAUTH_URL || "http://localhost:3000";
     const url = `${baseUrl}/cabana/${cabana.id}`;
 
     return NextResponse.json({

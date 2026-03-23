@@ -11,7 +11,7 @@ import { Role } from "@/types";
  * Soft-deleted kayıtlar hariç tutulur.
  */
 export const GET = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_USER, Role.FNB_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.CASINO_ADMIN, Role.CASINO_USER, Role.FNB_USER],
   async (req: NextRequest, { session }) => {
     const { searchParams } = new URL(req.url);
     const startParam = searchParams.get("start");

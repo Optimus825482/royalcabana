@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
+import { checkSocketRateLimitSync } from "./socket-rate-limit";
 
 const PORT = process.env.SOCKET_PORT ? parseInt(process.env.SOCKET_PORT) : 3007;
 
@@ -20,25 +21,6 @@ interface JwtPayload {
   role: string;
   name?: string;
   exp?: number;
-}
-
-// Simple in-memory rate limiter for socket events
-const socketRateLimits = new Map<string, { count: number; resetAt: number }>();
-function checkSocketRate(
-  userId: string,
-  event: string,
-  limit = 30,
-  windowMs = 60_000,
-): boolean {
-  const key = `${userId}:${event}`;
-  const now = Date.now();
-  const entry = socketRateLimits.get(key);
-  if (!entry || now >= entry.resetAt) {
-    socketRateLimits.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  entry.count++;
-  return entry.count <= limit;
 }
 
 const httpServer = createServer((req, res) => {
@@ -134,7 +116,7 @@ io.on("connection", (socket: Socket) => {
   const { userId } = socket as Socket & { userId: string };
 
   // Rate limit connections per user
-  if (!checkSocketRate(userId, "connection", 10, 60_000)) {
+  if (!checkSocketRateLimitSync(userId, "connection", 10, 60_000)) {
     console.warn(`[socket] rate limited connection userId=${userId}`);
     socket.disconnect(true);
     return;
@@ -149,7 +131,7 @@ io.on("connection", (socket: Socket) => {
 
   // Wrap all incoming events with rate limiting
   socket.use(([event], next) => {
-    if (!checkSocketRate(userId, event)) {
+    if (!checkSocketRateLimitSync(userId, event)) {
       return next(new Error("Rate limit exceeded"));
     }
     next();

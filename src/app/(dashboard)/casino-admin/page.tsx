@@ -31,11 +31,18 @@ export default function CasinoAdminDashboardPage() {
     data: stats,
     isLoading,
     isError,
-  } = useQuery<CasinoAdminStats>({
+    error,
+  } = useQuery<CasinoAdminStats, Error>({
     queryKey: ["casino-admin-stats"],
     queryFn: async () => {
       const res = await fetch("/api/casino-admin/stats");
-      if (!res.ok) throw new Error("Veri alınamadı");
+      if (!res.ok) {
+        if (res.status === 403) {
+          // Yetki hatası - istatistikler gösterilemez, hata yerine sessizce gösterilmeyecek
+          throw new Error("PERMISSION_DENIED");
+        }
+        throw new Error("Veri alınamadı");
+      }
       const payload: ApiEnvelope<CasinoAdminStats> = await res.json();
       return {
         totalCabanas: payload.data?.totalCabanas ?? 0,
@@ -50,19 +57,21 @@ export default function CasinoAdminDashboardPage() {
     },
   });
 
+  const isPermissionDenied = error?.message === "PERMISSION_DENIED";
+
   return (
     <ListPageTemplate
       title="Casino Admin Paneli"
       subtitle="Cabana ve rezervasyon özeti"
     >
       <div className="space-y-6">
-        {isError && (
+        {isError && !isPermissionDenied && (
           <div className="px-4 py-3 rounded-lg bg-[var(--rc-danger)]/10 border border-[var(--rc-danger)]/30 text-[var(--rc-danger)] text-sm">
             İstatistikler yüklenirken hata oluştu.
           </div>
         )}
 
-        {isLoading || !stats ? (
+        {isPermissionDenied ? null : isLoading || !stats ? (
           <SkeletonCardGrid count={8} />
         ) : (
           <>

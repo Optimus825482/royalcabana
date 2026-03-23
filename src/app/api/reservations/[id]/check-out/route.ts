@@ -9,7 +9,7 @@ import { SSE_EVENTS } from "@/lib/sse-events";
 import { notificationService } from "@/services/notification.service";
 
 export const POST = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.FNB_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.FNB_ADMIN, Role.FNB_USER],
   async (_req, { session, params }) => {
     const id = params!.id;
 

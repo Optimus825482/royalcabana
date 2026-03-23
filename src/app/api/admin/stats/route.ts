@@ -61,5 +61,5 @@ export const GET = withAuth(
       },
     });
   },
-  { requiredPermissions: ["report.view"] },
+  { requiredPermissions: [] },
 );

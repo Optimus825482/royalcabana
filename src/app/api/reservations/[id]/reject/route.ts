@@ -10,7 +10,7 @@ import { notificationService } from "@/services/notification.service";
 import { emailService } from "@/lib/email";
 
 export const POST = withAuth(
-  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.FNB_USER],
+  [Role.ADMIN, Role.SYSTEM_ADMIN, Role.FNB_ADMIN, Role.FNB_USER],
   async (req, { session, params }) => {
     const id = params!.id;
     const body = await req.json();
