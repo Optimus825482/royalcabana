@@ -1281,25 +1281,24 @@ export default function CasinoAdminRequestsPage() {
   });
 
   // SSE: auto-refresh when another user updates a reservation
-  const invalidateRef = useRef(() => {
-    queryClient.invalidateQueries({ queryKey: ["casino-admin-requests"] });
-  });
-
-  const handleSSEEvent = useCallback((event: string) => {
-    if (event === SSE_EVENTS.RESERVATION_UPDATED) {
-      invalidateRef.current();
-    }
-  }, []);
+  const handleSSEEvent = useCallback(
+    (event: string) => {
+      if (event === SSE_EVENTS.RESERVATION_UPDATED) {
+        queryClient.invalidateQueries({ queryKey: ["admin-requests"] });
+      }
+    },
+    [queryClient],
+  );
 
   useSSE({ onEvent: handleSSEEvent as (event: string, data: unknown) => void });
 
   const handleApprove = async (id: string, price: number) => {
     const previous = queryClient.getQueriesData({
-      queryKey: ["casino-admin-requests"],
+      queryKey: ["admin-requests"],
     });
     // Optimistic update: remove the reservation from all cached lists
     queryClient.setQueriesData(
-      { queryKey: ["casino-admin-requests"] },
+      { queryKey: ["admin-requests"] },
       (old: unknown) => {
         const data = old as
           | { reservations?: ReservationListItem[]; total?: number }
@@ -1329,7 +1328,7 @@ export default function CasinoAdminRequestsPage() {
     setActionLoading(false);
     if (res?.ok) {
       setMessage({ text: "Rezervasyon onaylandı.", type: "success" });
-      queryClient.invalidateQueries({ queryKey: ["casino-admin-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-requests"] });
       queryClient.invalidateQueries({ queryKey: ["reservation-detail"] });
       setSelectedId(null);
     } else {
@@ -1346,11 +1345,11 @@ export default function CasinoAdminRequestsPage() {
 
   const handleReject = async (id: string, reason: string) => {
     const previous = queryClient.getQueriesData({
-      queryKey: ["casino-admin-requests"],
+      queryKey: ["admin-requests"],
     });
     // Optimistic update: remove the reservation from all cached lists
     queryClient.setQueriesData(
-      { queryKey: ["casino-admin-requests"] },
+      { queryKey: ["admin-requests"] },
       (old: unknown) => {
         const data = old as
           | { reservations?: ReservationListItem[]; total?: number }
@@ -1381,7 +1380,7 @@ export default function CasinoAdminRequestsPage() {
     setRejectTarget(null);
     if (res?.ok) {
       setMessage({ text: "Rezervasyon reddedildi.", type: "success" });
-      queryClient.invalidateQueries({ queryKey: ["casino-admin-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-requests"] });
       queryClient.invalidateQueries({ queryKey: ["reservation-detail"] });
       setSelectedId(null);
     } else {
@@ -1550,6 +1549,7 @@ export default function CasinoAdminRequestsPage() {
                 </button>
               </div>
               <DetailPanel
+                key={selected.id}
                 reservation={selected}
                 onApprove={handleApprove}
                 onReject={(id) => setRejectTarget(id)}
@@ -1557,7 +1557,7 @@ export default function CasinoAdminRequestsPage() {
                 currency={currency}
                 onRefresh={() => {
                   queryClient.invalidateQueries({
-                    queryKey: ["casino-admin-requests"],
+                    queryKey: ["admin-requests"],
                   });
                   queryClient.invalidateQueries({
                     queryKey: ["reservation-detail", selectedId],

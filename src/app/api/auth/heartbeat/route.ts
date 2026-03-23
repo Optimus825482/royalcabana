@@ -1,36 +1,26 @@
 import { NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { withAuth } from "@/lib/api-middleware";
+import { Role } from "@/types";
 
-export async function POST() {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
+const ALL_ROLES = [
+  Role.SYSTEM_ADMIN,
+  Role.ADMIN,
+  Role.CASINO_ADMIN,
+  Role.CASINO_USER,
+  Role.FNB_ADMIN,
+  Role.FNB_USER,
+];
 
-    const rl = await checkRateLimit(`heartbeat:${session.user.id}`, 30, 60_000);
-    if (!rl.allowed) {
-      return NextResponse.json(
-        { success: false, error: "Rate limit aşıldı." },
-        { status: 429 },
-      );
-    }
-
+export const POST = withAuth(
+  ALL_ROLES,
+  async (_req, { session }) => {
     await prisma.loginSession.updateMany({
       where: { userId: session.user.id, isActive: true },
       data: { lastSeenAt: new Date() },
     });
 
-    return NextResponse.json({ success: true, data: null });
-  } catch {
-    return NextResponse.json(
-      { success: false, error: "Server error" },
-      { status: 500 },
-    );
-  }
-}
+    return NextResponse.json({ success: true, data: null, error: null });
+  },
+  { rateLimit: { limit: 30, windowMs: 60_000 } },
+);

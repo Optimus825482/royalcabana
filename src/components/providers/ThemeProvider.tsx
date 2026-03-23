@@ -33,13 +33,15 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>(readTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const t = readTheme();
-    setThemeState(t);
-    setMounted(true);
+    const frame = requestAnimationFrame(() => {
+      setThemeState(readTheme());
+      setMounted(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const setTheme = useCallback((next: Theme) => {

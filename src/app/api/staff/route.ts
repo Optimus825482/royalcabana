@@ -34,7 +34,7 @@ export const GET = withAuth(
     }
 
     const [items, total] = await Promise.all([
-      (prisma as any).staff.findMany({
+      prisma.staff.findMany({
         where,
         orderBy: { createdAt: "desc" },
         skip,
@@ -52,7 +52,7 @@ export const GET = withAuth(
           },
         },
       }),
-      (prisma as any).staff.count({ where }),
+      prisma.staff.count({ where }),
     ]);
 
     return NextResponse.json({ success: true, data: { items, total } });
@@ -74,7 +74,7 @@ export const POST = withAuth(
       );
     }
 
-    const item = await (prisma as any).staff.create({
+    const item = await prisma.staff.create({
       data: {
         name: parsed.data.name,
         phone: parsed.data.phone ?? null,

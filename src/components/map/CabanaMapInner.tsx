@@ -239,7 +239,7 @@ function createCabanaLabel(text: string, color: string): THREE.Sprite {
 
 function buildSunbedPair(cabana: CabanaWithStatus): THREE.Group {
   const group = new THREE.Group();
-  const { w, d } = getCabanaDimensions(cabana);
+  const { d } = getCabanaDimensions(cabana);
   const rotation = ((cabana.rotation ?? 0) * Math.PI) / 180;
 
   // Materials
@@ -1956,9 +1956,7 @@ function buildGenericServicePointMesh(
 
     // ─── SPA: Rounded pavilion with zen elements ──────────────────────────
   } else if (upperType === "SPA") {
-    const w = 55,
-      d = 45,
-      wallH = 18;
+    const wallH = 18;
 
     // Rounded platform
     const platform = new THREE.Mesh(
@@ -2615,12 +2613,8 @@ export default function CabanaMapInner({
   const dispHistoryRef = useRef<Uint8ClampedArray[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   // Map lock state — disables MapControls for cabana placement/drag
-  const [mapLocked, setMapLocked] = useState(mapLockedProp ?? false);
-
-  // Sync mapLocked from parent toolbar when prop changes
-  useEffect(() => {
-    if (mapLockedProp !== undefined) setMapLocked(mapLockedProp);
-  }, [mapLockedProp]);
+  const [localMapLocked, setLocalMapLocked] = useState(mapLockedProp ?? false);
+  const mapLocked = mapLockedProp ?? localMapLocked;
 
   // Lights ref for effects sync
   const lightsRef = useRef<{
@@ -2645,8 +2639,11 @@ export default function CabanaMapInner({
         y: ((-v.y + 1) / 2) * rect.height,
       };
     };
-    setRectScreenStart(rectStart ? project(rectStart) : null);
-    setRectScreenEnd(rectEnd ? project(rectEnd) : null);
+    const frame = requestAnimationFrame(() => {
+      setRectScreenStart(rectStart ? project(rectStart) : null);
+      setRectScreenEnd(rectEnd ? project(rectEnd) : null);
+    });
+    return () => cancelAnimationFrame(frame);
   }, [rectStart, rectEnd, svgTick]);
 
   // Refs for latest props
@@ -2664,7 +2661,7 @@ export default function CabanaMapInner({
   const commonParasolTransformRef = useRef(commonParasolTransform);
   const placementToolRef = useRef(placementToolProp);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are intentionally synced every render for imperative three.js handlers
+   
   useEffect(() => {
     cabanasRef.current = cabanas;
     selectedIdRef.current = selectedCabanaId;
@@ -2902,7 +2899,7 @@ export default function CabanaMapInner({
       cabanaMeshesRef.current = [];
       planeRef.current = null;
     };
-  }, []);
+  }, [saveServicePointTransform]);
 
   // ─── Load saved elevation when prop arrives after initial render ──────────
 
@@ -3073,7 +3070,7 @@ export default function CabanaMapInner({
     if (!scene) return;
 
     // Remove all existing service point meshes
-    servicePointRefs.current.forEach((group, _id) => {
+    servicePointRefs.current.forEach((group) => {
       scene.remove(group);
       group.traverse((child) => {
         if ((child as THREE.Mesh).geometry)
@@ -3131,8 +3128,10 @@ export default function CabanaMapInner({
       servicePointRefs.current.set(sp.id, group);
     }
 
+    const servicePointGroups = servicePointRefs.current;
+
     return () => {
-      servicePointRefs.current.forEach((group) => {
+      servicePointGroups.forEach((group) => {
         if (scene) scene.remove(group);
       });
     };
@@ -3612,7 +3611,7 @@ export default function CabanaMapInner({
       el.removeEventListener("dblclick", onDblClick);
       el.removeEventListener("contextmenu", onContextMenu);
     };
-  }, []);
+  }, [saveServicePointTransform]);
 
   // Close context menu on outside click
   useEffect(() => {
@@ -3641,7 +3640,7 @@ export default function CabanaMapInner({
   // ─── Context menu actions ──────────────────────────────────────────────────
 
   const handleToggleMapLock = useCallback(() => {
-    setMapLocked((prev) => !prev);
+    setLocalMapLocked((prev) => !prev);
     setContextMenu(null);
   }, []);
 

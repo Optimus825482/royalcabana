@@ -77,7 +77,6 @@ export default function CasinoViewPage() {
   const {
     data: cabanas = [],
     isLoading: cabanasLoading,
-    isError: cabanasIsError,
     error: cabanasError,
   } = useQuery({
     queryKey: ["cabanas"],
@@ -87,7 +86,6 @@ export default function CasinoViewPage() {
   const {
     data: systemConfig,
     isLoading: configLoading,
-    isError: configIsError,
     error: configError,
   } = useQuery({
     queryKey: ["system-config"],
@@ -96,7 +94,6 @@ export default function CasinoViewPage() {
 
   const systemOpen = systemConfig?.system_open_for_reservation ?? true;
   const isLoading = cabanasLoading || configLoading;
-  const isError = cabanasIsError || configIsError;
   const fetchError =
     cabanasError instanceof Error
       ? cabanasError.message

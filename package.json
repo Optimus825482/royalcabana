@@ -10,7 +10,7 @@
     "prestart": "prisma migrate deploy",
     "start": "next start -p 3006",
     "start:socket": "node --import tsx socket-server/index.ts",
-    "lint": "eslint",
+    "lint": "eslint src socket-server public/sw.js next.config.ts prisma.config.ts",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",

@@ -58,7 +58,7 @@ export const POST = withAuth(
     }
 
     // Parallel lookup: cabana + service point + staff aynı anda
-    const db = prisma as any;
+    const db = prisma;
     const [cabana, sp, staff] = await Promise.all([
       db.cabana.findUnique({ where: { id: targetId }, select: { id: true } }),
       db.servicePoint.findUnique({

@@ -138,11 +138,8 @@ export default function SystemAdminMapPage() {
     staleTime: Infinity,
   });
 
-  const [resetElevationLoading, setResetElevationLoading] = useState(false);
-
   async function handleResetElevation() {
     if (!confirm("Tüm yükseltme verileri sıfırlanacak. Emin misiniz?")) return;
-    setResetElevationLoading(true);
     try {
       const res = await fetch("/api/map/elevation", { method: "DELETE" });
       if (!res.ok) throw new Error("Yükseltme sıfırlanamadı.");
@@ -150,8 +147,6 @@ export default function SystemAdminMapPage() {
       showSuccessMsg("Yükseltme verileri sıfırlandı. Sayfayı yenileyin.");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Yükseltme sıfırlanamadı.");
-    } finally {
-      setResetElevationLoading(false);
     }
   }
 

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { parseBody } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 
-const db = prisma as any;
+const db = prisma;
 
 const updateSchema = z.object({
   displayName: z.string().min(2).max(80).optional(),

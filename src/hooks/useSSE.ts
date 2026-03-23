@@ -24,10 +24,8 @@ export function useSSE(options?: UseSSEOptions) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onEventRef = useRef(options?.onEvent);
-
-  // Keep callback ref fresh without triggering reconnect
-  onEventRef.current = options?.onEvent;
+  const onEventRef = useRef<UseSSEOptions["onEvent"]>(undefined);
+  const connectRef = useRef<() => void>(() => {});
 
   const cleanup = useCallback(() => {
     if (retryTimerRef.current) {
@@ -87,15 +85,26 @@ export function useSSE(options?: UseSSEOptions) {
       const delay = Math.min(1000 * 2 ** retryCountRef.current, 30_000);
       retryCountRef.current++;
 
-      retryTimerRef.current = setTimeout(connect, delay);
+      retryTimerRef.current = setTimeout(() => connectRef.current(), delay);
     };
   }, [cleanup]);
 
   useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
+  useEffect(() => {
+    onEventRef.current = options?.onEvent;
+  }, [options?.onEvent]);
+
+  useEffect(() => {
     if (status !== "authenticated" || !session?.user) return;
 
-    connect();
-    return cleanup;
+    const frame = requestAnimationFrame(connect);
+    return () => {
+      cancelAnimationFrame(frame);
+      cleanup();
+    };
   }, [status, session?.user, connect, cleanup]);
 
   return { isConnected, lastEvent };

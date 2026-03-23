@@ -29,7 +29,7 @@ export const GET = withAuth([Role.SYSTEM_ADMIN], async (req: NextRequest) => {
     };
   }
 
-  const db = prisma as any;
+  const db = prisma;
   const [sessions, total] = await Promise.all([
     db.loginSession.findMany({
       where,

@@ -22,14 +22,14 @@ export const GET = withAuth(
     if (cabanaId) where.cabanaId = cabanaId;
 
     const [items, total] = await Promise.all([
-      (prisma as any).blackoutDate.findMany({
+      prisma.blackoutDate.findMany({
         where,
         include: { cabana: { select: { id: true, name: true } } },
         orderBy: { startDate: "desc" },
         skip,
         take: limit,
       }),
-      (prisma as any).blackoutDate.count({ where }),
+      prisma.blackoutDate.count({ where }),
     ]);
 
     return NextResponse.json({ success: true, data: { items, total } });
@@ -53,7 +53,7 @@ export const POST = withAuth(
 
     const { cabanaId, startDate, endDate, reason } = parsed.data;
 
-    const item = await (prisma as any).blackoutDate.create({
+    const item = await prisma.blackoutDate.create({
       data: {
         cabanaId: cabanaId ?? null,
         startDate: new Date(startDate),

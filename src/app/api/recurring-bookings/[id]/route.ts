@@ -10,7 +10,7 @@ export const PATCH = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const existing = await (prisma as any).recurringBooking.findUnique({
+    const existing = await prisma.recurringBooking.findUnique({
       where: { id },
     });
 
@@ -21,7 +21,7 @@ export const PATCH = withAuth(
       );
     }
 
-    const updated = await (prisma as any).recurringBooking.update({
+    const updated = await prisma.recurringBooking.update({
       where: { id },
       data: { isActive: !existing.isActive },
       include: {
@@ -48,7 +48,7 @@ export const DELETE = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const existing = await (prisma as any).recurringBooking.findUnique({
+    const existing = await prisma.recurringBooking.findUnique({
       where: { id },
     });
 
@@ -59,7 +59,7 @@ export const DELETE = withAuth(
       );
     }
 
-    await (prisma as any).recurringBooking.update({
+    await prisma.recurringBooking.update({
       where: { id },
       data: { isActive: false },
     });

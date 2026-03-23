@@ -52,20 +52,16 @@ export default function TransformControls({
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    setLocalRotation(cabana.rotation ?? 0);
-    setLocalScaleX(cabana.scaleX ?? 1);
-    setLocalScaleY(cabana.scaleY ?? 1);
-    setLocalColor(getDefaultCabanaColor(cabana));
-    setLocalLocked(cabana.isLocked ?? false);
-    setDirty(false);
-  }, [
-    cabana.id,
-    cabana.rotation,
-    cabana.scaleX,
-    cabana.scaleY,
-    cabana.color,
-    cabana.isLocked,
-  ]);
+    const frame = requestAnimationFrame(() => {
+      setLocalRotation(cabana.rotation ?? 0);
+      setLocalScaleX(cabana.scaleX ?? 1);
+      setLocalScaleY(cabana.scaleY ?? 1);
+      setLocalColor(getDefaultCabanaColor(cabana));
+      setLocalLocked(cabana.isLocked ?? false);
+      setDirty(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [cabana]);
 
   function markDirty() {
     setDirty(true);

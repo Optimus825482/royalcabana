@@ -1,14 +1,16 @@
 import { NextResponse, after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/types";
+import { FnbOrderStatus, Role } from "@/types";
 import { logAudit } from "@/lib/audit";
 import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
 
-const VALID_TRANSITIONS: Record<string, string[]> = {
-  PREPARING: ["READY", "CANCELLED"],
-  READY: ["DELIVERED", "CANCELLED"],
+const VALID_TRANSITIONS: Record<FnbOrderStatus, FnbOrderStatus[]> = {
+  PREPARING: [FnbOrderStatus.READY, FnbOrderStatus.CANCELLED],
+  READY: [FnbOrderStatus.DELIVERED, FnbOrderStatus.CANCELLED],
+  DELIVERED: [],
+  CANCELLED: [],
 };
 
 // PATCH — Sipariş durumunu güncelle
@@ -17,11 +19,11 @@ export const PATCH = withAuth(
   async (req, { session, params }) => {
     const id = params!.id;
     const body = await req.json();
-    const status = body?.status as string | undefined;
+    const status = body?.status as FnbOrderStatus | undefined;
 
     if (
       !status ||
-      !["PREPARING", "READY", "DELIVERED", "CANCELLED"].includes(status)
+      !Object.values(FnbOrderStatus).includes(status)
     ) {
       return NextResponse.json(
         {
@@ -33,7 +35,7 @@ export const PATCH = withAuth(
       );
     }
 
-    const order = await (prisma as any).fnbOrder.findUnique({
+    const order = await prisma.fnbOrder.findUnique({
       where: { id },
     });
 
@@ -45,7 +47,7 @@ export const PATCH = withAuth(
     }
 
     if (status !== "CANCELLED") {
-      const allowed = VALID_TRANSITIONS[order.status as string];
+      const allowed = VALID_TRANSITIONS[order.status];
       if (!allowed || !allowed.includes(status)) {
         return NextResponse.json(
           {
@@ -57,7 +59,7 @@ export const PATCH = withAuth(
       }
     }
 
-    const updated = await (prisma as any).fnbOrder.update({
+    const updated = await prisma.fnbOrder.update({
       where: { id },
       data: { status },
       include: {
@@ -103,7 +105,7 @@ export const DELETE = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const order = await (prisma as any).fnbOrder.findUnique({
+    const order = await prisma.fnbOrder.findUnique({
       where: { id },
     });
 
@@ -125,9 +127,9 @@ export const DELETE = withAuth(
       );
     }
 
-    const cancelled = await (prisma as any).fnbOrder.update({
+    const cancelled = await prisma.fnbOrder.update({
       where: { id },
-      data: { status: "CANCELLED" },
+      data: { status: FnbOrderStatus.CANCELLED },
     });
 
     logAudit({
@@ -136,7 +138,7 @@ export const DELETE = withAuth(
       entity: "FnbOrder",
       entityId: id,
       oldValue: { status: order.status },
-      newValue: { status: "CANCELLED" },
+      newValue: { status: FnbOrderStatus.CANCELLED },
     });
 
     return NextResponse.json({ success: true, data: cancelled });

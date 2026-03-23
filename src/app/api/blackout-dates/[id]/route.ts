@@ -10,7 +10,7 @@ export const DELETE = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const existing = await (prisma as any).blackoutDate.findUnique({
+    const existing = await prisma.blackoutDate.findUnique({
       where: { id },
     });
 
@@ -21,7 +21,7 @@ export const DELETE = withAuth(
       );
     }
 
-    await (prisma as any).blackoutDate.update({
+    await prisma.blackoutDate.update({
       where: { id },
       data: { isDeleted: true, deletedAt: new Date() },
     });

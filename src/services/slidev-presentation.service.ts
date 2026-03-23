@@ -101,7 +101,7 @@ function esc(str: string): string {
 
 async function fetchPresentationData() {
   const [cabanas, classes, concepts] = await Promise.all([
-    (prisma as any).cabana.findMany({
+    prisma.cabana.findMany({
       where: { deletedAt: null },
       include: {
         cabanaClass: { include: { attributes: true } },
@@ -109,17 +109,17 @@ async function fetchPresentationData() {
       },
       orderBy: { name: "asc" },
     }),
-    (prisma as any).cabanaClass.findMany({
+    prisma.cabanaClass.findMany({
       include: { attributes: true },
       orderBy: { name: "asc" },
     }),
-    (prisma as any).concept.findMany({
+    prisma.concept.findMany({
       include: { products: { include: { product: true } } },
       orderBy: { name: "asc" },
     }),
   ]);
 
-  const cabanaList: CabanaData[] = cabanas.map((c: any) => ({
+  const cabanaList: CabanaData[] = cabanas.map((c) => ({
     name: c.name,
     className: c.cabanaClass.name,
     conceptName: c.concept?.name ?? "—",
@@ -129,30 +129,30 @@ async function fetchPresentationData() {
     isOpen: c.isOpenForReservation,
   }));
 
-  const classList: ClassData[] = classes.map((cls: any) => ({
+  const classList: ClassData[] = classes.map((cls) => ({
     name: cls.name,
     description: cls.description,
-    cabanaCount: cabanas.filter((c: any) => c.classId === cls.id).length,
-    attributes: (cls.attributes ?? []).map((a: any) => ({
-      key: a.key,
-      value: a.value,
+    cabanaCount: cabanas.filter((cabana) => cabana.classId === cls.id).length,
+    attributes: (cls.attributes ?? []).map((attribute) => ({
+      key: attribute.key,
+      value: attribute.value,
     })),
   }));
 
-  const conceptList: ConceptData[] = concepts.map((con: any) => {
-    const products = con.products.map((cp: any) => ({
-      name: cp.product.name,
-      salePrice: Number(cp.product.salePrice),
-      quantity: cp.quantity,
+  const conceptList: ConceptData[] = concepts.map((concept) => {
+    const products = concept.products.map((productEntry) => ({
+      name: productEntry.product.name,
+      salePrice: Number(productEntry.product.salePrice),
+      quantity: productEntry.quantity,
     }));
     const totalValue = products.reduce(
-      (sum: number, p: any) => sum + p.salePrice * p.quantity,
+      (sum, productEntry) => sum + productEntry.salePrice * productEntry.quantity,
       0,
     );
     return {
-      name: con.name,
-      description: con.description,
-      serviceFee: Number(con.serviceFee ?? 0),
+      name: concept.name,
+      description: concept.description,
+      serviceFee: Number(concept.serviceFee ?? 0),
       products,
       totalValue,
     };
@@ -160,16 +160,14 @@ async function fetchPresentationData() {
 
   // Price summary by class — konsept ürün fiyatları üzerinden hesaplanır
   const priceSummaries: PriceSummary[] = classList.map((cls) => {
-    const classCabanas = cabanas.filter(
-      (c: any) => c.cabanaClass.name === cls.name,
-    );
+    const classCabanas = cabanas.filter((cabana) => cabana.cabanaClass.name === cls.name);
     const allPrices = classCabanas
-      .filter((c: any) => c.concept)
-      .map((c: any) => {
-        const conceptProducts = c.concept.products ?? [];
+      .filter((cabana) => cabana.concept)
+      .map((cabana) => {
+        const conceptProducts = cabana.concept!.products ?? [];
         return conceptProducts.reduce(
-          (sum: number, cp: any) =>
-            sum + Number(cp.product.salePrice) * cp.quantity,
+          (sum, productEntry) =>
+            sum + Number(productEntry.product.salePrice) * productEntry.quantity,
           0,
         );
       })
@@ -190,10 +188,10 @@ async function fetchPresentationData() {
   // Inventory stats
   const inventory: InventoryStats = {
     total: cabanas.length,
-    available: cabanas.filter((c: any) => c.status === "AVAILABLE").length,
-    reserved: cabanas.filter((c: any) => c.status === "RESERVED").length,
-    closed: cabanas.filter((c: any) => c.status === "CLOSED").length,
-    openForReservation: cabanas.filter((c: any) => c.isOpenForReservation)
+    available: cabanas.filter((cabana) => cabana.status === "AVAILABLE").length,
+    reserved: cabanas.filter((cabana) => cabana.status === "RESERVED").length,
+    closed: cabanas.filter((cabana) => cabana.status === "CLOSED").length,
+    openForReservation: cabanas.filter((cabana) => cabana.isOpenForReservation)
       .length,
     classBreakdown: classList.map((cls) => ({
       name: cls.name,

@@ -4,7 +4,7 @@ import { Role } from "@/types";
 import { prisma } from "@/lib/prisma";
 import { ensureRbacBootstrap } from "@/services/rbac.service";
 
-const db = prisma as any;
+const db = prisma;
 
 export const GET = withAuth(
   [Role.SYSTEM_ADMIN, Role.ADMIN],

@@ -9,352 +9,16 @@ import {
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { config } from "dotenv";
+import {
+  DEFAULT_ROLE_PERMISSION_KEYS,
+  PERMISSION_TEMPLATES,
+  ROLE_DISPLAY_DEFAULTS,
+} from "../src/lib/rbac";
 
 config({ path: ".env.local" });
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
-
-type PermissionTemplate = {
-  key: string;
-  name: string;
-  module: string;
-  action: "view" | "create" | "update" | "delete";
-};
-
-const PERMISSION_TEMPLATES: PermissionTemplate[] = [
-  {
-    key: "cabana.class.view",
-    name: "Cabana sınıflarını görüntüle",
-    module: "Cabana Sınıfları",
-    action: "view",
-  },
-  {
-    key: "cabana.class.create",
-    name: "Cabana sınıfı oluştur",
-    module: "Cabana Sınıfları",
-    action: "create",
-  },
-  {
-    key: "cabana.class.update",
-    name: "Cabana sınıfı güncelle",
-    module: "Cabana Sınıfları",
-    action: "update",
-  },
-  {
-    key: "cabana.class.delete",
-    name: "Cabana sınıfı sil",
-    module: "Cabana Sınıfları",
-    action: "delete",
-  },
-  {
-    key: "concept.view",
-    name: "Konseptleri görüntüle",
-    module: "Konseptler",
-    action: "view",
-  },
-  {
-    key: "concept.create",
-    name: "Konsept oluştur",
-    module: "Konseptler",
-    action: "create",
-  },
-  {
-    key: "concept.update",
-    name: "Konsept güncelle",
-    module: "Konseptler",
-    action: "update",
-  },
-  {
-    key: "concept.delete",
-    name: "Konsept sil",
-    module: "Konseptler",
-    action: "delete",
-  },
-  {
-    key: "product.view",
-    name: "Ürünleri görüntüle",
-    module: "Ürünler",
-    action: "view",
-  },
-  {
-    key: "product.create",
-    name: "Ürün oluştur",
-    module: "Ürünler",
-    action: "create",
-  },
-  {
-    key: "product.update",
-    name: "Ürün güncelle",
-    module: "Ürünler",
-    action: "update",
-  },
-  {
-    key: "product.delete",
-    name: "Ürün sil",
-    module: "Ürünler",
-    action: "delete",
-  },
-  {
-    key: "task.definition.view",
-    name: "Görev tanımlarını görüntüle",
-    module: "Görev Tanımları",
-    action: "view",
-  },
-  {
-    key: "task.definition.create",
-    name: "Görev tanımı oluştur",
-    module: "Görev Tanımları",
-    action: "create",
-  },
-  {
-    key: "task.definition.update",
-    name: "Görev tanımı güncelle",
-    module: "Görev Tanımları",
-    action: "update",
-  },
-  {
-    key: "task.definition.delete",
-    name: "Görev tanımı sil",
-    module: "Görev Tanımları",
-    action: "delete",
-  },
-  {
-    key: "user.view",
-    name: "Kullanıcıları görüntüle",
-    module: "Kullanıcı Yönetimi",
-    action: "view",
-  },
-  {
-    key: "user.create",
-    name: "Kullanıcı oluştur",
-    module: "Kullanıcı Yönetimi",
-    action: "create",
-  },
-  {
-    key: "user.update",
-    name: "Kullanıcı güncelle",
-    module: "Kullanıcı Yönetimi",
-    action: "update",
-  },
-  {
-    key: "user.delete",
-    name: "Kullanıcıyı devre dışı bırak",
-    module: "Kullanıcı Yönetimi",
-    action: "delete",
-  },
-  {
-    key: "role.definition.view",
-    name: "Rol tanımlarını görüntüle",
-    module: "Rol Tanımları",
-    action: "view",
-  },
-  {
-    key: "role.definition.create",
-    name: "Rol tanımı oluştur",
-    module: "Rol Tanımları",
-    action: "create",
-  },
-  {
-    key: "role.definition.update",
-    name: "Rol tanımı güncelle",
-    module: "Rol Tanımları",
-    action: "update",
-  },
-  {
-    key: "role.definition.delete",
-    name: "Rol tanımını sil",
-    module: "Rol Tanımları",
-    action: "delete",
-  },
-  {
-    key: "report.view",
-    name: "Raporları görüntüle",
-    module: "Raporlar",
-    action: "view",
-  },
-  {
-    key: "system.config.view",
-    name: "Sistem ayarlarını görüntüle",
-    module: "Sistem Ayarları",
-    action: "view",
-  },
-  {
-    key: "system.config.update",
-    name: "Sistem ayarlarını güncelle",
-    module: "Sistem Ayarları",
-    action: "update",
-  },
-  {
-    key: "reservation.view",
-    name: "Rezervasyonları görüntüle",
-    module: "Rezervasyonlar",
-    action: "view",
-  },
-  {
-    key: "reservation.create",
-    name: "Rezervasyon oluştur",
-    module: "Rezervasyonlar",
-    action: "create",
-  },
-  {
-    key: "reservation.update",
-    name: "Rezervasyon güncelle",
-    module: "Rezervasyonlar",
-    action: "update",
-  },
-  {
-    key: "reservation.approve",
-    name: "Rezervasyon onayla/reddet, check-in/out",
-    module: "Rezervasyonlar",
-    action: "update",
-  },
-  {
-    key: "reservation.delete",
-    name: "Rezervasyon iptal et",
-    module: "Rezervasyonlar",
-    action: "delete",
-  },
-  {
-    key: "staff.view",
-    name: "Personeli görüntüle",
-    module: "Personel Yönetimi",
-    action: "view",
-  },
-  {
-    key: "staff.create",
-    name: "Personel oluştur",
-    module: "Personel Yönetimi",
-    action: "create",
-  },
-  {
-    key: "staff.update",
-    name: "Personel güncelle",
-    module: "Personel Yönetimi",
-    action: "update",
-  },
-  {
-    key: "staff.delete",
-    name: "Personeli devre dışı bırak",
-    module: "Personel Yönetimi",
-    action: "delete",
-  },
-  {
-    key: "fnb.view",
-    name: "F&B sipariş yönetimini görüntüle",
-    module: "F&B Yönetimi",
-    action: "view",
-  },
-  {
-    key: "map.view",
-    name: "Haritayı görüntüle",
-    module: "Harita",
-    action: "view",
-  },
-  {
-    key: "blackout.view",
-    name: "Kapalı tarihleri görüntüle",
-    module: "Kapalı Tarihler",
-    action: "view",
-  },
-  {
-    key: "guest.view",
-    name: "Misafirleri görüntüle",
-    module: "Misafirler",
-    action: "view",
-  },
-];
-
-const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
-  [Role.SYSTEM_ADMIN]: PERMISSION_TEMPLATES.map((permission) => permission.key),
-  [Role.ADMIN]: [
-    "cabana.class.view",
-    "cabana.class.create",
-    "cabana.class.update",
-    "concept.view",
-    "concept.create",
-    "concept.update",
-    "product.view",
-    "product.create",
-    "product.update",
-    "task.definition.view",
-    "task.definition.create",
-    "task.definition.update",
-    "user.view",
-    "user.create",
-    "user.update",
-    "role.definition.view",
-    "report.view",
-    "system.config.view",
-    "reservation.view",
-    "reservation.create",
-    "reservation.update",
-    "reservation.approve",
-    "reservation.delete",
-    "staff.view",
-    "staff.create",
-    "staff.update",
-    "staff.delete",
-  ],
-  [Role.CASINO_ADMIN]: [
-    "reservation.view",
-    "reservation.create",
-    "reservation.update",
-    "reservation.delete",
-    "map.view",
-    "report.view",
-    "guest.view",
-    "user.view",
-    "user.create",
-    "user.update",
-    "blackout.view",
-  ],
-  [Role.CASINO_USER]: [
-    "cabana.class.view",
-    "concept.view",
-    "product.view",
-    "task.definition.view",
-    "reservation.view",
-    "reservation.create",
-    "reservation.update",
-    "report.view",
-    "system.config.view",
-    "staff.view",
-  ],
-  [Role.FNB_ADMIN]: [
-    "fnb.view",
-    "concept.view",
-    "product.view",
-    "product.create",
-    "product.update",
-    "task.definition.view",
-    "fnb.order.view",
-    "fnb.order.create",
-    "fnb.order.update",
-    "reservation.view",
-    "reservation.approve",
-    "map.view",
-    "report.view",
-  ],
-  [Role.FNB_USER]: [
-    "fnb.view",
-    "concept.view",
-    "product.view",
-    "task.definition.view",
-    "reservation.view",
-    "reservation.approve",
-    "system.config.view",
-  ],
-};
-
-const ROLE_DISPLAY_DEFAULTS: Record<Role, string> = {
-  [Role.SYSTEM_ADMIN]: "Sistem Yöneticisi",
-  [Role.ADMIN]: "Admin",
-  [Role.CASINO_ADMIN]: "Casino Admin",
-  [Role.CASINO_USER]: "Casino Kullanıcısı",
-  [Role.FNB_ADMIN]: "F&B Admin",
-  [Role.FNB_USER]: "F&B Kullanıcısı",
-};
 
 async function main() {
   console.log("Seeding database...");
@@ -2209,12 +1873,22 @@ async function main() {
       requiredStaffCount: 2,
       staffRoles: ["Masör", "Resepsiyonist"],
     },
+    {
+      name: "Ana Resepsiyon",
+      type: "RECEPTION",
+      description: "Misafir karşılaması ve yönlendirme noktası",
+      coordX: 540,
+      coordY: 120,
+      requiredStaffCount: 1,
+      staffRoles: ["Resepsiyonist"],
+    },
   ];
 
+  const servicePoints = [];
   for (let i = 0; i < servicePointData.length; i++) {
     const sp = servicePointData[i];
     const spId = `sp-seed-${i.toString().padStart(2, "0")}`;
-    await prisma.servicePoint.upsert({
+    const servicePoint = await prisma.servicePoint.upsert({
       where: { name: sp.name },
       update: { coordX: sp.coordX, coordY: sp.coordY },
       create: {
@@ -2229,17 +1903,18 @@ async function main() {
         isActive: true,
       },
     });
+    servicePoints.push(servicePoint);
   }
 
-  // ── ServicePointStaff (6 adet) ──
-  const servicePoints = await prisma.servicePoint.findMany({ take: 4 });
+  // ── ServicePointStaff (7 adet) ──
   const spStaffData = [
     { spIdx: 0, staffIdx: 0, role: "Barmen", shift: "FULL_DAY" },
     { spIdx: 0, staffIdx: 1, role: "Garson", shift: "MORNING" },
     { spIdx: 0, staffIdx: 2, role: "Kasiyer", shift: "FULL_DAY" },
     { spIdx: 1, staffIdx: 4, role: "Barmen", shift: "AFTERNOON" },
-    { spIdx: 2, staffIdx: 8, role: "Şef", shift: "FULL_DAY" },
-    { spIdx: 3, staffIdx: 5, role: "Masör", shift: "FULL_DAY" },
+    { spIdx: 1, staffIdx: 3, role: "Garson", shift: "FULL_DAY" },
+    { spIdx: 2, staffIdx: 5, role: "Masör", shift: "FULL_DAY" },
+    { spIdx: 3, staffIdx: 7, role: "Resepsiyonist", shift: "FULL_DAY" },
   ];
 
   for (let i = 0; i < spStaffData.length; i++) {

@@ -91,13 +91,29 @@ export function useReservationCalendar(options: UseReservationCalendarOptions) {
   const queryClient = useQueryClient();
   const [lastUpdate, setLastUpdate] = useState<number>(0);
   const [sseConnected, setSseConnected] = useState(false);
-  const failCountRef = useRef(0);
+  const [failCount, setFailCount] = useState(0);
+  const queryKeyRef = useRef<readonly [string, string, string, string]>([
+    "reservation-calendar",
+    startDate,
+    endDate,
+    classId ?? "all",
+  ]);
 
   // Build query key
   const queryKey = useMemo(
-    () => ["reservation-calendar", startDate, endDate, classId ?? "all"],
+    () =>
+      ["reservation-calendar", startDate, endDate, classId ?? "all"] as const,
     [startDate, endDate, classId],
   );
+
+  useEffect(() => {
+    queryKeyRef.current = queryKey as readonly [
+      string,
+      string,
+      string,
+      string,
+    ];
+  }, [queryKey]);
 
   // Fetch calendar data
   const query = useQuery<CalendarData>({
@@ -111,10 +127,10 @@ export function useReservationCalendar(options: UseReservationCalendarOptions) {
 
       const res = await fetch(`/api/reservations/calendar?${params}`);
       if (!res.ok) {
-        failCountRef.current++;
+        setFailCount((count) => count + 1);
         throw new Error(`Calendar fetch failed: ${res.status}`);
       }
-      failCountRef.current = 0;
+      setFailCount(0);
       const json = await res.json();
       return json.data;
     },
@@ -132,10 +148,9 @@ export function useReservationCalendar(options: UseReservationCalendarOptions) {
       if ((CALENDAR_SSE_EVENTS as readonly string[]).includes(event)) {
         setLastUpdate(Date.now());
         // Debounced invalidation to batch rapid SSE bursts
-        queryClient.invalidateQueries({ queryKey });
+        queryClient.invalidateQueries({ queryKey: queryKeyRef.current });
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryClient],
   );
 
@@ -198,7 +213,7 @@ export function useReservationCalendar(options: UseReservationCalendarOptions) {
     isFetching: query.isFetching,
     sseConnected,
     lastUpdate,
-    failCount: failCountRef.current,
+    failCount,
 
     // Actions
     refresh,

@@ -62,7 +62,7 @@ interface SystemStats {
 // ─── Data Fetcher ─────────────────────────────────────────────────────────────
 
 async function fetchSystemStats(): Promise<SystemStats> {
-  const db = prisma as any;
+  const db = prisma;
   const [
     cabanas,
     classes,
@@ -112,14 +112,15 @@ async function fetchSystemStats(): Promise<SystemStats> {
   const monthStart = new Date(todayStart);
   monthStart.setMonth(monthStart.getMonth() - 1);
 
-  const completedRes = reservations.filter(
-    (r: any) => r.checkInAt && r.checkOutAt,
+  const completedRes = reservations.filter((reservation) =>
+    Boolean(reservation.checkInAt && reservation.checkOutAt),
   );
   const avgDuration =
     completedRes.length > 0
-      ? completedRes.reduce((sum: number, r: any) => {
+      ? completedRes.reduce((sum, reservation) => {
           const days = Math.ceil(
-            (new Date(r.endDate).getTime() - new Date(r.startDate).getTime()) /
+            (new Date(reservation.endDate).getTime() -
+              new Date(reservation.startDate).getTime()) /
               (1000 * 60 * 60 * 24),
           );
           return sum + days;
@@ -127,111 +128,114 @@ async function fetchSystemStats(): Promise<SystemStats> {
       : 0;
 
   const fnbTotalRevenue = fnbOrders
-    .filter((o: any) => o.status !== "CANCELLED")
+    .filter((order) => order.status !== "CANCELLED")
     .reduce(
-      (sum: number, order: any) =>
+      (sum, order) =>
         sum +
         order.items.reduce(
-          (s: number, item: any) => s + Number(item.unitPrice) * item.quantity,
+          (itemSum, item) => itemSum + Number(item.unitPrice) * item.quantity,
           0,
         ),
       0,
     );
 
   const spTypes: Record<string, number> = {};
-  for (const sp of servicePoints as any[]) {
+  for (const sp of servicePoints) {
     spTypes[sp.type] = (spTypes[sp.type] ?? 0) + 1;
   }
 
   const categories = [
     ...new Set(
-      extraServices.map((es: any) => es.category).filter(Boolean) as string[],
+      extraServices
+        .map((service) => service.category)
+        .filter((category): category is string => Boolean(category)),
     ),
   ];
 
-  const totalRating = reviews.reduce((s: number, r: any) => s + r.rating, 0);
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
 
   return {
     cabanas: {
       total: cabanas.length,
-      available: cabanas.filter((c: any) => c.status === "AVAILABLE").length,
-      reserved: cabanas.filter((c: any) => c.status === "RESERVED").length,
-      occupied: cabanas.filter((c: any) => c.status === "OCCUPIED").length,
-      closed: cabanas.filter((c: any) => c.status === "CLOSED").length,
+      available: cabanas.filter((cabana) => cabana.status === "AVAILABLE").length,
+      reserved: cabanas.filter((cabana) => cabana.status === "RESERVED").length,
+      occupied: cabanas.filter((cabana) => cabana.status === "OCCUPIED").length,
+      closed: cabanas.filter((cabana) => cabana.status === "CLOSED").length,
     },
-    classes: classes.map((cls: any) => ({
+    classes: classes.map((cls) => ({
       name: cls.name,
-      count: cabanas.filter((c: any) => c.classId === cls.id).length,
+      count: cabanas.filter((cabana) => cabana.classId === cls.id).length,
       description: cls.description,
     })),
-    concepts: concepts.map((con: any) => {
-      const totalValue = con.products.reduce(
-        (sum: number, cp: any) =>
-          sum + Number(cp.product.salePrice) * cp.quantity,
+    concepts: concepts.map((concept) => {
+      const totalValue = concept.products.reduce(
+        (sum, conceptProduct) =>
+          sum +
+          Number(conceptProduct.product.salePrice) * conceptProduct.quantity,
         0,
       );
       return {
-        name: con.name,
-        description: con.description,
-        productCount: con.products.length,
+        name: concept.name,
+        description: concept.description,
+        productCount: concept.products.length,
         totalValue,
-        serviceFee: Number(con.serviceFee),
+        serviceFee: Number(concept.serviceFee),
       };
     }),
     reservations: {
       total: reservations.length,
-      pending: reservations.filter((r: any) => r.status === "PENDING").length,
-      approved: reservations.filter((r: any) => r.status === "APPROVED").length,
-      checkedIn: reservations.filter((r: any) => r.status === "CHECKED_IN")
+      pending: reservations.filter((reservation) => reservation.status === "PENDING").length,
+      approved: reservations.filter((reservation) => reservation.status === "APPROVED").length,
+      checkedIn: reservations.filter((reservation) => reservation.status === "CHECKED_IN")
         .length,
-      checkedOut: reservations.filter((r: any) => r.status === "CHECKED_OUT")
+      checkedOut: reservations.filter((reservation) => reservation.status === "CHECKED_OUT")
         .length,
-      cancelled: reservations.filter((r: any) => r.status === "CANCELLED")
+      cancelled: reservations.filter((reservation) => reservation.status === "CANCELLED")
         .length,
-      rejected: reservations.filter((r: any) => r.status === "REJECTED").length,
+      rejected: reservations.filter((reservation) => reservation.status === "REJECTED").length,
       avgDuration: Math.round(avgDuration * 10) / 10,
       todayCount: reservations.filter(
-        (r: any) => new Date(r.createdAt) >= todayStart,
+        (reservation) => new Date(reservation.createdAt) >= todayStart,
       ).length,
       weekCount: reservations.filter(
-        (r: any) => new Date(r.createdAt) >= weekStart,
+        (reservation) => new Date(reservation.createdAt) >= weekStart,
       ).length,
       monthCount: reservations.filter(
-        (r: any) => new Date(r.createdAt) >= monthStart,
+        (reservation) => new Date(reservation.createdAt) >= monthStart,
       ).length,
     },
     guests: {
       total: guests.length,
       vip: {
-        standard: guests.filter((g: any) => g.vipLevel === "STANDARD").length,
-        silver: guests.filter((g: any) => g.vipLevel === "SILVER").length,
-        gold: guests.filter((g: any) => g.vipLevel === "GOLD").length,
-        platinum: guests.filter((g: any) => g.vipLevel === "PLATINUM").length,
+        standard: guests.filter((guest) => guest.vipLevel === "STANDARD").length,
+        silver: guests.filter((guest) => guest.vipLevel === "SILVER").length,
+        gold: guests.filter((guest) => guest.vipLevel === "GOLD").length,
+        platinum: guests.filter((guest) => guest.vipLevel === "PLATINUM").length,
       },
-      blacklisted: guests.filter((g: any) => g.isBlacklisted).length,
+      blacklisted: guests.filter((guest) => guest.isBlacklisted).length,
     },
     fnb: {
       totalOrders: fnbOrders.length,
-      preparing: fnbOrders.filter((o: any) => o.status === "PREPARING").length,
-      delivered: fnbOrders.filter((o: any) => o.status === "DELIVERED").length,
-      cancelled: fnbOrders.filter((o: any) => o.status === "CANCELLED").length,
+      preparing: fnbOrders.filter((order) => order.status === "PREPARING").length,
+      delivered: fnbOrders.filter((order) => order.status === "DELIVERED").length,
+      cancelled: fnbOrders.filter((order) => order.status === "CANCELLED").length,
       totalRevenue: fnbTotalRevenue,
     },
     products: {
       total: products.length,
-      active: products.filter((p: any) => p.isActive).length,
+      active: products.filter((product) => product.isActive).length,
       groups: productGroups.length,
     },
     users: {
       total: users.length,
-      admins: users.filter((u: any) => u.role === "ADMIN").length,
-      casinoUsers: users.filter((u: any) => u.role === "CASINO_USER").length,
-      fnbUsers: users.filter((u: any) => u.role === "FNB_USER").length,
-      systemAdmins: users.filter((u: any) => u.role === "SYSTEM_ADMIN").length,
+      admins: users.filter((user) => user.role === "ADMIN").length,
+      casinoUsers: users.filter((user) => user.role === "CASINO_USER").length,
+      fnbUsers: users.filter((user) => user.role === "FNB_USER").length,
+      systemAdmins: users.filter((user) => user.role === "SYSTEM_ADMIN").length,
     },
     staff: {
       total: staff.length,
-      active: staff.filter((s: any) => s.isActive).length,
+      active: staff.filter((employee) => employee.isActive).length,
     },
     servicePoints: {
       total: servicePoints.length,
@@ -1668,7 +1672,6 @@ export class ComprehensivePresentationEngine {
       const pageW = 297;
       const pageH = 210;
       const margin = 15;
-      const contentW = pageW - margin * 2;
 
       const addPageBg = () => {
         doc.setFillColor(10, 10, 20);

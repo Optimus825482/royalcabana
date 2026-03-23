@@ -28,7 +28,7 @@ export const GET = withAuth(
     }
 
     const [items, total] = await Promise.all([
-      (prisma as any).staffTask.findMany({
+      prisma.staffTask.findMany({
         where,
         include: {
           staff: { select: { id: true, name: true } },
@@ -40,7 +40,7 @@ export const GET = withAuth(
         skip,
         take: limit,
       }),
-      (prisma as any).staffTask.count({ where }),
+      prisma.staffTask.count({ where }),
     ]);
 
     return NextResponse.json({ success: true, data: { items, total } });
@@ -64,7 +64,7 @@ export const POST = withAuth(
 
     const { staffId, taskDefinitionId, title, description, date } = parsed.data;
 
-    const item = await (prisma as any).staffTask.create({
+    const item = await prisma.staffTask.create({
       data: {
         staffId,
         taskDefinitionId: taskDefinitionId ?? null,

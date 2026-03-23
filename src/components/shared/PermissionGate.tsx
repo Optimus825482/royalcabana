@@ -42,8 +42,12 @@ export default function PermissionGate({
   fallback = null,
   children,
 }: PermissionGateProps) {
-  const { can, canAny, canAll } = usePermissions();
+  const { can, canAny, canAll, isLoading } = usePermissions();
   const { data: session } = useSession();
+
+  if (isLoading) {
+    return <>{fallback}</>;
+  }
 
   // Rol kontrolü - sadece belirtilen rollere izin ver
   if (allowedRoles?.length) {

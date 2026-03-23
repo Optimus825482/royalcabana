@@ -19,7 +19,7 @@ export const GET = withAuth(
   [Role.SYSTEM_ADMIN, Role.ADMIN],
   async (req, { params }) => {
     const { id } = params!;
-    const item = await (prisma as any).taskDefinition.findUnique({
+    const item = await prisma.taskDefinition.findUnique({
       where: { id },
     });
     if (!item || item.deletedAt) {
@@ -47,7 +47,7 @@ export const PATCH = withAuth(
       );
     }
 
-    const existing = await (prisma as any).taskDefinition.findUnique({
+    const existing = await prisma.taskDefinition.findUnique({
       where: { id },
     });
     if (!existing || existing.deletedAt) {
@@ -57,7 +57,7 @@ export const PATCH = withAuth(
       );
     }
 
-    const item = await (prisma as any).taskDefinition.update({
+    const item = await prisma.taskDefinition.update({
       where: { id },
       data: parsed.data,
     });
@@ -81,7 +81,7 @@ export const DELETE = withAuth(
   [Role.SYSTEM_ADMIN, Role.ADMIN],
   async (req, { session, params }) => {
     const { id } = params!;
-    const existing = await (prisma as any).taskDefinition.findUnique({
+    const existing = await prisma.taskDefinition.findUnique({
       where: { id },
     });
     if (!existing || existing.deletedAt) {
@@ -91,7 +91,7 @@ export const DELETE = withAuth(
       );
     }
 
-    await (prisma as any).taskDefinition.update({
+    await prisma.taskDefinition.update({
       where: { id },
       data: { deletedAt: new Date(), isActive: false },
     });

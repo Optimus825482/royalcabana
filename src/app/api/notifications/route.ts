@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { notificationService } from "@/services/notification.service";
 import { Role } from "@/types";

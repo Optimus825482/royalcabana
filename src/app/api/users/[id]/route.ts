@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { withAuth } from "@/lib/api-middleware";
@@ -7,8 +7,6 @@ import { Role } from "@/types";
 import { Prisma } from "@prisma/client";
 
 const ADMIN_ALLOWED_ROLES = [Role.CASINO_USER, Role.FNB_USER];
-const CASINO_ADMIN_ALLOWED_ROLES = [Role.CASINO_USER];
-
 const passwordSchema = z
   .string()
   .min(8, "Şifre en az 8 karakter olmalı.")
@@ -130,7 +128,8 @@ export const PATCH = withAuth(
       },
     });
 
-    const { password: _pw, ...auditNewValue } = parsed.data;
+    const auditNewValue = { ...parsed.data };
+    delete auditNewValue.password;
     after(async () => {
       await prisma.auditLog.create({
         data: {

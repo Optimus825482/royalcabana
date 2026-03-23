@@ -7,9 +7,6 @@ import {
   Clock,
   TrendingUp,
   ArrowRight,
-  Percent,
-  Users,
-  MapPin,
   Calendar,
 } from "lucide-react";
 import WeatherCard from "@/components/shared/WeatherCard";

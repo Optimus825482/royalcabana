@@ -10,7 +10,7 @@ export const PATCH = withAuth(
   async (req, { session, params }) => {
     const id = params!.id;
 
-    const existing = await (prisma as any).staffTask.findUnique({
+    const existing = await prisma.staffTask.findUnique({
       where: { id },
     });
 
@@ -42,7 +42,7 @@ export const PATCH = withAuth(
       );
     }
 
-    const updated = await (prisma as any).staffTask.update({
+    const updated = await prisma.staffTask.update({
       where: { id },
       data,
       include: {

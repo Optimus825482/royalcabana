@@ -44,10 +44,13 @@ const ICON_MAP: Record<string, typeof Sun> = {
   "50": CloudFog,
 };
 
-function getWeatherIcon(iconCode?: string | null) {
-  if (!iconCode || typeof iconCode !== "string") return Cloud;
+function renderWeatherIcon(iconCode?: string | null) {
+  if (!iconCode || typeof iconCode !== "string") {
+    return <Cloud className="w-5 h-5 text-amber-400 shrink-0" />;
+  }
   const prefix = iconCode.slice(0, 2);
-  return ICON_MAP[prefix] || Cloud;
+  const Icon = ICON_MAP[prefix] || Cloud;
+  return <Icon className="w-5 h-5 text-amber-400 shrink-0" />;
 }
 
 export default function WeatherWidget() {
@@ -84,12 +87,10 @@ export default function WeatherWidget() {
 
   if (!data) return null;
 
-  const WeatherIcon = getWeatherIcon(data.icon);
-
   return (
     <Link href="/weather" className="block">
       <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-amber-500/30 transition-colors">
-        <WeatherIcon className="w-5 h-5 text-amber-400 shrink-0" />
+        {renderWeatherIcon(data.icon)}
         <div className="flex items-center gap-2 text-xs text-neutral-300">
           <span className="font-semibold text-sm text-neutral-100">
             {data.temp}°C

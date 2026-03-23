@@ -11,7 +11,7 @@ export const GET = withAuth(
   async (_req, { params }) => {
     const id = params!.id;
 
-    const staff = await (prisma as any).staff.findUnique({
+    const staff = await prisma.staff.findUnique({
       where: { id },
       include: {
         assignments: {
@@ -53,7 +53,7 @@ export const PATCH = withAuth(
   async (req, { session, params }) => {
     const id = params!.id;
 
-    const existing = await (prisma as any).staff.findUnique({
+    const existing = await prisma.staff.findUnique({
       where: { id },
     });
 
@@ -74,7 +74,7 @@ export const PATCH = withAuth(
       );
     }
 
-    const updated = await (prisma as any).staff.update({
+    const updated = await prisma.staff.update({
       where: { id },
       data: parsed.data,
     });
@@ -104,7 +104,7 @@ export const DELETE = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const existing = await (prisma as any).staff.findUnique({
+    const existing = await prisma.staff.findUnique({
       where: { id },
     });
 
@@ -116,7 +116,7 @@ export const DELETE = withAuth(
     }
 
     // Soft delete — prisma extension handles this
-    await (prisma as any).staff.delete({
+    await prisma.staff.delete({
       where: { id },
     });
 

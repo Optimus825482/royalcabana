@@ -10,7 +10,7 @@ export const DELETE = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const entry = await (prisma as any).waitlistEntry.findUnique({
+    const entry = await prisma.waitlistEntry.findUnique({
       where: { id },
     });
 
@@ -35,7 +35,7 @@ export const DELETE = withAuth(
       );
     }
 
-    await (prisma as any).waitlistEntry.update({
+    await prisma.waitlistEntry.update({
       where: { id },
       data: {
         isNotified: true,

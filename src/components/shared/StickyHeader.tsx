@@ -82,7 +82,10 @@ export default function StickyHeader({
   const { data: session } = useSession();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 bg-[var(--rc-sidebar)] border-b border-[var(--rc-border-subtle)] shrink-0">

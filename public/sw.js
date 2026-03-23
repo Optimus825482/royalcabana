@@ -2,7 +2,7 @@
 // Cache versioning, precache, stale-while-revalidate, network-first,
 // offline fallback, push notifications, background sync
 
-const CACHE_VERSION = "royal-cabana-v5";
+const CACHE_VERSION = "royal-cabana-v6";
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -47,7 +47,7 @@ self.addEventListener("push", (event) => {
   if (event.data) {
     try {
       data = Object.assign(data, event.data.json());
-    } catch (e) {
+    } catch {
       data.body = event.data.text();
     }
   }
@@ -134,9 +134,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // API GET requests: network-first
+  // API GET requests: network-only to avoid persisting authenticated payloads
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(networkFirst(request));
+    event.respondWith(fetch(request));
     return;
   }
 
@@ -162,23 +162,6 @@ function staleWhileRevalidate(request) {
       return cached || fetchPromise;
     });
   });
-}
-
-// ─── Strategy: network-first ───
-function networkFirst(request) {
-  return fetch(request)
-    .then(function (response) {
-      if (response && response.ok) {
-        var clone = response.clone();
-        caches.open(RUNTIME_CACHE).then(function (cache) {
-          cache.put(request, clone);
-        });
-      }
-      return response;
-    })
-    .catch(function () {
-      return caches.match(request);
-    });
 }
 
 // ─── Strategy: cache-first with network fallback ───

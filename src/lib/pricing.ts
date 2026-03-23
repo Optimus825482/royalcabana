@@ -33,6 +33,7 @@ export class PricingEngine {
       startDate,
       endDate,
       extraItems = [],
+      customRequestPrice,
       reservationId,
     } = params;
 
@@ -139,10 +140,8 @@ export class PricingEngine {
     let extraRequestsTotal = 0;
 
     if (reservationId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const approvedExtras = await (
-        this.prisma as any
-      ).reservationExtraRequest.findMany({
+      const approvedExtras =
+        await this.prisma.reservationExtraRequest.findMany({
         where: {
           reservationId,
           status: "APPROVED",
@@ -169,8 +168,22 @@ export class PricingEngine {
       }
     }
 
-    // ── 4. Grand Total ────────────────────────────────────────────────────────
-    const grandTotal = conceptTotal + extrasTotal + extraRequestsTotal;
+    // ── 4. Manual custom request fee ───────────────────────────────────────────
+    const customRequestTotal = customRequestPrice ?? 0;
+
+    if (customRequestPrice != null) {
+      items.push({
+        name: "Özel Talep",
+        quantity: 1,
+        unitPrice: customRequestTotal,
+        total: customRequestTotal,
+        source: "GENERAL",
+      });
+    }
+
+    // ── 5. Grand Total ────────────────────────────────────────────────────────
+    const grandTotal =
+      conceptTotal + extrasTotal + extraRequestsTotal + customRequestTotal;
 
     return {
       days,
@@ -222,7 +235,7 @@ export class PricingEngine {
         const storedExtras = parseExtraItemsJson(res.extraItems_json);
 
         let customRequestAmount = 0;
-        if (res.customRequestPriced && res.customRequestPrice) {
+        if (res.customRequestPriced && res.customRequestPrice != null) {
           customRequestAmount = Number(res.customRequestPrice);
         }
 
@@ -232,7 +245,9 @@ export class PricingEngine {
           startDate: res.startDate,
           endDate: res.endDate,
           extraItems: storedExtras,
-          customRequestPrice: customRequestAmount || undefined,
+          customRequestPrice: res.customRequestPriced
+            ? customRequestAmount
+            : undefined,
           reservationId: res.id,
         });
 

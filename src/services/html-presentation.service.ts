@@ -98,8 +98,8 @@ async function fetchData(): Promise<SlideData> {
     .map((c) => {
       const conceptProducts = c.concept!.products ?? [];
       const totalValue = conceptProducts.reduce(
-        (sum: number, cp: any) =>
-          sum + Number(cp.product.salePrice) * cp.quantity,
+        (sum, productEntry) =>
+          sum + Number(productEntry.product.salePrice) * productEntry.quantity,
         0,
       );
       return {

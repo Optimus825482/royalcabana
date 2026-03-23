@@ -10,14 +10,17 @@ export async function GET() {
   const session = await getAuthSession();
 
   if (!session?.user?.id || !session.user.role) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { success: false, data: null, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   if (process.env.NODE_ENV === "production") {
     const rl = await checkRateLimit(`sse:${session.user.id}`, 30, 60_000);
     if (!rl.allowed) {
       return NextResponse.json(
-        { success: false, error: "Rate limit aşıldı." },
+        { success: false, data: null, error: "Rate limit aşıldı." },
         { status: 429 },
       );
     }
@@ -33,7 +36,11 @@ export async function GET() {
       connectionId = sseManager.addConnection(userId, role, controller);
 
       // Send initial connected event
-      const payload = `event: connected\ndata: ${JSON.stringify({ connectionId })}\n\n`;
+      const payload = `event: connected\ndata: ${JSON.stringify({
+        success: true,
+        data: { connectionId },
+        error: null,
+      })}\n\n`;
       controller.enqueue(new TextEncoder().encode(payload));
     },
     cancel() {

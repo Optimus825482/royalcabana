@@ -10,7 +10,7 @@ import { notificationService } from "@/services/notification.service";
 
 // GET — FnB siparişlerini listele (filtre + pagination)
 export const GET = withAuth(
-  [Role.FNB_USER, Role.ADMIN, Role.SYSTEM_ADMIN],
+  [Role.FNB_USER, Role.FNB_ADMIN, Role.ADMIN, Role.SYSTEM_ADMIN],
   async (req) => {
     const { searchParams } = req.nextUrl;
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -38,7 +38,7 @@ export const GET = withAuth(
     }
 
     const [orders, total] = await Promise.all([
-      (prisma as any).fnbOrder.findMany({
+      prisma.fnbOrder.findMany({
         where,
         include: {
           items: {
@@ -57,24 +57,28 @@ export const GET = withAuth(
         skip,
         take: limit,
       }),
-      (prisma as any).fnbOrder.count({ where }),
+      prisma.fnbOrder.count({ where }),
     ]);
 
-    return NextResponse.json({ success: true, data: { orders, total } });
+    return NextResponse.json({
+      success: true,
+      data: { orders, total },
+      error: null,
+    });
   },
   { requiredPermissions: ["fnb.order.view"] },
 );
 
 // POST — Yeni FnB siparişi oluştur
 export const POST = withAuth(
-  [Role.FNB_USER],
+  [Role.FNB_USER, Role.FNB_ADMIN],
   async (req, { session }) => {
     const body = await req.json();
     const parsed = parseBody(createFnbOrderSchema, body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: parsed.error },
+        { success: false, data: null, error: parsed.error },
         { status: 400 },
       );
     }
@@ -94,7 +98,7 @@ export const POST = withAuth(
 
     if (!reservation) {
       return NextResponse.json(
-        { success: false, error: "Rezervasyon bulunamadı." },
+        { success: false, data: null, error: "Rezervasyon bulunamadı." },
         { status: 404 },
       );
     }
@@ -105,8 +109,8 @@ export const POST = withAuth(
       0,
     );
 
-    const order = await prisma.$transaction(async (tx: any) => {
-      const created = await (tx as any).fnbOrder.create({
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.fnbOrder.create({
         data: {
           reservationId,
           cabanaId,
@@ -175,7 +179,10 @@ export const POST = withAuth(
       }
     });
 
-    return NextResponse.json({ success: true, data: order }, { status: 201 });
+    return NextResponse.json(
+      { success: true, data: order, error: null },
+      { status: 201 },
+    );
   },
   { requiredPermissions: ["fnb.order.create"] },
 );

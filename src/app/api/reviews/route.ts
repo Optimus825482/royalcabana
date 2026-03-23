@@ -38,7 +38,7 @@ export const GET = withAuth(
     where.deletedAt = null;
 
     const [reviews, total] = await Promise.all([
-      (prisma as any).review.findMany({
+      prisma.review.findMany({
         where,
         include: {
           reservation: {
@@ -56,7 +56,7 @@ export const GET = withAuth(
         skip,
         take: limit,
       }),
-      (prisma as any).review.count({ where }),
+      prisma.review.count({ where }),
     ]);
 
     return NextResponse.json({
@@ -121,7 +121,7 @@ export const POST = withAuth(
     }
 
     // Check if review already exists
-    const existing = await (prisma as any).review.findUnique({
+    const existing = await prisma.review.findUnique({
       where: { reservationId },
     });
 
@@ -135,7 +135,7 @@ export const POST = withAuth(
       );
     }
 
-    const review = await (prisma as any).review.create({
+    const review = await prisma.review.create({
       data: {
         reservationId,
         userId: session.user.id,

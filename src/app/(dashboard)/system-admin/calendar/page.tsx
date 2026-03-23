@@ -684,3 +684,5 @@ function DetailRow({
     </div>
   );
 }
+
+void AdminReservationModal;

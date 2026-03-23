@@ -80,12 +80,8 @@ function SidebarGroup({
   const isGroupActive = group.children.some(
     (c) => pathname === c.href || pathname.startsWith(c.href + "/"),
   );
-  const [open, setOpen] = useState(isGroupActive);
-
-  // Auto-open when navigating into group
-  useEffect(() => {
-    if (isGroupActive) setOpen(true);
-  }, [isGroupActive]);
+  const [manualOpen, setManualOpen] = useState(isGroupActive);
+  const open = isGroupActive || manualOpen;
 
   const IconComp = group.icon;
 
@@ -116,7 +112,7 @@ function SidebarGroup({
   return (
     <div>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setManualOpen((v) => !v)}
         className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${
           isGroupActive ? "bg-[var(--rc-card-hover)]/80" : "hover:bg-[var(--rc-card-hover)]/50"
         }`}

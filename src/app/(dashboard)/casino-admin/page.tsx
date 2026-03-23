@@ -5,7 +5,7 @@ import { Percent, Clock, CalendarCheck, X } from "lucide-react";
 import Link from "next/link";
 import WeatherCard from "@/components/shared/WeatherCard";
 import { KpiCard } from "@/components/shared/KpiCard";
-import { Card, CardContent } from "@/components/molecules/Card";
+import { Card } from "@/components/molecules/Card";
 import { ListPageTemplate } from "@/components/templates";
 import { SkeletonCardGrid } from "@/components/atoms/Skeleton";
 

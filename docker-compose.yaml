@@ -54,6 +54,8 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-Royal Cabana <noreply@royalcabana.com>}
+      VAPID_EMAIL: ${VAPID_EMAIL:-mailto:admin@royalcabana.com}
+      RUN_SEED_ON_STARTUP: ${RUN_SEED_ON_STARTUP:-false}
       NODE_ENV: production
       PORT: 3006
       HOSTNAME: "0.0.0.0"
@@ -65,10 +67,14 @@ services:
       context: .
       dockerfile: Dockerfile.socket
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     environment:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET env variable is required}
+      REDIS_URL: redis://redis:6379
       SOCKET_PORT: 3007
       NODE_ENV: production
     ports:

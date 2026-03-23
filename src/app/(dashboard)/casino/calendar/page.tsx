@@ -153,16 +153,9 @@ export default function CasinoCalendarPage() {
     [reservationData],
   );
 
-  const handleContextMenu = useCallback(
-    (
-      _event: ReservationEvent,
-      _action: "modify" | "cancel" | "extra-concept",
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ) => {
-      // 12.4 görevinde implement edilecek modal'lar buraya bağlanacak
-    },
-    [],
-  );
+  const handleContextMenu = useCallback(() => {
+    // 12.4 görevinde implement edilecek modal'lar buraya bağlanacak
+  }, []);
 
   function handleRequestSuccess() {
     setRequestModal(null);

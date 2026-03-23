@@ -7,7 +7,7 @@ import {
 } from "@/lib/rbac";
 import { Role } from "@prisma/client";
 
-const db = prisma as any;
+const db = prisma;
 
 export async function ensureRbacBootstrap() {
   try {

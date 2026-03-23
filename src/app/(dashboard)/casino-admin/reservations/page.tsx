@@ -632,13 +632,9 @@ export default function CasinoAdminReservationsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // Bildirimden tıklanınca gelen ?reservationId= ile detayı aç
-  useEffect(() => {
-    const id = searchParams.get("reservationId");
-    if (id) setSelectedId(id);
-  }, [searchParams]);
+  const [selectedId, setSelectedId] = useState<string | null>(() =>
+    searchParams.get("reservationId"),
+  );
   const [sortField, setSortField] = useState<"createdAt" | "startDate">(
     "createdAt",
   );
@@ -657,7 +653,7 @@ export default function CasinoAdminReservationsPage() {
     queryFn: () => fetchReservationList(page, statusFilter, search),
   });
 
-  const reservations = data?.reservations ?? [];
+  const reservations = useMemo(() => data?.reservations ?? [], [data]);
   const total = data?.total ?? 0;
 
   const { data: selectedDetail, isLoading: detailLoading } = useQuery({
@@ -667,22 +663,14 @@ export default function CasinoAdminReservationsPage() {
   });
 
   // SSE: invalidate on reservation updates
-  const invalidateRef = useRef(() => {
+  const invalidateQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["casino-admin-reservations"] });
     if (selectedId) {
       queryClient.invalidateQueries({
         queryKey: ["casino-admin-reservation-detail", selectedId],
       });
     }
-  });
-  invalidateRef.current = () => {
-    queryClient.invalidateQueries({ queryKey: ["casino-admin-reservations"] });
-    if (selectedId) {
-      queryClient.invalidateQueries({
-        queryKey: ["casino-admin-reservation-detail", selectedId],
-      });
-    }
-  };
+  }, [queryClient, selectedId]);
 
   const handleSSEEvent = useCallback((event: string) => {
     if (
@@ -694,9 +682,9 @@ export default function CasinoAdminReservationsPage() {
       event === SSE_EVENTS.RESERVATION_CHECKED_IN ||
       event === SSE_EVENTS.RESERVATION_CHECKED_OUT
     ) {
-      invalidateRef.current();
+      invalidateQueries();
     }
-  }, []);
+  }, [invalidateQueries]);
 
   useSSE({ onEvent: handleSSEEvent as (event: string, data: unknown) => void });
 
@@ -823,17 +811,13 @@ export default function CasinoAdminReservationsPage() {
   );
 
   // Auto-dismiss messages
-  const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  if (message && !msgTimerRef.current) {
-    msgTimerRef.current = setTimeout(() => {
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => {
       setMessage(null);
-      msgTimerRef.current = null;
     }, 4000);
-  }
-  if (!message && msgTimerRef.current) {
-    clearTimeout(msgTimerRef.current);
-    msgTimerRef.current = null;
-  }
+    return () => clearTimeout(timer);
+  }, [message]);
 
   const loading = isLoading;
 

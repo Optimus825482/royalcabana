@@ -3,7 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { Role } from "@/types";
 
-const adminRoles = [Role.ADMIN, Role.SYSTEM_ADMIN];
+const adminRoles = [
+  Role.ADMIN,
+  Role.SYSTEM_ADMIN,
+  Role.CASINO_ADMIN,
+  Role.FNB_ADMIN,
+];
 
 /**
  * GET /api/pricing/calculated-default?cabanaId=xxx
@@ -18,7 +23,10 @@ export const GET = withAuth(
     const cabanaId = searchParams.get("cabanaId");
 
     if (!cabanaId) {
-      return NextResponse.json({ error: "cabanaId gerekli." }, { status: 400 });
+      return NextResponse.json(
+        { success: false, data: null, error: "cabanaId gerekli." },
+        { status: 400 },
+      );
     }
 
     const cabana = await prisma.cabana.findFirst({
@@ -28,7 +36,7 @@ export const GET = withAuth(
 
     if (!cabana) {
       return NextResponse.json(
-        { error: "Cabana bulunamadı." },
+        { success: false, data: null, error: "Cabana bulunamadı." },
         { status: 404 },
       );
     }
@@ -48,13 +56,14 @@ export const GET = withAuth(
             products: [],
           },
         },
+        error: null,
       });
     }
 
     // Konsept verisini paralel çek
     const [concept, conceptProducts] = await Promise.all([
-      prisma.concept.findUnique({
-        where: { id: cabana.conceptId },
+      prisma.concept.findFirst({
+        where: { id: cabana.conceptId, deletedAt: null },
         select: { id: true, name: true, serviceFee: true },
       }),
       prisma.conceptProduct.findMany({
@@ -70,7 +79,7 @@ export const GET = withAuth(
 
     if (!concept) {
       return NextResponse.json(
-        { error: "Konsept bulunamadı." },
+        { success: false, data: null, error: "Konsept bulunamadı." },
         { status: 404 },
       );
     }
@@ -115,6 +124,7 @@ export const GET = withAuth(
           products,
         },
       },
+      error: null,
     });
   },
   { requiredPermissions: ["pricing.view"] },

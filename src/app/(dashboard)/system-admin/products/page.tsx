@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Modal,
@@ -68,7 +68,7 @@ export default function ProductsPage() {
     isLoading: loading,
     isError,
     error: queryError,
-  } = useQuery({
+  } = useQuery<{ products: Product[]; groups: ProductGroup[] }>({
     queryKey: ["products-and-groups"],
     queryFn: async () => {
       const [pRes, gRes] = await Promise.all([
@@ -88,9 +88,12 @@ export default function ProductsPage() {
   });
 
   const products = productsAndGroups?.products ?? [];
-  const groups = productsAndGroups?.groups ?? [];
+  const groups = useMemo(
+    () => productsAndGroups?.groups ?? [],
+    [productsAndGroups],
+  );
 
-  const [error, setError] = useState(queryError ? String(queryError) : "");
+  const [error] = useState(queryError ? String(queryError) : "");
   const [success, setSuccess] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 

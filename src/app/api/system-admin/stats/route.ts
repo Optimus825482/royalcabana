@@ -3,9 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Role, ReservationStatus } from "@/types";
 import { withAuth } from "@/lib/api-middleware";
 
-// Prisma $extends ile dönen tip, bazı modellerde doğrudan erişimi kısıtlıyor.
-// Projede standart pattern: (prisma as any) ile erişim.
-const db = prisma as any;
+const db = prisma;
 
 export const GET = withAuth(
   [Role.SYSTEM_ADMIN],

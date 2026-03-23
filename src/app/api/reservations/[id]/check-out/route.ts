@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { CabanaStatus, NotificationType, Role } from "@/types";
+import { CabanaStatus, NotificationType, ReservationStatus, Role } from "@/types";
 import { logAudit } from "@/lib/audit";
 import { sseManager } from "@/lib/sse";
 import { SSE_EVENTS } from "@/lib/sse-events";
@@ -13,7 +13,7 @@ export const POST = withAuth(
   async (_req, { session, params }) => {
     const id = params!.id;
 
-    const reservation = await (prisma.reservation.findUnique as any)({
+    const reservation = await prisma.reservation.findUnique({
       where: { id },
       include: { cabana: { select: { name: true } } },
     });
@@ -25,7 +25,7 @@ export const POST = withAuth(
       );
     }
 
-    if (reservation.status !== "CHECKED_IN") {
+    if (reservation.status !== ReservationStatus.CHECKED_IN) {
       return NextResponse.json(
         {
           success: false,
@@ -38,57 +38,54 @@ export const POST = withAuth(
 
     const now = new Date();
 
-    const txOps: any[] = [
-      prisma.reservation.update({
+    const otherActiveCount = await prisma.reservation.count({
+      where: {
+        cabanaId: reservation.cabanaId,
+        id: { not: id },
+        status: ReservationStatus.CHECKED_IN,
+        deletedAt: null,
+      },
+    });
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedReservation = await tx.reservation.update({
         where: { id },
         data: {
-          status: "CHECKED_OUT" as any,
+          status: ReservationStatus.CHECKED_OUT,
           checkOutAt: now,
           checkedOutBy: session.user.id,
-        } as any,
+        },
         include: { cabana: { select: { name: true } } },
-      }),
-      prisma.reservationStatusHistory.create({
+      });
+
+      await tx.reservationStatusHistory.create({
         data: {
           reservationId: id,
           fromStatus: reservation.status,
-          toStatus: "CHECKED_OUT" as any,
+          toStatus: ReservationStatus.CHECKED_OUT,
           changedBy: session.user.id,
         },
-      }),
-    ];
+      });
 
-    if (reservation.guestId) {
-      txOps.push(
-        (prisma as any).guest.update({
+      if (reservation.guestId) {
+        await tx.guest.update({
           where: { id: reservation.guestId },
           data: {
             totalVisits: { increment: 1 },
             lastVisitAt: now,
           },
-        }),
-      );
-    }
+        });
+      }
 
-    const otherActiveCount = await prisma.reservation.count({
-      where: {
-        cabanaId: reservation.cabanaId,
-        id: { not: id },
-        status: "CHECKED_IN" as any,
-        deletedAt: null,
-      },
-    });
-
-    if (otherActiveCount === 0) {
-      txOps.push(
-        prisma.cabana.update({
+      if (otherActiveCount === 0) {
+        await tx.cabana.update({
           where: { id: reservation.cabanaId },
           data: { status: CabanaStatus.AVAILABLE },
-        }),
-      );
-    }
+        });
+      }
 
-    const [updated] = await prisma.$transaction(txOps);
+      return updatedReservation;
+    });
 
     logAudit({
       userId: session.user.id,

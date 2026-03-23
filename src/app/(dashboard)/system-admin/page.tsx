@@ -13,10 +13,9 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import WeatherCard from "@/components/shared/WeatherCard";
 import { KpiCard } from "@/components/shared/KpiCard";
-import { Card, CardContent } from "@/components/molecules/Card";
+import { Card } from "@/components/molecules/Card";
 import { SkeletonCardGrid } from "@/components/atoms/Skeleton";
 import { ListPageTemplate } from "@/components/templates";
 

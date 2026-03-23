@@ -8,7 +8,7 @@ import { parseBody } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { ensureRbacBootstrap } from "@/services/rbac.service";
 
-const db = prisma as any;
+const db = prisma;
 
 const createSchema = z.object({
   role: z.nativeEnum(Role),

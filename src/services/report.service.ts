@@ -47,6 +47,57 @@ function clampDate(d: Date, start?: Date, end?: Date): Date {
   return d;
 }
 
+function startOfUtcDay(date: Date): Date {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+}
+
+function addUtcDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+}
+
+function periodBounds(period: string, groupBy: ReportGroupBy): {
+  start: Date;
+  end: Date;
+} {
+  switch (groupBy) {
+    case ReportGroupBy.DAILY: {
+      const start = new Date(`${period}T00:00:00.000Z`);
+      return { start, end: addUtcDays(start, 1) };
+    }
+    case ReportGroupBy.WEEKLY: {
+      const start = new Date(`${period}T00:00:00.000Z`);
+      return { start, end: addUtcDays(start, 7) };
+    }
+    case ReportGroupBy.MONTHLY: {
+      const start = new Date(`${period}-01T00:00:00.000Z`);
+      return {
+        start,
+        end: new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1)),
+      };
+    }
+    default: {
+      const unreachable: never = groupBy;
+      throw new Error(`Desteklenmeyen grup tipi: ${unreachable}`);
+    }
+  }
+}
+
+function periodCapacityDays(
+  period: string,
+  groupBy: ReportGroupBy,
+  reportStart: Date,
+  reportEnd: Date,
+): number {
+  const bounds = periodBounds(period, groupBy);
+  const start = clampDate(bounds.start, reportStart, reportEnd);
+  const end = clampDate(bounds.end, reportStart, reportEnd);
+  return dateDiffDays(start, end);
+}
+
 // ─── Engine ────────────────────────────────────────────────────────────────────
 
 export class ReportEngine {
@@ -113,7 +164,7 @@ export class ReportEngine {
     }
 
     const totalCabanas = cabanas.length;
-    const periodStart = filters.startDate ?? new Date("2024-01-01");
+    const periodStart = startOfUtcDay(filters.startDate ?? new Date("2024-01-01"));
     const periodEnd = filters.endDate ?? new Date();
     const totalPeriodDays = dateDiffDays(periodStart, periodEnd);
 
@@ -177,14 +228,12 @@ export class ReportEngine {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([period, b]) => ({
         period,
-        occupancy:
-          totalCapacityDays > 0
-            ? Math.round(
-                (b.reservedDays /
-                  (totalCabanas * (totalPeriodDays / periodBuckets.size))) *
-                  10000,
-              ) / 100
-            : 0,
+        occupancy: (() => {
+          const capacityDays = totalCabanas * periodCapacityDays(period, groupBy, periodStart, periodEnd);
+          return capacityDays > 0
+            ? Math.round((b.reservedDays / capacityDays) * 10000) / 100
+            : 0;
+        })(),
         reservations: b.reservations,
         revenue: Math.round(b.revenue * 100) / 100,
       }));
@@ -833,8 +882,8 @@ export class ReportEngine {
         prisma.reservation.count({ where: { ...where, status: "APPROVED" } }),
         prisma.reservation.count({ where: { ...where, status: "REJECTED" } }),
         prisma.reservation.count({ where: { ...where, status: "CANCELLED" } }),
-        prisma.modificationRequest.count(),
-        prisma.cancellationRequest.count(),
+        prisma.modificationRequest.count({ where: { reservation: where } }),
+        prisma.cancellationRequest.count({ where: { reservation: where } }),
       ]);
 
     if (total === 0) warnings.push("Eksik veri alanları: rezervasyon");

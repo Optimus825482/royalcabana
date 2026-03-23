@@ -328,14 +328,14 @@ function OrderCard({
               <button
                 onClick={() => onStatusChange(order.id, "READY")}
                 disabled={isUpdating}
-                className="min-h-[32px] px-3 py-1 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
+                className="min-h-8 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
               >
                 Hazır
               </button>
               <button
                 onClick={() => onStatusChange(order.id, "CANCELLED")}
                 disabled={isUpdating}
-                className="min-h-[32px] px-3 py-1 text-xs font-medium rounded-md bg-red-600/20 hover:bg-red-600/40 disabled:opacity-50 text-red-400 border border-red-500/30 transition-colors"
+                className="min-h-8 px-3 py-1 text-xs font-medium rounded-md bg-red-600/20 hover:bg-red-600/40 disabled:opacity-50 text-red-400 border border-red-500/30 transition-colors"
               >
                 İptal
               </button>
@@ -345,7 +345,7 @@ function OrderCard({
             <button
               onClick={() => onStatusChange(order.id, "DELIVERED")}
               disabled={isUpdating}
-              className="min-h-[32px] px-3 py-1 text-xs font-medium rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-colors"
+              className="min-h-8 px-3 py-1 text-xs font-medium rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-colors"
             >
               <Truck className="w-3 h-3 inline mr-1" />
               Teslim Et
@@ -397,8 +397,14 @@ function NewOrderModal({
     queryFn: fetchProducts,
   });
 
-  const reservations = reservationData?.reservations ?? [];
-  const productsList = Array.isArray(products) ? products : [];
+  const reservations = useMemo(
+    () => reservationData?.reservations ?? [],
+    [reservationData],
+  );
+  const productsList = useMemo(
+    () => (Array.isArray(products) ? products : []),
+    [products],
+  );
 
   const handleReservationChange = useCallback(
     (id: string) => {
@@ -499,6 +505,8 @@ function NewOrderModal({
             value={reservationId}
             onChange={(e) => handleReservationChange(e.target.value)}
             disabled={resLoading}
+            aria-label="Rezervasyon seç"
+            title="Rezervasyon seç"
           >
             <option value="">
               {resLoading ? "Yükleniyor..." : "Rezervasyon seçin"}
@@ -565,6 +573,8 @@ function NewOrderModal({
                                   Math.max(0, parseInt(e.target.value) || 0),
                                 )
                               }
+                              aria-label={`${product.name} miktarı`}
+                              title={`${product.name} miktarı`}
                               className="w-10 h-7 text-center text-sm bg-neutral-800 border border-neutral-700 rounded text-neutral-100 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <button
@@ -607,7 +617,7 @@ function NewOrderModal({
         {/* Notes */}
         <Field label="Notlar (opsiyonel)">
           <textarea
-            className={`${inputCls} min-h-[60px] resize-none`}
+            className={`${inputCls} min-h-15 resize-none`}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Sipariş notu..."
@@ -841,7 +851,7 @@ function TodayReservationsPanel({
                     <button
                       onClick={() => onCheckIn(r.id)}
                       disabled={isCheckingIn}
-                      className="flex-1 min-h-[32px] flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-colors"
+                      className="flex-1 min-h-8 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-colors"
                     >
                       <LogIn className="w-3 h-3" />
                       Check-in
@@ -851,7 +861,7 @@ function TodayReservationsPanel({
                     <button
                       onClick={() => onCheckOut(r.id)}
                       disabled={isCheckingOut}
-                      className="flex-1 min-h-[32px] flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 text-neutral-200 transition-colors"
+                      className="flex-1 min-h-8 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 text-neutral-200 transition-colors"
                     >
                       <LogOut className="w-3 h-3" />
                       Check-out
@@ -1012,7 +1022,7 @@ export default function FnbPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowModal(true)}
-                className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 text-neutral-950 transition-colors"
+                className="min-h-11 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-yellow-600 hover:bg-yellow-500 text-neutral-950 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Yeni Sipariş
@@ -1065,7 +1075,9 @@ export default function FnbPage() {
                 <select
                   value={cabanaFilter}
                   onChange={(e) => setCabanaFilter(e.target.value)}
-                  className="bg-neutral-800 border border-neutral-700 text-neutral-300 rounded-md text-xs px-2 py-1.5 outline-none min-h-[32px]"
+                  aria-label="Cabana filtresi"
+                  title="Cabana filtresi"
+                  className="bg-neutral-800 border border-neutral-700 text-neutral-300 rounded-md text-xs px-2 py-1.5 outline-none min-h-8"
                 >
                   <option value="">Tüm Cabanalar</option>
                   {cabanaOptions.map((c) => (

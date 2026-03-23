@@ -1,12 +1,30 @@
-FROM node:20-alpine
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY socket-server/ ./socket-server/
+
+RUN ./node_modules/.bin/tsc \
+  --module CommonJS \
+  --target ES2022 \
+  --moduleResolution Node \
+  --esModuleInterop \
+  --outDir /app/socket-dist \
+  socket-server/index.ts \
+  socket-server/socket-rate-limit.ts
+
+FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY socket-server/ ./socket-server/
+COPY --from=builder /app/socket-dist ./socket-dist
 
 EXPOSE 3007
 
-CMD ["npx", "tsx", "socket-server/index.ts"]
+CMD ["node", "socket-dist/index.js"]

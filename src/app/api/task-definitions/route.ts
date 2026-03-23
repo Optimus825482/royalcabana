@@ -40,13 +40,13 @@ export const GET = withAuth(
     }
 
     const [items, total] = await Promise.all([
-      (prisma as any).taskDefinition.findMany({
+      prisma.taskDefinition.findMany({
         where,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      (prisma as any).taskDefinition.count({ where }),
+      prisma.taskDefinition.count({ where }),
     ]);
 
     return NextResponse.json({ success: true, data: { items, total } });
@@ -67,7 +67,7 @@ export const POST = withAuth(
       );
     }
 
-    const item = await (prisma as any).taskDefinition.create({
+    const item = await prisma.taskDefinition.create({
       data: {
         title: parsed.data.title,
         description: parsed.data.description ?? null,

@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ReservationCalendar from "@/components/calendar/ReservationCalendar";
 import { ReservationStatus } from "@/types";
-import { AlertTriangle, CalendarDays } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import ReservationDetailModal, {
   type ReservationDetailData,
 } from "@/components/calendar/ReservationDetailModal";
@@ -134,16 +134,9 @@ export default function CasinoAdminCalendarPage() {
     [reservationData],
   );
 
-  const handleContextMenu = useCallback(
-    (
-      event: ReservationEvent,
-      action: "modify" | "cancel" | "extra-concept",
-    ) => {
-      void event;
-      void action;
-    },
-    [],
-  );
+  const handleContextMenu = useCallback(() => {
+    // 12.4 görevinde implement edilecek modal'lar buraya bağlanacak
+  }, []);
 
   function refreshData() {
     queryClient.invalidateQueries({ queryKey: ["reservations"] });

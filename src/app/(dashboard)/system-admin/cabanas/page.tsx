@@ -118,6 +118,7 @@ export default function CabanasPage() {
   const [assignConceptId, setAssignConceptId] = useState("");
   const [assignMinibarTypeId, setAssignMinibarTypeId] = useState("");
   const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState("");
 
   const { data: pricingData = [] } = useQuery<CabanaPricingRow[]>({
     queryKey: ["cabana-daily-prices"],
@@ -237,6 +238,7 @@ export default function CabanasPage() {
   async function handleAssignConcept() {
     if (!assignCabana) return;
     setAssignLoading(true);
+    setAssignError("");
     try {
       const res = await fetch(`/api/cabanas/${assignCabana.id}`, {
         method: "PATCH",
@@ -246,15 +248,27 @@ export default function CabanasPage() {
           minibarTypeId: assignMinibarTypeId || null,
         }),
       });
-      if (!res.ok) throw new Error("Konsept atanamadı");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          (data as { error?: string } | null)?.error ?? "Konsept atanamadı",
+        );
+      }
       setAssignCabana(null);
+      setAssignError("");
       showSuccessMsg("Konsept başarıyla atandı");
       queryClient.invalidateQueries({ queryKey: ["cabanas-management"] });
-    } catch {
-      // silent
+    } catch (e: unknown) {
+      setAssignError(e instanceof Error ? e.message : "Bir hata oluştu");
     } finally {
       setAssignLoading(false);
     }
+  }
+
+  function formatCoordinate(value: number | null | undefined) {
+    return typeof value === "number" && Number.isFinite(value)
+      ? value.toFixed(0)
+      : "—";
   }
 
   return (
@@ -376,13 +390,14 @@ export default function CabanasPage() {
                   </button>
                   <PermissionGate permission="concept.update">
                     <button
-                      onClick={() => {
-                        setAssignCabana(cabana);
-                        setAssignConceptId(cabana.concept?.id || "");
-                        setAssignMinibarTypeId(cabana.minibarType?.id || "");
-                      }}
-                      className={editBtnCls}
-                    >
+                    onClick={() => {
+                      setAssignCabana(cabana);
+                      setAssignConceptId(cabana.concept?.id || "");
+                      setAssignMinibarTypeId(cabana.minibarType?.id || "");
+                      setAssignError("");
+                    }}
+                    className={editBtnCls}
+                  >
                       İşlemler
                     </button>
                   </PermissionGate>
@@ -435,8 +450,8 @@ export default function CabanasPage() {
               <div>
                 <span className="text-neutral-500">Konum:</span>{" "}
                 <span className="text-neutral-200">
-                  {detailCabana.coordX.toFixed(0)},{" "}
-                  {detailCabana.coordY.toFixed(0)}
+                  {formatCoordinate(detailCabana.coordX)},{" "}
+                  {formatCoordinate(detailCabana.coordY)}
                 </span>
               </div>
             </div>
@@ -652,7 +667,10 @@ export default function CabanasPage() {
       {assignCabana && (
         <Modal
           title={`${assignCabana.name} - İşlemler`}
-          onClose={() => setAssignCabana(null)}
+          onClose={() => {
+            setAssignCabana(null);
+            setAssignError("");
+          }}
         >
           <div className="space-y-4">
             <Field label="Konsept Ata / Güncelle">
@@ -683,9 +701,13 @@ export default function CabanasPage() {
                 ))}
               </select>
             </Field>
+            {assignError && <ErrorMsg msg={assignError} />}
             <div className="flex justify-end gap-2 pt-2">
               <button
-                onClick={() => setAssignCabana(null)}
+                onClick={() => {
+                  setAssignCabana(null);
+                  setAssignError("");
+                }}
                 className={cancelBtnCls}
               >
                 İptal

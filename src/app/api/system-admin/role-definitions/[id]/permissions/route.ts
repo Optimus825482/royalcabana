@@ -6,8 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { parseBody } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { invalidatePermissionCache } from "@/lib/permission-cache";
+import { Prisma } from "@prisma/client";
 
-const db = prisma as any;
+const db = prisma;
 
 const updatePermissionsSchema = z.object({
   permissionIds: z.array(z.string().min(1)).default([]),
@@ -145,7 +146,7 @@ export const PUT = withAuth(
     const selectedSet = new Set(requestedIds);
     const now = new Date();
 
-    const tx: Promise<unknown>[] = [];
+    const tx: Prisma.PrismaPromise<unknown>[] = [];
 
     for (const permissionId of requestedIds) {
       const existing = byPermissionId.get(permissionId);

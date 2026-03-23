@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { signIn, getSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Sun, Moon } from "lucide-react";
 import { Role, MODULE_ACCESS } from "@/types";
@@ -15,7 +14,6 @@ type DemoAccount = {
 };
 
 export default function LoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

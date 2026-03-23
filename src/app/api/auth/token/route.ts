@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   if (!session) {
     return NextResponse.json(
-      { success: true, data: { token: null } },
+      { success: true, data: { token: null }, error: null },
       { status: 200 },
     );
   }
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const rl = await checkRateLimit(`token:${userId}`, 10, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(
-      { success: false, error: "Rate limit aşıldı." },
+      { success: false, data: null, error: "Rate limit aşıldı." },
       { status: 429 },
     );
   }
@@ -35,5 +35,9 @@ export async function GET(req: NextRequest) {
     { expiresIn: "1h" },
   );
 
-  return NextResponse.json({ success: true, data: { token: socketToken } });
+  return NextResponse.json({
+    success: true,
+    data: { token: socketToken },
+    error: null,
+  });
 }

@@ -24,7 +24,7 @@ export const GET = withAuth(
     if (userId) where.userId = userId;
 
     const [items, total] = await Promise.all([
-      (prisma as any).waitlistEntry.findMany({
+      prisma.waitlistEntry.findMany({
         where,
         include: {
           cabana: { select: { id: true, name: true } },
@@ -34,7 +34,7 @@ export const GET = withAuth(
         skip,
         take: limit,
       }),
-      (prisma as any).waitlistEntry.count({ where }),
+      prisma.waitlistEntry.count({ where }),
     ]);
 
     return NextResponse.json({ success: true, data: { items, total } });
@@ -59,7 +59,7 @@ export const POST = withAuth(
     const { cabanaId, guestName, desiredStart, desiredEnd, notes } =
       parsed.data;
 
-    const item = await (prisma as any).waitlistEntry.create({
+    const item = await prisma.waitlistEntry.create({
       data: {
         cabanaId,
         userId: session.user.id,

@@ -26,7 +26,7 @@ export const GET = withAuth(
     }
 
     const [items, total] = await Promise.all([
-      (prisma as any).recurringBooking.findMany({
+      prisma.recurringBooking.findMany({
         where,
         include: {
           cabana: { select: { id: true, name: true } },
@@ -36,7 +36,7 @@ export const GET = withAuth(
         skip,
         take: limit,
       }),
-      (prisma as any).recurringBooking.count({ where }),
+      prisma.recurringBooking.count({ where }),
     ]);
 
     return NextResponse.json({ success: true, data: { items, total } });
@@ -67,7 +67,7 @@ export const POST = withAuth(
       endDate,
     } = parsed.data;
 
-    const item = await (prisma as any).recurringBooking.create({
+    const item = await prisma.recurringBooking.create({
       data: {
         cabanaId,
         userId: session.user.id,

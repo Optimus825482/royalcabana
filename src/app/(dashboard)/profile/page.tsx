@@ -49,8 +49,8 @@ export default function ProfilePage() {
   });
 
   // Form state
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
+  const [usernameDraft, setUsernameDraft] = useState<string | null>(null);
+  const [emailDraft, setEmailDraft] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -66,13 +66,8 @@ export default function ProfilePage() {
     message: string;
   } | null>(null);
 
-  // Sync form when profile loads
-  useEffect(() => {
-    if (profile) {
-      setUsername(profile.username);
-      setEmail(profile.email);
-    }
-  }, [profile]);
+  const username = usernameDraft ?? profile?.username ?? "";
+  const email = emailDraft ?? profile?.email ?? "";
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -96,8 +91,8 @@ export default function ProfilePage() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["profile"], data);
-      setUsername(data.username);
-      setEmail(data.email);
+      setUsernameDraft(null);
+      setEmailDraft(null);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -234,7 +229,7 @@ export default function ProfilePage() {
               id="username"
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsernameDraft(e.target.value)}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-lg pl-10 pr-4 py-3 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors"
               required
               minLength={3}
@@ -256,7 +251,7 @@ export default function ProfilePage() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmailDraft(e.target.value)}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-lg pl-10 pr-4 py-3 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors"
               required
             />

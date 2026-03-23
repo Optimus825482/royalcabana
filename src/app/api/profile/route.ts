@@ -8,14 +8,16 @@ import { logAudit } from "@/lib/audit";
 const ALL_ROLES = [
   Role.SYSTEM_ADMIN,
   Role.ADMIN,
+  Role.CASINO_ADMIN,
   Role.CASINO_USER,
+  Role.FNB_ADMIN,
   Role.FNB_USER,
 ];
 
 /** GET /api/profile — mevcut kullanıcının profil bilgileri */
 export const GET = withAuth(ALL_ROLES, async (_req, { session }) => {
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+  const user = await prisma.user.findFirst({
+    where: { id: session.user.id, deletedAt: null },
     select: {
       id: true,
       username: true,
@@ -27,12 +29,12 @@ export const GET = withAuth(ALL_ROLES, async (_req, { session }) => {
 
   if (!user) {
     return NextResponse.json(
-      { success: false, error: "Kullanıcı bulunamadı" },
+      { success: false, data: null, error: "Kullanıcı bulunamadı" },
       { status: 404 },
     );
   }
 
-  return NextResponse.json({ success: true, data: user });
+  return NextResponse.json({ success: true, data: user, error: null });
 });
 
 /** PATCH /api/profile — kullanıcı bilgilerini güncelle */
@@ -50,18 +52,22 @@ export const PATCH = withAuth(
     // En az bir alan değişmeli
     if (!username && !email && !newPassword) {
       return NextResponse.json(
-        { success: false, error: "Güncellenecek en az bir alan gerekli." },
+        {
+          success: false,
+          data: null,
+          error: "Güncellenecek en az bir alan gerekli.",
+        },
         { status: 400 },
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const user = await prisma.user.findFirst({
+      where: { id: session.user.id, deletedAt: null },
     });
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "Kullanıcı bulunamadı" },
+        { success: false, data: null, error: "Kullanıcı bulunamadı" },
         { status: 404 },
       );
     }
@@ -72,6 +78,7 @@ export const PATCH = withAuth(
         return NextResponse.json(
           {
             success: false,
+            data: null,
             error: "Şifre değiştirmek için mevcut şifrenizi girin.",
           },
           { status: 400 },
@@ -80,7 +87,7 @@ export const PATCH = withAuth(
       const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
       if (!isValid) {
         return NextResponse.json(
-          { success: false, error: "Mevcut şifre hatalı." },
+          { success: false, data: null, error: "Mevcut şifre hatalı." },
           { status: 400 },
         );
       }
@@ -89,6 +96,7 @@ export const PATCH = withAuth(
         return NextResponse.json(
           {
             success: false,
+            data: null,
             error:
               "Şifre en az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 rakam içermelidir.",
           },
@@ -99,20 +107,32 @@ export const PATCH = withAuth(
 
     // Username/email benzersizlik kontrolü
     if (username && username !== user.username) {
-      const existing = await prisma.user.findUnique({ where: { username } });
+      const existing = await prisma.user.findFirst({
+        where: { username, deletedAt: null },
+      });
       if (existing) {
         return NextResponse.json(
-          { success: false, error: "Bu kullanıcı adı zaten kullanılıyor." },
+          {
+            success: false,
+            data: null,
+            error: "Bu kullanıcı adı zaten kullanılıyor.",
+          },
           { status: 409 },
         );
       }
     }
 
     if (email && email !== user.email) {
-      const existing = await prisma.user.findUnique({ where: { email } });
+      const existing = await prisma.user.findFirst({
+        where: { email, deletedAt: null },
+      });
       if (existing) {
         return NextResponse.json(
-          { success: false, error: "Bu e-posta adresi zaten kullanılıyor." },
+          {
+            success: false,
+            data: null,
+            error: "Bu e-posta adresi zaten kullanılıyor.",
+          },
           { status: 409 },
         );
       }
@@ -130,6 +150,7 @@ export const PATCH = withAuth(
       return NextResponse.json({
         success: true,
         data: { message: "Değişiklik yok." },
+        error: null,
       });
     }
 
@@ -159,6 +180,6 @@ export const PATCH = withAuth(
       newValue: changedFields,
     });
 
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({ success: true, data: updated, error: null });
   },
 );

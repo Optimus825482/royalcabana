@@ -48,17 +48,6 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
   [ReservationStatus.CHECKED_OUT]: "Çıkış Yapıldı",
 };
 
-const STATUS_TEXT_COLORS: Record<ReservationStatus, string> = {
-  [ReservationStatus.PENDING]: "text-yellow-400",
-  [ReservationStatus.APPROVED]: "text-emerald-400",
-  [ReservationStatus.REJECTED]: "text-red-400",
-  [ReservationStatus.CANCELLED]: "text-neutral-400",
-  [ReservationStatus.MODIFICATION_PENDING]: "text-orange-400",
-  [ReservationStatus.EXTRA_PENDING]: "text-purple-400",
-  [ReservationStatus.CHECKED_IN]: "text-teal-400",
-  [ReservationStatus.CHECKED_OUT]: "text-slate-400",
-};
-
 const STATUS_BADGE: Record<ReservationStatus, string> = {
   [ReservationStatus.PENDING]:
     "bg-yellow-950/60 border-yellow-700/40 text-yellow-400",
@@ -101,10 +90,6 @@ function toDateStr(d: Date): string {
 
 function isSameDay(a: string, b: string): boolean {
   return a === b;
-}
-
-function isDateInRange(dateStr: string, start: string, end: string): boolean {
-  return dateStr >= start && dateStr < end;
 }
 
 function getMonthDays(year: number, month: number): Date[] {
@@ -339,26 +324,20 @@ export default function ReservationCalendarInner({
 
   // ── Day click → open day detail modal ───────────────────────────────────────
 
-  const handleDayClick = useCallback(
-    (dateStr: string) => {
-      if (longPressTriggered.current) return;
-      const dayEvents = eventsByDate.get(dateStr) ?? [];
-      if (dayEvents.length > 0) {
-        setDayModal({ visible: true, dateStr, events: dayEvents });
-      }
-    },
-    [eventsByDate],
-  );
+  const handleDayClick = (dateStr: string) => {
+    if (longPressTriggered.current) return;
+    const dayEvents = eventsByDate.get(dateStr) ?? [];
+    if (dayEvents.length > 0) {
+      setDayModal({ visible: true, dateStr, events: dayEvents });
+    }
+  };
 
   // ── Event click in modal ────────────────────────────────────────────────────
 
-  const handleEventClickInModal = useCallback(
-    (ev: ReservationEvent) => {
-      setDayModal((prev) => ({ ...prev, visible: false }));
-      onEventClick?.(ev);
-    },
-    [onEventClick],
-  );
+  const handleEventClickInModal = (ev: ReservationEvent) => {
+    setDayModal((prev) => ({ ...prev, visible: false }));
+    onEventClick?.(ev);
+  };
 
   // ── Context menu actions ────────────────────────────────────────────────────
 
@@ -369,7 +348,7 @@ export default function ReservationCalendarInner({
     setContextMenu(INITIAL_CTX);
   }, [onDateClick, contextMenu]);
 
-  const handleViewDay = useCallback(() => {
+  const handleViewDay = () => {
     const dayEvents = eventsByDate.get(contextMenu.dateStr) ?? [];
     setDayModal({
       visible: true,
@@ -377,16 +356,16 @@ export default function ReservationCalendarInner({
       events: dayEvents,
     });
     setContextMenu(INITIAL_CTX);
-  }, [eventsByDate, contextMenu.dateStr]);
+  };
 
   // Event-specific context menu
-  const handleEventContextAction = useCallback(
-    (ev: ReservationEvent, action: "modify" | "cancel" | "extra-concept") => {
-      onContextMenu?.(ev, action);
-      setDayModal((prev) => ({ ...prev, visible: false }));
-    },
-    [onContextMenu],
-  );
+  const handleEventContextAction = (
+    ev: ReservationEvent,
+    action: "modify" | "cancel" | "extra-concept",
+  ) => {
+    onContextMenu?.(ev, action);
+    setDayModal((prev) => ({ ...prev, visible: false }));
+  };
 
   // ── Render ──────────────────────────────────────────────────────────────────
 

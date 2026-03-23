@@ -45,11 +45,15 @@ const ICON_MAP: Record<string, typeof Sun> = {
   "50": CloudFog,
 };
 
-function getWeatherIcon(iconCode?: string | null) {
-  if (!iconCode || typeof iconCode !== "string" || iconCode.length < 2)
-    return Cloud;
+function renderWeatherIcon(iconCode?: string | null) {
+  const iconProps = "w-8 h-8 text-amber-400";
+  if (!iconCode || typeof iconCode !== "string" || iconCode.length < 2) {
+    return <Cloud className={iconProps} />;
+  }
+
   const prefix = iconCode.slice(0, 2);
-  return ICON_MAP[prefix] ?? Cloud;
+  const Icon = ICON_MAP[prefix] ?? Cloud;
+  return <Icon className={iconProps} />;
 }
 
 export default function WeatherCard() {
@@ -91,14 +95,12 @@ export default function WeatherCard() {
 
   if (!data) return null;
 
-  const WeatherIcon = getWeatherIcon(data?.icon);
-
   return (
     <div className="bg-gradient-to-br from-neutral-900 to-neutral-900/80 border border-neutral-800 rounded-xl p-5 hover:border-amber-500/30 transition-colors">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-amber-500/10 flex items-center justify-center">
-            <WeatherIcon className="w-8 h-8 text-amber-400" />
+            {renderWeatherIcon(data?.icon)}
           </div>
           <div>
             <p className="text-3xl font-semibold text-neutral-100">

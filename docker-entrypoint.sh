@@ -17,9 +17,17 @@ fi
 
 echo "⏳ Waiting for PostgreSQL..."
 until node -e "
-const { Client } = require('pg');
-const c = new Client({ connectionString: process.env.DATABASE_URL });
-c.connect().then(() => { c.end(); process.exit(0); }).catch(() => process.exit(1));
+const { URL } = require('url');
+const net = require('net');
+const dbUrl = new URL(process.env.DATABASE_URL);
+const socket = net.createConnection({
+  host: dbUrl.hostname,
+  port: dbUrl.port ? Number(dbUrl.port) : 5432,
+});
+socket.setTimeout(2000);
+socket.on('connect', () => { socket.end(); process.exit(0); });
+socket.on('timeout', () => { socket.destroy(); process.exit(1); });
+socket.on('error', () => process.exit(1));
 " 2>/dev/null; do
   sleep 2
 done
@@ -28,8 +36,12 @@ echo "✅ PostgreSQL ready"
 echo "🔄 Running migrations..."
 node_modules/.bin/prisma migrate deploy
 
-echo "🌱 Running seed..."
-npx tsx prisma/seed.ts || echo "⚠️  Seed skipped (already seeded)"
+if [ "${RUN_SEED_ON_STARTUP:-false}" = "true" ]; then
+  echo "🌱 Running seed..."
+  node_modules/.bin/tsx prisma/seed.ts || echo "⚠️  Seed skipped (already seeded)"
+else
+  echo "🌱 Seed on startup disabled (set RUN_SEED_ON_STARTUP=true to enable)"
+fi
 
 echo "🚀 Starting Next.js..."
 echo "ℹ️  NEXTAUTH_URL=${NEXTAUTH_URL:-NOT SET}"

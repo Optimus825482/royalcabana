@@ -26,7 +26,7 @@ export const GET = withAuth(
     if (staffId) where.staffId = staffId;
 
     const [items, total] = await Promise.all([
-      (prisma as any).staffAssignment.findMany({
+      prisma.staffAssignment.findMany({
         where,
         include: {
           staff: { select: { id: true, name: true, position: true } },
@@ -36,7 +36,7 @@ export const GET = withAuth(
         skip,
         take: limit,
       }),
-      (prisma as any).staffAssignment.count({ where }),
+      prisma.staffAssignment.count({ where }),
     ]);
 
     return NextResponse.json({ success: true, data: { items, total } });
@@ -61,7 +61,7 @@ export const POST = withAuth(
     const { staffId, cabanaId, date, shift } = parsed.data;
 
     // Aynı gün aynı personel aynı Cabana kontrolü
-    const existing = await (prisma as any).staffAssignment.findUnique({
+    const existing = await prisma.staffAssignment.findUnique({
       where: {
         staffId_cabanaId_date: {
           staffId,
@@ -81,7 +81,7 @@ export const POST = withAuth(
       );
     }
 
-    const item = await (prisma as any).staffAssignment.create({
+    const item = await prisma.staffAssignment.create({
       data: {
         staffId,
         cabanaId,

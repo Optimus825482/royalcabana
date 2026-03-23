@@ -197,7 +197,7 @@ export default function CasinoReservationsPage() {
 
   useSSE({ onEvent: handleSSEEvent as (event: string, data: unknown) => void });
 
-  const reservations = data?.reservations ?? [];
+  const reservations = useMemo(() => data?.reservations ?? [], [data]);
 
   const filtered = useMemo(() => {
     if (!statusFilter) return reservations;
