@@ -421,6 +421,20 @@ export const DEFAULT_ROLE_PERMISSION_KEYS: Record<Role, string[]> = {
     "reservation.approve",
     "map.view",
   ],
+  [Role.FNB_ADMIN]: [
+    "concept.view",
+    "product.view",
+    "product.create",
+    "product.update",
+    "task.definition.view",
+    "fnb.order.view",
+    "fnb.order.create",
+    "fnb.order.update",
+    "reservation.view",
+    "reservation.approve",
+    "map.view",
+    "report.view",
+  ],
 };
 
 export const ROLE_DISPLAY_DEFAULTS: Record<Role, string> = {
@@ -428,6 +442,7 @@ export const ROLE_DISPLAY_DEFAULTS: Record<Role, string> = {
   [Role.ADMIN]: "Admin",
   [Role.CASINO_ADMIN]: "Casino Admin",
   [Role.CASINO_USER]: "Casino Kullanıcısı",
+  [Role.FNB_ADMIN]: "F&B Admin",
   [Role.FNB_USER]: "F&B Kullanıcısı",
 };
 

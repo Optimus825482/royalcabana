@@ -1,4 +1,6 @@
-import { createClient, RedisClientType } from "redis";
+import { createClient } from "redis";
+
+type RedisClient = ReturnType<typeof createClient>;
 
 /**
  * Socket.IO rate limiter with Redis sliding window + in-memory fallback.
@@ -6,9 +8,9 @@ import { createClient, RedisClientType } from "redis";
  */
 
 // ── Redis client (lazy init) ──
-let redis: RedisClientType | null = null;
+let redis: RedisClient | null = null;
 
-async function getRedisClient(): Promise<RedisClientType | null> {
+async function getRedisClient(): Promise<RedisClient | null> {
   if (redis) return redis;
   const url = process.env.REDIS_URL ?? "redis://localhost:6379";
   try {
@@ -65,9 +67,8 @@ async function redisRateLimit(
   const results = await pipeline.exec();
   if (!results) throw new Error("Redis pipeline returned null");
 
-  // results[1] = [error, count] from zCard
-  const [err, count] = results[1] as [Error | null, number];
-  if (err) throw err;
+  // results[1] = count from zCard
+  const count = Number(results[1]);
 
   if (count >= limit) {
     // Remove the entry we just added since request is denied

@@ -50,6 +50,7 @@ const ROLE_LABELS: Record<Role, string> = {
   [Role.ADMIN]: "Admin",
   [Role.CASINO_ADMIN]: "Casino Admin",
   [Role.CASINO_USER]: "Casino Kullanıcısı",
+  [Role.FNB_ADMIN]: "F&B Admin",
   [Role.FNB_USER]: "F&B Kullanıcısı",
 };
 
